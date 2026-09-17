@@ -1621,8 +1621,8 @@ L_51F5:
 	call mueve_los_tres_perseguidores		;51f8
 	call L_6AB9		;51fb
 	call mueve_los_tres_de_la_lista		;51fe
-	call L_6DD2		;5201
-	call L_6D6D		;5204
+	call mueve_los_cinco_moviles		;5201
+	call suelta_el_bicho_del_cuadro_cero		;5204
 	call L_71C7		;5207
 	call L_6FB7		;520a
 	call L_701F		;520d
@@ -3377,11 +3377,11 @@ L_6807:
 	jr nz,L_6875		;681b
 	push de			;681d
 	push hl			;681e
-	call L_6D58		;681f
+	call busca_la_ficha_de_esa_posicion		;681f
 	jr z,descarta_el_objeto		;6822
 	push de			;6824
 	ld de,00000h		;6825
-	call L_6D58		;6828
+	call busca_la_ficha_de_esa_posicion		;6828
 	pop de			;682b
 	jr nz,L_6873		;682c
 	ld (hl),d			;682e
@@ -4103,10 +4103,10 @@ L_6C19:
 	pop hl			;6c19
 	call marca_si_esta_en_pantalla		;6c1a
 	dec hl			;6c1d
-	call L_6CA1		;6c1e
+	call decide_a_donde_va_el_bicho		;6c1e
 	inc hl			;6c21
-	call L_6CFC		;6c22
-	call L_6D41		;6c25
+	call pinta_el_bicho		;6c22
+	call junta_las_dos_fichas		;6c25
 L_6C28:
 	pop bc			;6c28
 	pop hl			;6c29
@@ -4153,7 +4153,7 @@ L_6C55:
 	call suma_bc_a_la_posicion		;6c5e   ; y su pareja
 	pop hl			;6c61
 	call marca_si_esta_en_pantalla		;6c62
-	call L_6D41		;6c65
+	call junta_las_dos_fichas		;6c65
 L_6C68:
 	pop bc			;6c68
 	pop hl			;6c69
@@ -4178,7 +4178,7 @@ suma_bc_a_la_posicion:
 	ret			;6c7b
 marca_si_esta_en_pantalla:
 	push hl			;6c7c
-	call L_6C8E		;6c7d
+	call esta_dentro_de_la_pantalla		;6c7d
 	dec hl			;6c80
 	set 5,(hl)		;6c81   ; el bit 5: fuera de la pantalla
 	jr c,L_6C8C		;6c83
@@ -4189,117 +4189,125 @@ marca_si_esta_en_pantalla:
 L_6C8C:
 	pop hl			;6c8c
 	ret			;6c8d
-L_6C8E:
+
+; ----------------------------------------------------------------------
+; SI UNA POSICION CAE DENTRO DE LA PANTALLA: dos restas encadenadas de 16 bits, la de abajo (0xC0) y la de arriba, y el acarreo final lo dice. La segunda resta lleva 0xFF30, que es restar un numero negativo, o sea sumar.
+; ----------------------------------------------------------------------
+esta_dentro_de_la_pantalla:
 	push hl			;6c8e
-	ld d,(hl)			;6c8f
+	ld d,(hl)			;6c8f   ; la posicion, guardada del reves
 	inc hl			;6c90
 	ld e,(hl)			;6c91
 	ex de,hl			;6c92
 	and a			;6c93
-	ld bc,000c0h		;6c94
+	ld bc,000c0h		;6c94   ; el limite de abajo
 	sbc hl,bc		;6c97
 	and a			;6c99
-	ld bc,0ff30h		;6c9a
+	ld bc,0ff30h		;6c9a   ; y el de arriba
 	sbc hl,bc		;6c9d
 	pop hl			;6c9f
 	ret			;6ca0
-L_6CA1:
+
+; ----------------------------------------------------------------------
+; LA DECISION DEL BICHO, que es la IA del cartucho y cabe en cincuenta instrucciones. Segun su tipo -los dos bits de abajo- usa una ventana u otra (0x20/0x40 o 0x18/0x20) y, por encima de esa distancia, se orienta HACIA EL JUGADOR comparando su posicion con la de el y poniendo o quitando el bit 7. El bit 3 marca si esta cerca, y ademas cuando esta a menos de 0x30 solo reacciona uno de cada cuatro cuadros en vez de uno de cada ocho: de cerca es mas nervioso.
+; ----------------------------------------------------------------------
+decide_a_donde_va_el_bicho:
 	ld a,(hl)			;6ca1
-	bit 5,a		;6ca2
+	bit 5,a		;6ca2   ; el bit 5: fuera de la pantalla
 	ret nz			;6ca4
-	and 003h		;6ca5
+	and 003h		;6ca5   ; los dos bits de tipo
 	ret z			;6ca7
 	push hl			;6ca8
 	inc hl			;6ca9
 	inc hl			;6caa
-	ld c,(hl)			;6cab
+	ld c,(hl)			;6cab   ; su posicion
 	inc hl			;6cac
 	ld b,(hl)			;6cad
 	pop hl			;6cae
-	res 6,(hl)		;6caf
-	cp 001h		;6cb1
+	res 6,(hl)		;6caf   ; se limpia la marca de alcance
+	cp 001h		;6cb1   ; el tipo 1 va aparte
 	jr nz,L_6CC9		;6cb3
-	ld a,(0e1b4h)		;6cb5
+	ld a,(0e1b4h)		;6cb5   ; la posicion del jugador
 	sub b			;6cb8
-	cp 008h		;6cb9
+	cp 008h		;6cb9   ; ocho pixeles
 	ret nc			;6cbb
 	ld a,(0e1b2h)		;6cbc
-	cp 007h		;6cbf
+	cp 007h		;6cbf   ; y solo en el estado 7
 	ret nz			;6cc1
 	ld a,(hl)			;6cc2
-	or 0c0h		;6cc3
+	or 0c0h		;6cc3   ; se marcan los dos bits de arriba
 	res 3,a		;6cc5
 	ld (hl),a			;6cc7
 	ret			;6cc8
 L_6CC9:
-	ld de,02040h		;6cc9
+	ld de,02040h		;6cc9   ; la ventana de un tipo
 	cp 003h		;6ccc
 	jr nz,L_6CD5		;6cce
-	ld de,01820h		;6cd0
+	ld de,01820h		;6cd0   ; y la del otro
 	set 4,(hl)		;6cd3
 L_6CD5:
 	ld a,b			;6cd5
 	sub d			;6cd6
 	ld b,a			;6cd7
-	ld a,(0e1b4h)		;6cd8
+	ld a,(0e1b4h)		;6cd8   ; la posicion del jugador
 	sub b			;6cdb
-	cp e			;6cdc
-	set 3,(hl)		;6cdd
+	cp e			;6cdc   ; contra la ventana
+	set 3,(hl)		;6cdd   ; se marca que esta cerca
 	ret nc			;6cdf
-	res 3,(hl)		;6ce0
-	cp 030h		;6ce2
-	ld e,008h		;6ce4
+	res 3,(hl)		;6ce0   ; o que no
+	cp 030h		;6ce2   ; a menos de 0x30
+	ld e,008h		;6ce4   ; reacciona uno de cada ocho
 	jr nc,L_6CEA		;6ce6
-	ld e,004h		;6ce8
+	ld e,004h		;6ce8   ; y de cerca, uno de cada cuatro
 L_6CEA:
 	ld a,(0e1b7h)		;6cea
 	and e			;6ced
 	ret nz			;6cee
-	ld a,(0e1b3h)		;6cef
+	ld a,(0e1b3h)		;6cef   ; la otra coordenada del jugador
 	sub 010h		;6cf2
 	cp c			;6cf4
-	res 7,(hl)		;6cf5
+	res 7,(hl)		;6cf5   ; el bit 7 es hacia donde mira
 	jr nc,L_6CFB		;6cf7
-	set 7,(hl)		;6cf9
+	set 7,(hl)		;6cf9   ; y se le da la vuelta si el jugador esta al otro lado
 L_6CFB:
 	ret			;6cfb
-L_6CFC:
+pinta_el_bicho:
 	push hl			;6cfc
 	dec hl			;6cfd
 	ld c,(hl)			;6cfe
-	bit 5,c		;6cff
+	bit 5,c		;6cff   ; el bit 5: fuera de la pantalla
 	jr nz,L_6D3F		;6d01
 	push hl			;6d03
 	inc hl			;6d04
 	inc hl			;6d05
-	ld a,028h		;6d06
-	bit 7,c		;6d08
+	ld a,028h		;6d06   ; cuarenta pixeles
+	bit 7,c		;6d08   ; el bit 7: hacia donde mira
 	jr z,L_6D0E		;6d0a
-	ld a,0f8h		;6d0c
+	ld a,0f8h		;6d0c   ; u ocho hacia atras
 L_6D0E:
 	add a,(hl)			;6d0e
 	ld e,a			;6d0f
-	sub 018h		;6d10
+	sub 018h		;6d10   ; la banda util
 	cp 0a8h		;6d12
 	ld a,004h		;6d14
 	jr nc,L_6D3A		;6d16
 	inc hl			;6d18
 	ld d,(hl)			;6d19
 	ex de,hl			;6d1a
-	ld b,003h		;6d1b
-	bit 7,c		;6d1d
+	ld b,003h		;6d1b   ; tres celdas
+	bit 7,c		;6d1d   ; el bit 7: hacia donde mira
 	jr z,L_6D23		;6d1f
-	ld b,002h		;6d21
+	ld b,002h		;6d21   ; dos si va al otro lado
 L_6D23:
 	push bc			;6d23
-	call L_498C		;6d24
+	call L_498C		;6d24   ; que hay en esa celda
 	pop bc			;6d27
-	cp 003h		;6d28
+	cp 003h		;6d28   ; el indice 3 es por donde puede pasar
 	jr nz,L_6D3A		;6d2a
-	ld a,008h		;6d2c
+	ld a,008h		;6d2c   ; ocho pixeles
 	bit 7,c		;6d2e
 	jr z,L_6D33		;6d30
-	add a,a			;6d32
+	add a,a			;6d32   ; o dieciseis
 L_6D33:
 	add a,h			;6d33
 	ld h,a			;6d34
@@ -4308,49 +4316,57 @@ L_6D33:
 	jr L_6D3F		;6d38
 L_6D3A:
 	pop hl			;6d3a
-	ld a,080h		;6d3b
+	ld a,080h		;6d3b   ; y si no puede, se da la vuelta (bit 7)
 	xor (hl)			;6d3d
 	ld (hl),a			;6d3e
 L_6D3F:
 	pop hl			;6d3f
 	ret			;6d40
-L_6D41:
-	call L_6C8E		;6d41
+
+; ----------------------------------------------------------------------
+; JUNTAR LAS DOS FICHAS DE UN BICHO cuando las dos estan en pantalla: copia ocho bytes hacia atras con `lddr`, que es como la pareja sigue a la cabeza sin recalcular nada.
+; ----------------------------------------------------------------------
+junta_las_dos_fichas:
+	call esta_dentro_de_la_pantalla		;6d41   ; la primera ficha en pantalla?
 	ret nc			;6d44
-	inc hl			;6d45
+	inc hl			;6d45   ; y la segunda, cuatro bytes mas alla
 	inc hl			;6d46
 	inc hl			;6d47
 	inc hl			;6d48
-	call L_6C8E		;6d49
+	call esta_dentro_de_la_pantalla		;6d49
 	ret nc			;6d4c
 	ld d,h			;6d4d
 	ld e,l			;6d4e
 	inc hl			;6d4f
 	ld (hl),000h		;6d50
-	ld bc,00008h		;6d52
-	lddr		;6d55
+	ld bc,00008h		;6d52   ; ocho bytes
+	lddr		;6d55   ; hacia atras: la cola sigue a la cabeza
 	ret			;6d57
-L_6D58:
+busca_la_ficha_de_esa_posicion:
 	ld hl,0e1deh		;6d58
-	ld b,003h		;6d5b
+	ld b,003h		;6d5b   ; tres fichas
 L_6D5D:
 	ld a,(hl)			;6d5d
 	inc hl			;6d5e
-	cp e			;6d5f
+	cp e			;6d5f   ; una coordenada
 	jr nz,L_6D65		;6d60
 	ld a,(hl)			;6d62
-	cp d			;6d63
+	cp d			;6d63   ; y la otra
 	ret z			;6d64
 L_6D65:
 	ld a,008h		;6d65
-	call suma_a_a_hl		;6d67
+	call suma_a_a_hl		;6d67   ; ocho bytes por ficha
 	djnz L_6D5D		;6d6a
 	ret			;6d6c
-L_6D6D:
-	ld a,(0e003h)		;6d6d
-	or a			;6d70
+
+; ----------------------------------------------------------------------
+; SOLTAR UN BICHO, y solo en el cuadro en que el contador da la vuelta a cero: una vez cada 256 cuadros, o sea cada cinco segundos largos.
+; ----------------------------------------------------------------------
+suelta_el_bicho_del_cuadro_cero:
+	ld a,(0e003h)		;6d6d   ; el contador de cuadros
+	or a			;6d70   ; solo cuando da la vuelta
 	ret nz			;6d71
-	ld de,06d7ah		;6d72
+	ld de,06d7ah		;6d72   ; la rutina que se les aplica
 	ld a,093h		;6d75
 	jp L_6ACC		;6d77
 
@@ -4369,61 +4385,65 @@ DATA_6D7A:
 ; ======================================================================
 
 
-L_6DD2:
+
+; ----------------------------------------------------------------------
+; EL BUCLE DE LOS CINCO MOVILES de 0xE1FB. Cada uno guarda el numero del objeto al que va pegado -por tres, que es lo que ocupa cada objeto-, y con IX y IY apuntando a los dos a la vez se decide si sube o baja segun el bit 7.
+; ----------------------------------------------------------------------
+mueve_los_cinco_moviles:
 	ld hl,0e1fbh		;6dd2
-	ld bc,00500h		;6dd5
+	ld bc,00500h		;6dd5   ; cinco
 L_6DD8:
 	push hl			;6dd8
 	push bc			;6dd9
 	ld a,(hl)			;6dda
-	or a			;6ddb
+	or a			;6ddb   ; ficha vacia
 	jr z,L_6E1B		;6ddc
 	push hl			;6dde
 	pop iy		;6ddf
 	dec hl			;6de1
 	ld a,(hl)			;6de2
-	add a,a			;6de3
+	add a,a			;6de3   ; el numero de objeto, por tres
 	add a,(hl)			;6de4
 	inc hl			;6de5
-	ld de,0e132h		;6de6
+	ld de,0e132h		;6de6   ; la lista de objetos
 	call suma_a_a_de		;6de9
 	push de			;6dec
 	pop ix		;6ded
 	ld a,(de)			;6def
-	cp 0d0h		;6df0
+	cp 0d0h		;6df0   ; retirado
 	jr z,L_6E36		;6df2
 	ld a,(ix+002h)		;6df4
-	sub 08bh		;6df7
+	sub 08bh		;6df7   ; los tipos 0x8B a 0x8F
 	cp 004h		;6df9
 	jr c,L_6E01		;6dfb
 	cp 005h		;6dfd
 	jr nz,L_6E36		;6dff
 L_6E01:
-	bit 7,(hl)		;6e01
+	bit 7,(hl)		;6e01   ; el bit 7: hacia donde
 	jr z,L_6E0A		;6e03
-	call L_6E62		;6e05
+	call espera_a_que_toque_moverse		;6e05
 	jr L_6E1B		;6e08
 L_6E0A:
-	call L_6E3B		;6e0a
-	jr c,L_6E24		;6e0d
-	bit 6,(hl)		;6e0f
+	call caja_del_movil_contra_el_jugador		;6e0a
+	jr c,el_movil_alcanza_al_jugador		;6e0d
+	bit 6,(hl)		;6e0f   ; el bit 6: una rutina u otra
 	jr z,L_6E18		;6e11
-	call L_6EB4		;6e13
+	call avanza_el_movil_despacio		;6e13
 	jr L_6E1B		;6e16
 L_6E18:
-	call L_6F5F		;6e18
+	call avanza_el_movil_rapido		;6e18
 L_6E1B:
 	pop bc			;6e1b
 	pop hl			;6e1c
-	inc hl			;6e1d
+	inc hl			;6e1d   ; tres bytes por ficha
 	inc hl			;6e1e
 	inc hl			;6e1f
 	inc c			;6e20
 	djnz L_6DD8		;6e21
 	ret			;6e23
-L_6E24:
+el_movil_alcanza_al_jugador:
 	ex de,hl			;6e24
-	ld c,(hl)			;6e25
+	ld c,(hl)			;6e25   ; su posicion
 	inc hl			;6e26
 	ld b,(hl)			;6e27
 	dec hl			;6e28
@@ -4431,30 +4451,34 @@ L_6E24:
 	push bc			;6e2a
 	call L_6F47		;6e2b
 	pop bc			;6e2e
-	ld a,004h		;6e2f
+	ld a,004h		;6e2f   ; el sonido del golpe
 	call L_79A4		;6e31
 	jr L_6E1B		;6e34
 L_6E36:
-	call L_6EA5		;6e36
+	call borra_la_ficha		;6e36
 	jr L_6E1B		;6e39
-L_6E3B:
+
+; ----------------------------------------------------------------------
+; LA CAJA DE UN MOVIL, de 0x10 por 0x10, con el desplazamiento cambiado segun el tipo: el 0x8C no lleva los cuatro pixeles de correccion y el 0x90 lleva ocho en la otra coordenada. Cada bicho tiene su caja, y no hay una tabla: son dos `cp` y dos valores.
+; ----------------------------------------------------------------------
+caja_del_movil_contra_el_jugador:
 	push hl			;6e3b
 	push de			;6e3c
 	ex de,hl			;6e3d
-	ld b,(hl)			;6e3e
+	ld b,(hl)			;6e3e   ; su posicion
 	inc hl			;6e3f
 	ld c,(hl)			;6e40
 	inc hl			;6e41
 	ld a,(hl)			;6e42
-	ld d,004h		;6e43
-	cp 08ch		;6e45
+	ld d,004h		;6e43   ; cuatro de correccion
+	cp 08ch		;6e45   ; salvo el tipo 0x8C
 	jr nz,L_6E4B		;6e47
-	ld d,000h		;6e49
+	ld d,000h		;6e49   ; que no lleva ninguna
 L_6E4B:
-	ld e,004h		;6e4b
-	cp 090h		;6e4d
+	ld e,004h		;6e4b   ; cuatro en la otra
+	cp 090h		;6e4d   ; y el 0x90
 	jr nz,L_6E53		;6e4f
-	ld e,008h		;6e51
+	ld e,008h		;6e51   ; lleva ocho
 L_6E53:
 	ld a,b			;6e53
 	sub d			;6e54
@@ -4462,18 +4486,22 @@ L_6E53:
 	ld a,c			;6e56
 	sub e			;6e57
 	ld c,a			;6e58
-	ld de,01010h		;6e59
+	ld de,01010h		;6e59   ; dieciseis por dieciseis
 	call L_709F		;6e5c
 	pop de			;6e5f
 	pop hl			;6e60
 	ret			;6e61
-L_6E62:
-	ld a,(0e003h)		;6e62
-	and 00fh		;6e65
+
+; ----------------------------------------------------------------------
+; EL RITMO DEL MOVIL: una vez de cada dieciseis cuadros, y ademas con el bit 1 de su contador puesto no se hace nada -o sea, se mueve dos veces y descansa dos-. El umbral del nibble bajo cambia con la fase: 6 de la tercera en adelante, 11 antes.
+; ----------------------------------------------------------------------
+espera_a_que_toque_moverse:
+	ld a,(0e003h)		;6e62   ; el contador de cuadros
+	and 00fh		;6e65   ; uno de cada dieciseis
 	ret nz			;6e67
-	inc (hl)			;6e68
+	inc (hl)			;6e68   ; su propio contador, uno mas
 	push hl			;6e69
-	bit 1,(hl)		;6e6a
+	bit 1,(hl)		;6e6a   ; el bit 1: dos y dos
 	jr nz,L_6EAC		;6e6c
 	ex de,hl			;6e6e
 L_6E6F:
@@ -4481,41 +4509,41 @@ L_6E6F:
 	pop hl			;6e72
 	ld a,(hl)			;6e73
 	ld c,a			;6e74
-	and 00fh		;6e75
+	and 00fh		;6e75   ; el nibble bajo
 	ld b,a			;6e77
-	ld a,(0e051h)		;6e78
+	ld a,(0e051h)		;6e78   ; el numero de fase
 	cp 003h		;6e7b
-	ld a,006h		;6e7d
+	ld a,006h		;6e7d   ; de la tercera en adelante, seis
 	jr nc,L_6E83		;6e7f
-	ld a,00bh		;6e81
+	ld a,00bh		;6e81   ; y antes, once
 L_6E83:
 	cp b			;6e83
 	ret nz			;6e84
 	ld a,c			;6e85
 	and 070h		;6e86
-	or 040h		;6e88
+	or 040h		;6e88   ; se marca el bit 6
 	ld (hl),a			;6e8a
 	push ix		;6e8b
 	pop hl			;6e8d
 	ld a,(hl)			;6e8e
-	sub 008h		;6e8f
+	sub 008h		;6e8f   ; ocho pixeles
 	ld (hl),a			;6e91
 	inc hl			;6e92
-	ld a,0e8h		;6e93
-	bit 4,c		;6e95
+	ld a,0e8h		;6e93   ; veinticuatro hacia atras
+	bit 4,c		;6e95   ; el bit 4 elige el sentido
 	jr nz,L_6E9B		;6e97
-	ld a,008h		;6e99
+	ld a,008h		;6e99   ; u ocho hacia delante
 L_6E9B:
 	add a,(hl)			;6e9b
 	ld (hl),a			;6e9c
 	inc hl			;6e9d
-	ld (hl),08ch		;6e9e
+	ld (hl),08ch		;6e9e   ; el tipo 0x8C
 	dec hl			;6ea0
 	dec hl			;6ea1
 	jp L_49B5		;6ea2
-L_6EA5:
+borra_la_ficha:
 	xor a			;6ea5
-	ld (hl),a			;6ea6
+	ld (hl),a			;6ea6   ; los tres bytes, a cero
 	dec hl			;6ea7
 	ld (hl),a			;6ea8
 	dec hl			;6ea9
@@ -4527,43 +4555,47 @@ L_6EAC:
 	ld c,(hl)			;6eae
 	call L_4A47		;6eaf
 	jr L_6E6F		;6eb2
-L_6EB4:
+
+; ----------------------------------------------------------------------
+; EL MOVIL LENTO: se atiende una vez de cada dieciseis cuadros, y ademas su propio contador sube solo una vez de cada 32, hasta el tope de 15. Y antes de avanzar MIRA LA PANTALLA: cuenta cuatro celdas hacia abajo y, si alguna no tiene el indice 3, no puede pasar.
+; ----------------------------------------------------------------------
+avanza_el_movil_despacio:
 	ld a,(0e003h)		;6eb4
 	ld b,a			;6eb7
-	and 00fh		;6eb8
+	and 00fh		;6eb8   ; uno de cada dieciseis
 	ret nz			;6eba
 	ld a,b			;6ebb
-	and 01fh		;6ebc
+	and 01fh		;6ebc   ; uno de cada treinta y dos
 	jr nz,L_6EC8		;6ebe
 	ld a,(hl)			;6ec0
-	and 00fh		;6ec1
-	cp 00fh		;6ec3
+	and 00fh		;6ec1   ; el nibble bajo
+	cp 00fh		;6ec3   ; el tope, quince
 	jr z,L_6EC8		;6ec5
-	inc (hl)			;6ec7
+	inc (hl)			;6ec7   ; uno mas
 L_6EC8:
 	push hl			;6ec8
 	push de			;6ec9
-	ld a,014h		;6eca
-	bit 4,(hl)		;6ecc
+	ld a,014h		;6eca   ; veinte pixeles
+	bit 4,(hl)		;6ecc   ; el bit 4: hacia arriba
 	jr z,L_6ED2		;6ece
-	ld a,0f8h		;6ed0
+	ld a,0f8h		;6ed0   ; u ocho hacia atras
 L_6ED2:
 	add a,(ix+001h)		;6ed2
 	ld h,a			;6ed5
 	ld a,(de)			;6ed6
 	ld l,a			;6ed7
-	sub 028h		;6ed8
+	sub 028h		;6ed8   ; la banda util
 	cp 078h		;6eda
 	jr nc,L_6EF5		;6edc
-	call L_498C		;6ede
-	cp 003h		;6ee1
-	jr nz,L_6F36		;6ee3
-	ld b,004h		;6ee5
+	call L_498C		;6ede   ; que hay en esa celda
+	cp 003h		;6ee1   ; el indice 3 es por donde se puede pasar
+	jr nz,el_movil_se_agota		;6ee3
+	ld b,004h		;6ee5   ; cuatro celdas
 L_6EE7:
-	ld a,020h		;6ee7
+	ld a,020h		;6ee7   ; la de abajo, 32 mas alla
 	call suma_a_a_de		;6ee9
-	call lee_de_vram		;6eec
-	cp 003h		;6eef
+	call lee_de_vram		;6eec   ; leida de la pantalla
+	cp 003h		;6eef   ; y todas tienen que ser el 3
 	jr nz,L_6F52		;6ef1
 	djnz L_6EE7		;6ef3
 L_6EF5:
@@ -4571,7 +4603,7 @@ L_6EF5:
 	pop hl			;6ef6
 	push hl			;6ef7
 	push de			;6ef8
-	call L_6FA1		;6ef9
+	call repinta_el_movil		;6ef9
 	pop de			;6efc
 	pop hl			;6efd
 	ld a,(de)			;6efe
@@ -4579,10 +4611,10 @@ L_6EF5:
 	cp 078h		;6f01
 	ld a,000h		;6f03
 	jr nc,L_6F0F		;6f05
-	ld a,004h		;6f07
-	bit 4,(hl)		;6f09
+	ld a,004h		;6f07   ; cuatro pixeles
+	bit 4,(hl)		;6f09   ; el bit 4: hacia el otro lado
 	jr z,L_6F0F		;6f0b
-	ld a,0fch		;6f0d
+	ld a,0fch		;6f0d   ; o cuatro hacia atras
 L_6F0F:
 	ld c,a			;6f0f
 	ex de,hl			;6f10
@@ -4590,17 +4622,17 @@ L_6F0F:
 	add a,(hl)			;6f12
 	ld (hl),a			;6f13
 	inc hl			;6f14
-	bit 2,c		;6f15
+	bit 2,c		;6f15   ; el bit 2
 	jr z,L_6F23		;6f17
 	ld (hl),08ch		;6f19
-	bit 2,a		;6f1b
+	bit 2,a		;6f1b   ; el bit 2 elige el otro dibujo
 	jr z,L_6F21		;6f1d
 	ld (hl),08dh		;6f1f
 L_6F21:
 	jr L_6F2C		;6f21
 L_6F23:
 	ld a,(hl)			;6f23
-	cp 08ch		;6f24
+	cp 08ch		;6f24   ; el dibujo alterna entre 0x8C y 0x90
 	ld (hl),090h		;6f26
 	jr z,L_6F2C		;6f28
 	ld (hl),08ch		;6f2a
@@ -4608,47 +4640,55 @@ L_6F2C:
 	dec hl			;6f2c
 	dec hl			;6f2d
 	call L_49B5		;6f2e
-	ld a,001h		;6f31
+	ld a,001h		;6f31   ; y el sonido del movil
 	jp L_7A13		;6f33
-L_6F36:
+
+; ----------------------------------------------------------------------
+; EL MOVIL QUE SE AGOTA. Los tipos 0x86 y 0x8A tienen cuenta atras: cuando su nibble bajo llega a 15, se borra la ficha y el objeto queda retirado. Y con el indice 0x9B delante se le quita el bit 6, o sea que cambia de modo.
+; ----------------------------------------------------------------------
+el_movil_se_agota:
 	pop de			;6f36
 	pop hl			;6f37
-	cp 086h		;6f38
+	cp 086h		;6f38   ; los dos tipos con cuenta atras
 	jr z,L_6F40		;6f3a
 	cp 08ah		;6f3c
 	jr nz,L_6F54		;6f3e
 L_6F40:
 	ld a,(hl)			;6f40
-	and 00fh		;6f41
-	cp 00fh		;6f43
+	and 00fh		;6f41   ; el nibble bajo
+	cp 00fh		;6f43   ; el tope, quince
 	jr nz,L_6F5A		;6f45
 L_6F47:
-	call L_6EA5		;6f47
-	call L_6FA1		;6f4a
-	ld (ix+000h),0d0h		;6f4d
+	call borra_la_ficha		;6f47   ; se borra la ficha
+	call repinta_el_movil		;6f4a
+	ld (ix+000h),0d0h		;6f4d   ; y el objeto queda retirado
 	ret			;6f51
 L_6F52:
 	pop de			;6f52
 	pop hl			;6f53
 L_6F54:
-	cp 09bh		;6f54
+	cp 09bh		;6f54   ; el indice 0x9B
 	jr nz,L_6F5A		;6f56
-	res 6,(hl)		;6f58
+	res 6,(hl)		;6f58   ; le quita el bit 6
 L_6F5A:
-	ld a,030h		;6f5a
+	ld a,030h		;6f5a   ; y le da la vuelta a los bits 4 y 5
 	xor (hl)			;6f5c
 	ld (hl),a			;6f5d
 	ret			;6f5e
-L_6F5F:
-	ld a,(0e003h)		;6f5f
-	and 00fh		;6f62
+
+; ----------------------------------------------------------------------
+; EL MOVIL RAPIDO: una vez de cada dieciseis cuadros, y mira DOS celdas -no cuatro- antes de avanzar. Otra vez preguntandole a la pantalla si por ahi se puede pasar.
+; ----------------------------------------------------------------------
+avanza_el_movil_rapido:
+	ld a,(0e003h)		;6f5f   ; el contador de cuadros
+	and 00fh		;6f62   ; uno de cada dieciseis
 	ret nz			;6f64
 	push hl			;6f65
 	push de			;6f66
-	ld a,024h		;6f67
-	bit 4,(hl)		;6f69
+	ld a,024h		;6f67   ; treinta y seis pixeles
+	bit 4,(hl)		;6f69   ; el bit 4: hacia arriba
 	jr z,L_6F6F		;6f6b
-	ld a,0f8h		;6f6d
+	ld a,0f8h		;6f6d   ; u ocho hacia atras
 L_6F6F:
 	ex de,hl			;6f6f
 	add a,(hl)			;6f70
@@ -4656,26 +4696,26 @@ L_6F6F:
 	inc hl			;6f72
 	ld d,(hl)			;6f73
 	ex de,hl			;6f74
-	ld b,002h		;6f75
+	ld b,002h		;6f75   ; dos celdas
 L_6F77:
-	call L_498C		;6f77
-	cp 003h		;6f7a
+	call L_498C		;6f77   ; que hay ahi
+	cp 003h		;6f7a   ; el indice 3 es por donde se puede pasar
 	jr nz,L_6F9D		;6f7c
 	ld a,h			;6f7e
-	add a,008h		;6f7f
+	add a,008h		;6f7f   ; ocho pixeles mas abajo
 	ld h,a			;6f81
 	djnz L_6F77		;6f82
 	pop de			;6f84
 	pop hl			;6f85
 	push hl			;6f86
 	push de			;6f87
-	call L_6FA1		;6f88
+	call repinta_el_movil		;6f88
 	pop de			;6f8b
 	pop hl			;6f8c
-	ld a,004h		;6f8d
-	bit 4,(hl)		;6f8f
+	ld a,004h		;6f8d   ; cuatro pixeles
+	bit 4,(hl)		;6f8f   ; el bit 4
 	jr z,L_6F95		;6f91
-	ld a,0fch		;6f93
+	ld a,0fch		;6f93   ; o cuatro hacia atras
 L_6F95:
 	ex de,hl			;6f95
 	add a,(hl)			;6f96
@@ -4687,11 +4727,11 @@ L_6F9D:
 	pop de			;6f9d
 	pop hl			;6f9e
 	jr L_6F5A		;6f9f
-L_6FA1:
+repinta_el_movil:
 	ex de,hl			;6fa1
 L_6FA2:
 	call L_4A0E		;6fa2
-	ld de,06fabh		;6fa5
+	ld de,06fabh		;6fa5   ; su tabla de patrones
 	jp L_49B8		;6fa8
 
 ; ----------------------------------------------------------------------

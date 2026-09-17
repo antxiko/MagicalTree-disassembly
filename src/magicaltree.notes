@@ -1147,3 +1147,178 @@ C 0x6c78 y devuelto en el mismo orden
 L 0x6c7c marca_si_esta_en_pantalla
 C 0x6c81 el bit 5: fuera de la pantalla
 C 0x6c85 dentro: se pinta
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x6c8e esta_dentro_de_la_pantalla
+B 0x6c8e SI UNA POSICION CAE DENTRO DE LA PANTALLA: dos restas encadenadas de 16 bits, la de abajo (0xC0) y la de arriba, y el acarreo final lo dice. La segunda resta lleva 0xFF30, que es restar un numero negativo, o sea sumar.
+C 0x6c8f la posicion, guardada del reves
+C 0x6c94 el limite de abajo
+C 0x6c9a y el de arriba
+L 0x6ca1 decide_a_donde_va_el_bicho
+B 0x6ca1 LA DECISION DEL BICHO, que es la IA del cartucho y cabe en cincuenta instrucciones. Segun su tipo -los dos bits de abajo- usa una ventana u otra (0x20/0x40 o 0x18/0x20) y, por encima de esa distancia, se orienta HACIA EL JUGADOR comparando su posicion con la de el y poniendo o quitando el bit 7. El bit 3 marca si esta cerca, y ademas cuando esta a menos de 0x30 solo reacciona uno de cada cuatro cuadros en vez de uno de cada ocho: de cerca es mas nervioso.
+C 0x6ca2 el bit 5: fuera de la pantalla
+C 0x6ca5 los dos bits de tipo
+C 0x6cab su posicion
+C 0x6caf se limpia la marca de alcance
+C 0x6cb1 el tipo 1 va aparte
+C 0x6cb5 la posicion del jugador
+C 0x6cb9 ocho pixeles
+C 0x6cbf y solo en el estado 7
+C 0x6cc3 se marcan los dos bits de arriba
+C 0x6cc9 la ventana de un tipo
+C 0x6cd0 y la del otro
+C 0x6cd8 la posicion del jugador
+C 0x6cdc contra la ventana
+C 0x6cdd se marca que esta cerca
+C 0x6ce0 o que no
+C 0x6ce2 a menos de 0x30
+C 0x6ce4 reacciona uno de cada ocho
+C 0x6ce8 y de cerca, uno de cada cuatro
+C 0x6cef la otra coordenada del jugador
+C 0x6cf5 el bit 7 es hacia donde mira
+C 0x6cf9 y se le da la vuelta si el jugador esta al otro lado
+L 0x6cfc pinta_el_bicho
+C 0x6cff el bit 5: fuera de la pantalla
+C 0x6d06 cuarenta pixeles
+C 0x6d08 el bit 7: hacia donde mira
+C 0x6d0c u ocho hacia atras
+C 0x6d10 la banda util
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6d1b tres celdas
+C 0x6d1d el bit 7: hacia donde mira
+C 0x6d21 dos si va al otro lado
+C 0x6d24 que hay en esa celda
+C 0x6d28 el indice 3 es por donde puede pasar
+C 0x6d2c ocho pixeles
+C 0x6d32 o dieciseis
+C 0x6d3b y si no puede, se da la vuelta (bit 7)
+L 0x6d41 junta_las_dos_fichas
+B 0x6d41 JUNTAR LAS DOS FICHAS DE UN BICHO cuando las dos estan en pantalla: copia ocho bytes hacia atras con `lddr`, que es como la pareja sigue a la cabeza sin recalcular nada.
+C 0x6d41 la primera ficha en pantalla?
+C 0x6d45 y la segunda, cuatro bytes mas alla
+C 0x6d52 ocho bytes
+C 0x6d55 hacia atras: la cola sigue a la cabeza
+L 0x6d58 busca_la_ficha_de_esa_posicion
+C 0x6d5b tres fichas
+C 0x6d5f una coordenada
+C 0x6d63 y la otra
+C 0x6d67 ocho bytes por ficha
+L 0x6d6d suelta_el_bicho_del_cuadro_cero
+B 0x6d6d SOLTAR UN BICHO, y solo en el cuadro en que el contador da la vuelta a cero: una vez cada 256 cuadros, o sea cada cinco segundos largos.
+C 0x6d6d el contador de cuadros
+C 0x6d70 solo cuando da la vuelta
+C 0x6d72 la rutina que se les aplica
+L 0x6dd2 mueve_los_cinco_moviles
+B 0x6dd2 EL BUCLE DE LOS CINCO MOVILES de 0xE1FB. Cada uno guarda el numero del objeto al que va pegado -por tres, que es lo que ocupa cada objeto-, y con IX y IY apuntando a los dos a la vez se decide si sube o baja segun el bit 7.
+C 0x6dd5 cinco
+C 0x6ddb ficha vacia
+C 0x6de3 el numero de objeto, por tres
+C 0x6de6 la lista de objetos
+C 0x6df0 retirado
+C 0x6df7 los tipos 0x8B a 0x8F
+C 0x6e01 el bit 7: hacia donde
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6e0f el bit 6: una rutina u otra
+C 0x6e1d tres bytes por ficha
+L 0x6e24 el_movil_alcanza_al_jugador
+C 0x6e25 su posicion
+C 0x6e2f el sonido del golpe
+L 0x6e3b caja_del_movil_contra_el_jugador
+B 0x6e3b LA CAJA DE UN MOVIL, de 0x10 por 0x10, con el desplazamiento cambiado segun el tipo: el 0x8C no lleva los cuatro pixeles de correccion y el 0x90 lleva ocho en la otra coordenada. Cada bicho tiene su caja, y no hay una tabla: son dos `cp` y dos valores.
+C 0x6e3e su posicion
+C 0x6e43 cuatro de correccion
+C 0x6e45 salvo el tipo 0x8C
+C 0x6e49 que no lleva ninguna
+C 0x6e4b cuatro en la otra
+C 0x6e4d y el 0x90
+C 0x6e51 lleva ocho
+C 0x6e59 dieciseis por dieciseis
+L 0x6e62 espera_a_que_toque_moverse
+B 0x6e62 EL RITMO DEL MOVIL: una vez de cada dieciseis cuadros, y ademas con el bit 1 de su contador puesto no se hace nada -o sea, se mueve dos veces y descansa dos-. El umbral del nibble bajo cambia con la fase: 6 de la tercera en adelante, 11 antes.
+C 0x6e62 el contador de cuadros
+C 0x6e65 uno de cada dieciseis
+C 0x6e68 su propio contador, uno mas
+C 0x6e6a el bit 1: dos y dos
+C 0x6e75 el nibble bajo
+C 0x6e78 el numero de fase
+C 0x6e7d de la tercera en adelante, seis
+C 0x6e81 y antes, once
+C 0x6e88 se marca el bit 6
+C 0x6e8f ocho pixeles
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6e93 veinticuatro hacia atras
+C 0x6e95 el bit 4 elige el sentido
+C 0x6e99 u ocho hacia delante
+C 0x6e9e el tipo 0x8C
+L 0x6ea5 borra_la_ficha
+C 0x6ea6 los tres bytes, a cero
+L 0x6eb4 avanza_el_movil_despacio
+B 0x6eb4 EL MOVIL LENTO: se atiende una vez de cada dieciseis cuadros, y ademas su propio contador sube solo una vez de cada 32, hasta el tope de 15. Y antes de avanzar MIRA LA PANTALLA: cuenta cuatro celdas hacia abajo y, si alguna no tiene el indice 3, no puede pasar.
+C 0x6eb8 uno de cada dieciseis
+C 0x6ebc uno de cada treinta y dos
+C 0x6ec1 el nibble bajo
+C 0x6ec3 el tope, quince
+C 0x6ec7 uno mas
+C 0x6eca veinte pixeles
+C 0x6ecc el bit 4: hacia arriba
+C 0x6ed0 u ocho hacia atras
+C 0x6ed8 la banda util
+C 0x6ede que hay en esa celda
+C 0x6ee1 el indice 3 es por donde se puede pasar
+C 0x6ee5 cuatro celdas
+C 0x6ee7 la de abajo, 32 mas alla
+C 0x6eec leida de la pantalla
+C 0x6eef y todas tienen que ser el 3
+C 0x6f07 cuatro pixeles
+C 0x6f09 el bit 4: hacia el otro lado
+C 0x6f0d o cuatro hacia atras
+C 0x6f15 el bit 2
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6f1b el bit 2 elige el otro dibujo
+C 0x6f24 el dibujo alterna entre 0x8C y 0x90
+C 0x6f31 y el sonido del movil
+L 0x6f36 el_movil_se_agota
+B 0x6f36 EL MOVIL QUE SE AGOTA. Los tipos 0x86 y 0x8A tienen cuenta atras: cuando su nibble bajo llega a 15, se borra la ficha y el objeto queda retirado. Y con el indice 0x9B delante se le quita el bit 6, o sea que cambia de modo.
+C 0x6f38 los dos tipos con cuenta atras
+C 0x6f41 el nibble bajo
+C 0x6f43 el tope, quince
+C 0x6f47 se borra la ficha
+C 0x6f4d y el objeto queda retirado
+C 0x6f54 el indice 0x9B
+C 0x6f58 le quita el bit 6
+C 0x6f5a y le da la vuelta a los bits 4 y 5
+L 0x6f5f avanza_el_movil_rapido
+B 0x6f5f EL MOVIL RAPIDO: una vez de cada dieciseis cuadros, y mira DOS celdas -no cuatro- antes de avanzar. Otra vez preguntandole a la pantalla si por ahi se puede pasar.
+C 0x6f5f el contador de cuadros
+C 0x6f62 uno de cada dieciseis
+C 0x6f67 treinta y seis pixeles
+C 0x6f69 el bit 4: hacia arriba
+C 0x6f6d u ocho hacia atras
+C 0x6f75 dos celdas
+C 0x6f77 que hay ahi
+C 0x6f7a el indice 3 es por donde se puede pasar
+C 0x6f7f ocho pixeles mas abajo
+C 0x6f8d cuatro pixeles
+C 0x6f8f el bit 4
+C 0x6f93 o cuatro hacia atras
+L 0x6fa1 repinta_el_movil
+C 0x6fa5 su tabla de patrones
