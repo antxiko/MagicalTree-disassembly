@@ -1322,3 +1322,190 @@ C 0x6f8f el bit 4
 C 0x6f93 o cuatro hacia atras
 L 0x6fa1 repinta_el_movil
 C 0x6fa5 su tabla de patrones
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x709f mira_tres_cajas
+B 0x709f MIRAR TRES CAJAS SEGUIDAS -tres huecos consecutivos de la lista-, cada una de D por E. Devuelve acarreo en la primera que casa.
+C 0x70a2 tres
+C 0x70a7 por encima de 0xC0 no cuenta
+C 0x70ac la ventana de una coordenada
+C 0x70b1 y la de la otra
+C 0x70b3 tres bytes por hueco
+L 0x70bc avanza_el_bicho_que_cambia
+B 0x70bc EL BICHO QUE CAMBIA DE PASO, atendido uno de cada cuatro cuadros. Su contador sube o baja segun el bit 3 de lo que se pulsa -o sea, el bicho reacciona a lo que hace el jugador- y de los bits 2 salen los patrones: 0x20 o 0x24, mas 0x28 si el otro bit esta puesto.
+C 0x70bc el contador de cuadros
+C 0x70bf uno de cada cuatro
+C 0x70c4 los dos bits de direccion
+C 0x70c8 su contador, uno mas
+C 0x70c9 el bit 3
+C 0x70cd o dos menos
+C 0x70d1 el bit 2 elige el patron
+C 0x70d3 uno
+C 0x70d7 o el otro
+C 0x70dd y 0x28 mas si toca
+L 0x70e6 le_da_la_vuelta_al_bicho
+C 0x70e8 le da la vuelta a los bits 2 y 3
+C 0x70ed su cuenta atras
+C 0x70f1 un patron
+C 0x70f3 el bit 3
+C 0x70f7 o el otro
+B 0x70fe Y OTRA VEZ EL AZAR DEL REGISTRO R: el bit 4 del contador de refresco decide cual de los DOS guiones se le engancha al bicho, el de 0x6576 o el de 0x6572. Sin semilla, sin tabla y sin gastar un solo byte de RAM.
+C 0x70fe el contador de refresco del Z80
+C 0x7100 su bit 4
+C 0x7102 un guion
+C 0x7107 o el otro
+L 0x710f avanza_el_bicho_lento
+C 0x710f el contador de cuadros
+C 0x7112 uno de cada dos
+C 0x7114 por donde va su guion
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x7121 el paso, al reves
+C 0x7125 aplicado a una coordenada
+C 0x7129 los dos bits de direccion
+C 0x712d el bit 3 elige el sentido
+C 0x7137 el guion retrocede
+C 0x713c o avanza dos
+C 0x713f un 0xFF cierra el guion
+C 0x7142 y un 0xFE lo hace volver
+C 0x714a se marca el bit 0
+C 0x714e y el guion queda apuntado
+C 0x715d se limpian los tres bits de abajo
+C 0x7163 y se marca el bit 6
+L 0x7167 mira_si_hay_hueco_delante
+B 0x7167 SI HAY HUECO POR DELANTE, otra vez preguntandole a la PANTALLA: coge la celda 0x10 mas alla -0x10 mas en la otra coordenada si el bit 3 esta puesto- y comprueba que su indice este entre 0xCD y 0xD0. Cuatro indices son "se puede pasar".
+C 0x7169 dieciseis pixeles por delante
+C 0x7170 el bit 3: tambien en la otra coordenada
+C 0x717a que hay en esa celda
+C 0x717f los indices desde 0xCD
+C 0x7181 y cuatro seguidos
+L 0x7184 avanza_el_bicho_del_guion
+B 0x7184 EL BICHO DEL GUION, atendido uno de cada ocho cuadros, y con el umbral cambiado por fase: 5 de la tercera en adelante, 16 antes. O sea que en las fases altas se mueve tres veces mas.
+C 0x7184 el contador de cuadros
+C 0x7187 uno de cada ocho
+C 0x7192 el numero de fase
+C 0x7195 de la tercera en adelante
+C 0x7197 cinco
+C 0x719b y antes, dieciseis
+C 0x719f el patron
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x71a2 la variante de fase
+C 0x71a5 el valor 0x11 tiene azar
+C 0x71ab el registro de refresco: el azar otra vez
+C 0x71ad tres bits, o sea de 0 a 7
+C 0x71af mas tres: de tres a diez
+C 0x71b5 y se marca el bit 6
+L 0x71b9 alterna_el_dibujo_del_bicho
+C 0x71ba su contador, uno mas
+C 0x71bf el bit 1: dos y dos
+C 0x71c4 y le da la vuelta al bit 2 del patron
+L 0x71c7 suelta_un_bicho_nuevo
+B 0x71c7 SOLTAR UN BICHO NUEVO, y solo en el cuadro en que el contador de cuadros pasa por 0xFF -o sea una vez cada 256 cuadros- y con el bit 0 de (0xE05E) puesto. Busca un hueco libre entre DOS y, al soltarlo, el registro R decide en cual de cuatro sitios aparece.
+C 0x71c7 el contador de cuadros
+C 0x71ca solo cuando vale 0xFF
+C 0x71cc la bandera que lo permite
+C 0x71d7 dos huecos
+C 0x71db libre
+C 0x71df por encima de 0x40 no vale
+C 0x71e4 cuatro bytes por hueco
+C 0x71ec el registro de refresco: el azar
+C 0x71ee dos bits, o sea cuatro sitios
+C 0x71f0 mas el 0x80
+C 0x71f3 los cuatro bytes de su definicion
+C 0x71f9 copiados
+L 0x7203 hueco_del_bicho
+C 0x7206 el numero por ocho
+L 0x720d mueve_los_dos_bichos_sueltos
+B 0x720d LOS DOS BICHOS SUELTOS, y aqui el azar se usa DOS veces encadenadas: una vez de cada 64 cuadros se tira el dado (`ld a,r / and 007h`) y solo si sale cero se marca el bit 4. O sea, una probabilidad entre ocho, una vez cada 64 cuadros.
+C 0x7210 dos
+C 0x7216 hueco vacio
+C 0x7219 el contador de cuadros
+C 0x721d uno de cada sesenta y cuatro
+C 0x7221 y ademas el dado
+C 0x7223 una entre ocho
+C 0x7227 entonces se marca el bit 4
+C 0x7232 y uno de cada ocho cuadros
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x7237 los bits 5 y 6
+C 0x723b hacia delante
+C 0x723c y su tope
+C 0x723e el bit 6 elige el sentido
+C 0x7242 el otro tope
+C 0x7244 hacia atras, de dos en dos
+C 0x7247 ha llegado al tope?
+C 0x724a el numero de fase
+C 0x7251 de la tercera en adelante, el azar puede darle la vuelta
+C 0x7253 siete bits: una entre 128
+C 0x7259 le da la vuelta a los dos bits de sentido
+C 0x7260 y si se quedan a cero, se fuerza uno
+L 0x7271 duplica_la_ficha_del_bicho
+B 0x7271 DUPLICAR LA FICHA DE UN BICHO cuatro bytes mas alla y ponerle el patron 0x9C: es la SEGUNDA MITAD de la figura, dieciseis pixeles por debajo. Cada bicho son dos sprites que se mueven juntos sin calcularse por separado.
+C 0x7278 cuatro bytes
+C 0x727b copiados
+C 0x7280 el patron de la segunda mitad
+C 0x7283 y dieciseis pixeles mas alla
+L 0x7288 anima_al_bicho_suelto
+B 0x7288 LA ANIMACION DEL BICHO SUELTO: uno de cada cuatro cuadros, y solo con el bit 4 puesto. Sus dos mitades avanzan de patron a la vez, y el nibble bajo da la vuelta de 15 a 1 -no a 0-, que es como se salta el primer dibujo en las vueltas siguientes.
+C 0x7288 el contador de cuadros
+C 0x728b uno de cada cuatro
+C 0x728e el bit 4
+C 0x7293 las dos mitades
+C 0x7296 el patron, uno mas
+C 0x7297 el nibble bajo
+C 0x729b al dar la vuelta, empieza por uno
+C 0x729e cuatro bytes: la otra mitad
+C 0x72a5 al llegar a quince
+C 0x72a8 se apaga el bit 4
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x72b4 hueco libre
+C 0x72b7 el numero de hueco
+L 0x72bd lanza_el_proyectil
+B 0x72bd LANZAR EL PROYECTIL, y el azar vuelve a decidir: dos bits del registro R se AGREGAN con un `or` al tipo, de modo que no todos salen iguales. Se copian cuatro bytes de ficha, se pone la segunda mitad dieciseis pixeles mas alla con el patron 0xF4 y suena el 0x4A.
+C 0x72be el tipo
+C 0x72c0 el contador de refresco: el azar
+C 0x72c2 dos bits
+C 0x72c4 agregados al tipo
+C 0x72ce cuatro bytes de ficha
+C 0x72d4 dieciseis pixeles mas alla
+C 0x72da el patron de la segunda mitad
+C 0x72dc y el sonido del lanzamiento
+L 0x72e1 mueve_los_tres_proyectiles
+B 0x72e1 LOS TRES PROYECTILES. Los dos bits de abajo de su tipo son la velocidad y el bit 6 el sentido, asi que un proyectil rapido y otro lento salen del mismo codigo cambiando dos bits. Cada cuadro avanza esa cantidad y sube el patron.
+C 0x72e4 tres
+C 0x72e8 hueco vacio
+C 0x72f5 la fila, uno mas
+C 0x72f9 los dos bits de abajo: la velocidad
+C 0x72fb el bit 6: el sentido
+C 0x72ff al reves
+C 0x7301 aplicado a la columna
+C 0x7305 el patron, uno mas
+C 0x7306 y sus bits de color
+L 0x7315 retira_el_proyectil_fuera
+B 0x7315 RETIRAR EL PROYECTIL que se sale de la banda 0x18..0xC1 o cuyo tipo quede fuera del rango util: se le pone la fila 0xC3 y se borra la ficha.
+C 0x7317 la banda util empieza en 0x18
+C 0x7319 y mide 0xA9
+C 0x731e por debajo de dos
+C 0x7322 o por encima de 0xF0
+C 0x7325 0xC3: fuera de la pantalla
+C 0x7328 y la ficha, borrada
+L 0x732a el_jugador_alcanzado
+C 0x732d el paso del dibujo
+C 0x7332 uno de cada treinta y dos cuadros

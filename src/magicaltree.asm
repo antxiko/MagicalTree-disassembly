@@ -1623,11 +1623,11 @@ L_51F5:
 	call mueve_los_tres_de_la_lista		;51fe
 	call mueve_los_cinco_moviles		;5201
 	call suelta_el_bicho_del_cuadro_cero		;5204
-	call L_71C7		;5207
+	call suelta_un_bicho_nuevo		;5207
 	call L_6FB7		;520a
 	call L_701F		;520d
-	call L_720D		;5210
-	call L_72E1		;5213
+	call mueve_los_dos_bichos_sueltos		;5210
+	call mueve_los_tres_proyectiles		;5213
 	call L_7836		;5216
 	call L_790F		;5219
 	call L_79EE		;521c
@@ -4487,7 +4487,7 @@ L_6E53:
 	sub e			;6e57
 	ld c,a			;6e58
 	ld de,01010h		;6e59   ; dieciseis por dieciseis
-	call L_709F		;6e5c
+	call mira_tres_cajas		;6e5c
 	pop de			;6e5f
 	pop hl			;6e60
 	ret			;6e61
@@ -4836,15 +4836,15 @@ L_7025:
 	jr nc,L_706E		;703b
 	bit 7,b		;703d
 	jr z,L_7046		;703f
-	call L_7184		;7041
+	call avanza_el_bicho_del_guion		;7041
 	jr L_706E		;7044
 L_7046:
 	bit 6,b		;7046
 	jr z,L_704F		;7048
-	call L_70BC		;704a
+	call avanza_el_bicho_que_cambia		;704a
 	jr L_7052		;704d
 L_704F:
-	call L_710F		;704f
+	call avanza_el_bicho_lento		;704f
 L_7052:
 	bit 4,(ix+000h)		;7052
 	jr nz,L_706E		;7056
@@ -4859,7 +4859,7 @@ L_7052:
 	ld c,a			;7063
 	ld de,00c0ch		;7064
 	push bc			;7067
-	call L_709F		;7068
+	call mira_tres_cajas		;7068
 	pop bc			;706b
 	jr c,L_7079		;706c
 L_706E:
@@ -4898,24 +4898,28 @@ L_7098:
 	sub 008h		;7099
 	cp 0b9h		;709b
 	jr L_7092		;709d
-L_709F:
+
+; ----------------------------------------------------------------------
+; MIRAR TRES CAJAS SEGUIDAS -tres huecos consecutivos de la lista-, cada una de D por E. Devuelve acarreo en la primera que casa.
+; ----------------------------------------------------------------------
+mira_tres_cajas:
 	ld hl,0e114h		;709f
-	ld a,003h		;70a2
+	ld a,003h		;70a2   ; tres
 L_70A4:
 	ex af,af'			;70a4
 	ld a,(hl)			;70a5
 	inc hl			;70a6
-	cp 0c0h		;70a7
+	cp 0c0h		;70a7   ; por encima de 0xC0 no cuenta
 	jr nc,L_70B3		;70a9
 	sub b			;70ab
-	cp d			;70ac
+	cp d			;70ac   ; la ventana de una coordenada
 	jr nc,L_70B3		;70ad
 	ld a,(hl)			;70af
 	sub c			;70b0
-	cp e			;70b1
+	cp e			;70b1   ; y la de la otra
 	ret c			;70b2
 L_70B3:
-	inc hl			;70b3
+	inc hl			;70b3   ; tres bytes por hueco
 	inc hl			;70b4
 	inc hl			;70b5
 	ex af,af'			;70b6
@@ -4923,88 +4927,97 @@ L_70B3:
 	jr nz,L_70A4		;70b8
 	and a			;70ba
 	ret			;70bb
-L_70BC:
-	ld a,(0e003h)		;70bc
-	and 003h		;70bf
+
+; ----------------------------------------------------------------------
+; EL BICHO QUE CAMBIA DE PASO, atendido uno de cada cuatro cuadros. Su contador sube o baja segun el bit 3 de lo que se pulsa -o sea, el bicho reacciona a lo que hace el jugador- y de los bits 2 salen los patrones: 0x20 o 0x24, mas 0x28 si el otro bit esta puesto.
+; ----------------------------------------------------------------------
+avanza_el_bicho_que_cambia:
+	ld a,(0e003h)		;70bc   ; el contador de cuadros
+	and 003h		;70bf   ; uno de cada cuatro
 	ret nz			;70c1
 	inc hl			;70c2
 	ld a,b			;70c3
-	and 00ch		;70c4
+	and 00ch		;70c4   ; los dos bits de direccion
 	jr z,L_70CF		;70c6
-	inc (hl)			;70c8
-	bit 3,a		;70c9
+	inc (hl)			;70c8   ; su contador, uno mas
+	bit 3,a		;70c9   ; el bit 3
 	jr nz,L_70CF		;70cb
-	dec (hl)			;70cd
+	dec (hl)			;70cd   ; o dos menos
 	dec (hl)			;70ce
 L_70CF:
 	ld c,(hl)			;70cf
 	inc hl			;70d0
-	bit 2,c		;70d1
-	ld a,020h		;70d3
+	bit 2,c		;70d1   ; el bit 2 elige el patron
+	ld a,020h		;70d3   ; uno
 	jr nz,L_70D9		;70d5
-	ld a,024h		;70d7
+	ld a,024h		;70d7   ; o el otro
 L_70D9:
 	bit 2,b		;70d9
 	jr z,L_70DF		;70db
-	add a,028h		;70dd
+	add a,028h		;70dd   ; y 0x28 mas si toca
 L_70DF:
 	ld (hl),a			;70df
 	dec hl			;70e0
 	dec hl			;70e1
-	call L_7167		;70e2
+	call mira_si_hay_hueco_delante		;70e2
 	ret c			;70e5
+le_da_la_vuelta_al_bicho:
 	ex de,hl			;70e6
 	ld a,(hl)			;70e7
-	xor 00ch		;70e8
+	xor 00ch		;70e8   ; le da la vuelta a los bits 2 y 3
 	ld (hl),a			;70ea
 	inc hl			;70eb
 	inc hl			;70ec
-	dec (hl)			;70ed
+	dec (hl)			;70ed   ; su cuenta atras
 	ret nz			;70ee
 	dec hl			;70ef
 	dec hl			;70f0
-	ld a,028h		;70f1
-	bit 3,(hl)		;70f3
+	ld a,028h		;70f1   ; un patron
+	bit 3,(hl)		;70f3   ; el bit 3
 	jr z,L_70F9		;70f5
-	ld a,024h		;70f7
+	ld a,024h		;70f7   ; o el otro
 L_70F9:
 	ld (hl),a			;70f9
 	inc hl			;70fa
 	ld a,(hl)			;70fb
 	inc hl			;70fc
 	ld (hl),a			;70fd
-	ld a,r		;70fe
-	bit 4,a		;7100
-	ld bc,06576h		;7102
+
+; ----------------------------------------------------------------------
+; Y OTRA VEZ EL AZAR DEL REGISTRO R: el bit 4 del contador de refresco decide cual de los DOS guiones se le engancha al bicho, el de 0x6576 o el de 0x6572. Sin semilla, sin tabla y sin gastar un solo byte de RAM.
+; ----------------------------------------------------------------------
+	ld a,r		;70fe   ; el contador de refresco del Z80
+	bit 4,a		;7100   ; su bit 4
+	ld bc,06576h		;7102   ; un guion
 	jr nz,L_710A		;7105
 L_7107:
-	ld bc,06572h		;7107
+	ld bc,06572h		;7107   ; o el otro
 L_710A:
 	inc hl			;710a
 	ld (hl),c			;710b
 	inc hl			;710c
 	ld (hl),b			;710d
 	ret			;710e
-L_710F:
-	ld a,(0e003h)		;710f
-	rra			;7112
+avanza_el_bicho_lento:
+	ld a,(0e003h)		;710f   ; el contador de cuadros
+	rra			;7112   ; uno de cada dos
 	ret nc			;7113
-	ld e,(ix+003h)		;7114
+	ld e,(ix+003h)		;7114   ; por donde va su guion
 	ld d,(ix+004h)		;7117
 	ld c,001h		;711a
 	ld a,(de)			;711c
 	bit 0,b		;711d
 	jr nz,L_7125		;711f
-	neg		;7121
+	neg		;7121   ; el paso, al reves
 	ld c,002h		;7123
 L_7125:
-	add a,(hl)			;7125
+	add a,(hl)			;7125   ; aplicado a una coordenada
 	ld (hl),a			;7126
 	inc hl			;7127
 	ld a,b			;7128
-	and 00ch		;7129
+	and 00ch		;7129   ; los dos bits de direccion
 	jr z,L_7137		;712b
-	bit 3,a		;712d
+	bit 3,a		;712d   ; el bit 3 elige el sentido
 	ld a,(hl)			;712f
 	jr z,L_7135		;7130
 	add a,c			;7132
@@ -5014,49 +5027,53 @@ L_7135:
 L_7136:
 	ld (hl),a			;7136
 L_7137:
-	dec de			;7137
+	dec de			;7137   ; el guion retrocede
 	bit 0,b		;7138
 	jr nz,L_713E		;713a
-	inc de			;713c
+	inc de			;713c   ; o avanza dos
 	inc de			;713d
 L_713E:
 	ld a,(de)			;713e
-	inc a			;713f
+	inc a			;713f   ; un 0xFF cierra el guion
 	jr z,L_7148		;7140
-	inc a			;7142
+	inc a			;7142   ; y un 0xFE lo hace volver
 	jr nz,L_714E		;7143
 	inc de			;7145
 	jr L_714E		;7146
 L_7148:
 	dec de			;7148
 	dec de			;7149
-	set 0,(ix+000h)		;714a
+	set 0,(ix+000h)		;714a   ; se marca el bit 0
 L_714E:
-	ld (ix+003h),e		;714e
+	ld (ix+003h),e		;714e   ; y el guion queda apuntado
 	ld (ix+004h),d		;7151
 	dec hl			;7154
 	push ix		;7155
 	pop de			;7157
-	call L_7167		;7158
+	call mira_si_hay_hueco_delante		;7158
 	ret nc			;715b
 	ld a,(hl)			;715c
-	and 0f8h		;715d
+	and 0f8h		;715d   ; se limpian los tres bits de abajo
 	ld (hl),a			;715f
 	ld a,(de)			;7160
 	and 00ch		;7161
-	or 040h		;7163
+	or 040h		;7163   ; y se marca el bit 6
 	ld (de),a			;7165
 	ret			;7166
-L_7167:
+
+; ----------------------------------------------------------------------
+; SI HAY HUECO POR DELANTE, otra vez preguntandole a la PANTALLA: coge la celda 0x10 mas alla -0x10 mas en la otra coordenada si el bit 3 esta puesto- y comprueba que su indice este entre 0xCD y 0xD0. Cuatro indices son "se puede pasar".
+; ----------------------------------------------------------------------
+mira_si_hay_hueco_delante:
 	push hl			;7167
 	push de			;7168
-	ld a,010h		;7169
+	ld a,010h		;7169   ; dieciseis pixeles por delante
 	add a,(hl)			;716b
 	ld b,a			;716c
 	inc hl			;716d
 	ld c,(hl)			;716e
 	ld a,(de)			;716f
-	bit 3,a		;7170
+	bit 3,a		;7170   ; el bit 3: tambien en la otra coordenada
 	jr z,L_7178		;7172
 	ld a,010h		;7174
 	add a,c			;7176
@@ -5064,79 +5081,87 @@ L_7167:
 L_7178:
 	ld h,c			;7178
 	ld l,b			;7179
-	call L_498C		;717a
+	call L_498C		;717a   ; que hay en esa celda
 	pop de			;717d
 	pop hl			;717e
-	sub 0cdh		;717f
-	cp 004h		;7181
+	sub 0cdh		;717f   ; los indices desde 0xCD
+	cp 004h		;7181   ; y cuatro seguidos
 	ret			;7183
-L_7184:
-	ld a,(0e003h)		;7184
-	and 007h		;7187
+
+; ----------------------------------------------------------------------
+; EL BICHO DEL GUION, atendido uno de cada ocho cuadros, y con el umbral cambiado por fase: 5 de la tercera en adelante, 16 antes. O sea que en las fases altas se mueve tres veces mas.
+; ----------------------------------------------------------------------
+avanza_el_bicho_del_guion:
+	ld a,(0e003h)		;7184   ; el contador de cuadros
+	and 007h		;7187   ; uno de cada ocho
 	ret nz			;7189
 	push de			;718a
 	inc de			;718b
 	inc de			;718c
 	inc de			;718d
-	call L_71B9		;718e
+	call alterna_el_dibujo_del_bicho		;718e
 	pop de			;7191
-	ld a,(0e051h)		;7192
-	cp 003h		;7195
-	ld a,005h		;7197
+	ld a,(0e051h)		;7192   ; el numero de fase
+	cp 003h		;7195   ; de la tercera en adelante
+	ld a,005h		;7197   ; cinco
 	jr nc,L_719D		;7199
-	ld a,010h		;719b
+	ld a,010h		;719b   ; y antes, dieciseis
 L_719D:
 	cp b			;719d
 	ret nz			;719e
-	ld (hl),020h		;719f
+	ld (hl),020h		;719f   ; el patron
 	inc hl			;71a1
-	ld a,(0e05dh)		;71a2
-	cp 011h		;71a5
+	ld a,(0e05dh)		;71a2   ; la variante de fase
+	cp 011h		;71a5   ; el valor 0x11 tiene azar
 	ld (hl),001h		;71a7
 	jr nz,L_71B2		;71a9
-	ld a,r		;71ab
-	and 007h		;71ad
-	add a,003h		;71af
+	ld a,r		;71ab   ; el registro de refresco: el azar otra vez
+	and 007h		;71ad   ; tres bits, o sea de 0 a 7
+	add a,003h		;71af   ; mas tres: de tres a diez
 	ld (hl),a			;71b1
 L_71B2:
 	ld a,(de)			;71b2
 	and 00fh		;71b3
-	or 040h		;71b5
+	or 040h		;71b5   ; y se marca el bit 6
 	ld (de),a			;71b7
 	ret			;71b8
-L_71B9:
+alterna_el_dibujo_del_bicho:
 	ex de,hl			;71b9
-	inc (hl)			;71ba
+	inc (hl)			;71ba   ; su contador, uno mas
 	ld b,(hl)			;71bb
 	ex de,hl			;71bc
 	inc hl			;71bd
 	inc hl			;71be
-	bit 1,b		;71bf
+	bit 1,b		;71bf   ; el bit 1: dos y dos
 	ret nz			;71c1
 	ld a,004h		;71c2
-	xor (hl)			;71c4
+	xor (hl)			;71c4   ; y le da la vuelta al bit 2 del patron
 	ld (hl),a			;71c5
 	ret			;71c6
-L_71C7:
-	ld a,(0e003h)		;71c7
-	inc a			;71ca
+
+; ----------------------------------------------------------------------
+; SOLTAR UN BICHO NUEVO, y solo en el cuadro en que el contador de cuadros pasa por 0xFF -o sea una vez cada 256 cuadros- y con el bit 0 de (0xE05E) puesto. Busca un hueco libre entre DOS y, al soltarlo, el registro R decide en cual de cuatro sitios aparece.
+; ----------------------------------------------------------------------
+suelta_un_bicho_nuevo:
+	ld a,(0e003h)		;71c7   ; el contador de cuadros
+	inc a			;71ca   ; solo cuando vale 0xFF
 	ret nz			;71cb
-	ld a,(0e05eh)		;71cc
+	ld a,(0e05eh)		;71cc   ; la bandera que lo permite
 	rra			;71cf
 	ret nc			;71d0
 	ld hl,0e217h		;71d1
 	ld de,0e0c8h		;71d4
-	ld bc,00200h		;71d7
+	ld bc,00200h		;71d7   ; dos huecos
 L_71DA:
 	ld a,(hl)			;71da
-	or a			;71db
+	or a			;71db   ; libre
 	jr nz,L_71E3		;71dc
 	ld a,(de)			;71de
-	cp 040h		;71df
+	cp 040h		;71df   ; por encima de 0x40 no vale
 	jr nc,L_71EC		;71e1
 L_71E3:
 	inc hl			;71e3
-	dec de			;71e4
+	dec de			;71e4   ; cuatro bytes por hueco
 	dec de			;71e5
 	dec de			;71e6
 	dec de			;71e7
@@ -5144,13 +5169,13 @@ L_71E3:
 	djnz L_71DA		;71e9
 	ret			;71eb
 L_71EC:
-	ld a,r		;71ec
-	and 060h		;71ee
-	or 080h		;71f0
+	ld a,r		;71ec   ; el registro de refresco: el azar
+	and 060h		;71ee   ; dos bits, o sea cuatro sitios
+	or 080h		;71f0   ; mas el 0x80
 	ld (hl),a			;71f2
-	ld hl,071ffh		;71f3
-	call L_7203		;71f6
-	ld bc,00004h		;71f9
+	ld hl,071ffh		;71f3   ; los cuatro bytes de su definicion
+	call hueco_del_bicho		;71f6
+	ld bc,00004h		;71f9   ; copiados
 	ldir		;71fc
 	ret			;71fe
 
@@ -5164,66 +5189,70 @@ DATA_71FF:
 ; ======================================================================
 
 
-L_7203:
+hueco_del_bicho:
 	ld de,0e0c0h		;7203
-	ld a,c			;7206
+	ld a,c			;7206   ; el numero por ocho
 	add a,a			;7207
 	add a,a			;7208
 	add a,a			;7209
 	jp suma_a_a_de		;720a
-L_720D:
+
+; ----------------------------------------------------------------------
+; LOS DOS BICHOS SUELTOS, y aqui el azar se usa DOS veces encadenadas: una vez de cada 64 cuadros se tira el dado (`ld a,r / and 007h`) y solo si sale cero se marca el bit 4. O sea, una probabilidad entre ocho, una vez cada 64 cuadros.
+; ----------------------------------------------------------------------
+mueve_los_dos_bichos_sueltos:
 	ld hl,0e217h		;720d
-	ld bc,00200h		;7210
+	ld bc,00200h		;7210   ; dos
 L_7213:
 	push hl			;7213
 	push bc			;7214
 	ld a,(hl)			;7215
-	or a			;7216
+	or a			;7216   ; hueco vacio
 	jr z,L_726A		;7217
-	ld a,(0e003h)		;7219
+	ld a,(0e003h)		;7219   ; el contador de cuadros
 	ld b,a			;721c
-	and 03fh		;721d
+	and 03fh		;721d   ; uno de cada sesenta y cuatro
 	jr nz,L_7229		;721f
-	ld a,r		;7221
-	and 007h		;7223
+	ld a,r		;7221   ; y ademas el dado
+	and 007h		;7223   ; una entre ocho
 	jr nz,L_7229		;7225
-	set 4,(hl)		;7227
+	set 4,(hl)		;7227   ; entonces se marca el bit 4
 L_7229:
-	call L_7203		;7229
+	call hueco_del_bicho		;7229
 	ex de,hl			;722c
 	call L_708D		;722d
 	inc hl			;7230
 	ld a,b			;7231
-	and 007h		;7232
+	and 007h		;7232   ; y uno de cada ocho cuadros
 	jr nz,L_7266		;7234
 	ld a,(de)			;7236
-	and 060h		;7237
+	and 060h		;7237   ; los bits 5 y 6
 	jr z,L_7246		;7239
-	inc (hl)			;723b
-	ld b,0c7h		;723c
-	bit 6,a		;723e
+	inc (hl)			;723b   ; hacia delante
+	ld b,0c7h		;723c   ; y su tope
+	bit 6,a		;723e   ; el bit 6 elige el sentido
 	jr nz,L_7246		;7240
-	ld b,018h		;7242
-	dec (hl)			;7244
+	ld b,018h		;7242   ; el otro tope
+	dec (hl)			;7244   ; hacia atras, de dos en dos
 	dec (hl)			;7245
 L_7246:
 	ld a,(hl)			;7246
-	cp b			;7247
+	cp b			;7247   ; ha llegado al tope?
 	jr z,L_7257		;7248
-	ld a,(0e051h)		;724a
+	ld a,(0e051h)		;724a   ; el numero de fase
 	cp 003h		;724d
 	jr c,L_7266		;724f
-	ld a,r		;7251
-	and 07fh		;7253
+	ld a,r		;7251   ; de la tercera en adelante, el azar puede darle la vuelta
+	and 07fh		;7253   ; siete bits: una entre 128
 	jr nz,L_7266		;7255
 L_7257:
 	ex de,hl			;7257
 	ld a,(hl)			;7258
-	xor 060h		;7259
+	xor 060h		;7259   ; le da la vuelta a los dos bits de sentido
 	ld (hl),a			;725b
 	and 060h		;725c
 	jr nz,L_7262		;725e
-	set 5,(hl)		;7260
+	set 5,(hl)		;7260   ; y si se quedan a cero, se fuerza uno
 L_7262:
 	ex de,hl			;7262
 	dec hl			;7263
@@ -5231,7 +5260,7 @@ L_7262:
 	inc hl			;7265
 L_7266:
 	dec hl			;7266
-	call L_7271		;7267
+	call duplica_la_ficha_del_bicho		;7267
 L_726A:
 	pop bc			;726a
 	pop hl			;726b
@@ -5239,7 +5268,11 @@ L_726A:
 	inc c			;726d
 	djnz L_7213		;726e
 	ret			;7270
-L_7271:
+
+; ----------------------------------------------------------------------
+; DUPLICAR LA FICHA DE UN BICHO cuatro bytes mas alla y ponerle el patron 0x9C: es la SEGUNDA MITAD de la figura, dieciseis pixeles por debajo. Cada bicho son dos sprites que se mueven juntos sin calcularse por separado.
+; ----------------------------------------------------------------------
+duplica_la_ficha_del_bicho:
 	push de			;7271
 	ld d,h			;7272
 	ld e,l			;7273
@@ -5247,42 +5280,47 @@ L_7271:
 	inc de			;7275
 	inc de			;7276
 	inc de			;7277
-	ld bc,00004h		;7278
-	ldir		;727b
+	ld bc,00004h		;7278   ; cuatro bytes
+	ldir		;727b   ; copiados
 	ex de,hl			;727d
 	dec hl			;727e
 	dec hl			;727f
-	ld (hl),09ch		;7280
+	ld (hl),09ch		;7280   ; el patron de la segunda mitad
 	dec hl			;7282
-	ld a,010h		;7283
+	ld a,010h		;7283   ; y dieciseis pixeles mas alla
 	add a,(hl)			;7285
 	ld (hl),a			;7286
 	pop hl			;7287
-	ld a,(0e003h)		;7288
-	and 003h		;728b
+
+; ----------------------------------------------------------------------
+; LA ANIMACION DEL BICHO SUELTO: uno de cada cuatro cuadros, y solo con el bit 4 puesto. Sus dos mitades avanzan de patron a la vez, y el nibble bajo da la vuelta de 15 a 1 -no a 0-, que es como se salta el primer dibujo en las vueltas siguientes.
+; ----------------------------------------------------------------------
+anima_al_bicho_suelto:
+	ld a,(0e003h)		;7288   ; el contador de cuadros
+	and 003h		;728b   ; uno de cada cuatro
 	ret nz			;728d
-	bit 4,(hl)		;728e
+	bit 4,(hl)		;728e   ; el bit 4
 	ret z			;7290
 	push de			;7291
 	dec de			;7292
-	ld b,002h		;7293
+	ld b,002h		;7293   ; las dos mitades
 L_7295:
 	ld a,(de)			;7295
-	inc a			;7296
-	and 00fh		;7297
+	inc a			;7296   ; el patron, uno mas
+	and 00fh		;7297   ; el nibble bajo
 	jr nz,L_729D		;7299
-	or 001h		;729b
+	or 001h		;729b   ; al dar la vuelta, empieza por uno
 L_729D:
 	ld (de),a			;729d
-	inc de			;729e
+	inc de			;729e   ; cuatro bytes: la otra mitad
 	inc de			;729f
 	inc de			;72a0
 	inc de			;72a1
 	djnz L_7295		;72a2
 	pop de			;72a4
-	cp 00fh		;72a5
+	cp 00fh		;72a5   ; al llegar a quince
 	ret nz			;72a7
-	res 4,(hl)		;72a8
+	res 4,(hl)		;72a8   ; se apaga el bit 4
 	push de			;72aa
 	push hl			;72ab
 	ld hl,0e219h		;72ac
@@ -5290,42 +5328,50 @@ L_729D:
 L_72B2:
 	ld a,(hl)			;72b2
 	or a			;72b3
-	jr z,L_72BD		;72b4
+	jr z,lanza_el_proyectil		;72b4   ; hueco libre
 	inc hl			;72b6
-	inc c			;72b7
+	inc c			;72b7   ; el numero de hueco
 	djnz L_72B2		;72b8
 	pop hl			;72ba
 	pop de			;72bb
 	ret			;72bc
-L_72BD:
+
+; ----------------------------------------------------------------------
+; LANZAR EL PROYECTIL, y el azar vuelve a decidir: dos bits del registro R se AGREGAN con un `or` al tipo, de modo que no todos salen iguales. Se copian cuatro bytes de ficha, se pone la segunda mitad dieciseis pixeles mas alla con el patron 0xF4 y suena el 0x4A.
+; ----------------------------------------------------------------------
+lanza_el_proyectil:
 	pop de			;72bd
-	ld a,(de)			;72be
+	ld a,(de)			;72be   ; el tipo
 	ld (hl),a			;72bf
-	ld a,r		;72c0
-	and 003h		;72c2
-	or (hl)			;72c4
+	ld a,r		;72c0   ; el contador de refresco: el azar
+	and 003h		;72c2   ; dos bits
+	or (hl)			;72c4   ; agregados al tipo
 	ld (hl),a			;72c5
 	pop hl			;72c6
 	ld de,0e0f8h		;72c7
 	call L_4A41		;72ca
 	push de			;72cd
-	ld bc,00004h		;72ce
+	ld bc,00004h		;72ce   ; cuatro bytes de ficha
 	ldir		;72d1
 	pop hl			;72d3
-	ld a,010h		;72d4
+	ld a,010h		;72d4   ; dieciseis pixeles mas alla
 	add a,(hl)			;72d6
 	ld (hl),a			;72d7
 	inc hl			;72d8
 	inc hl			;72d9
-	ld (hl),0f4h		;72da
-	ld a,04ah		;72dc
+	ld (hl),0f4h		;72da   ; el patron de la segunda mitad
+	ld a,04ah		;72dc   ; y el sonido del lanzamiento
 	jp L_7A13		;72de
-L_72E1:
+
+; ----------------------------------------------------------------------
+; LOS TRES PROYECTILES. Los dos bits de abajo de su tipo son la velocidad y el bit 6 el sentido, asi que un proyectil rapido y otro lento salen del mismo codigo cambiando dos bits. Cada cuadro avanza esa cantidad y sube el patron.
+; ----------------------------------------------------------------------
+mueve_los_tres_proyectiles:
 	ld hl,0e219h		;72e1
-	ld bc,00300h		;72e4
+	ld bc,00300h		;72e4   ; tres
 L_72E7:
 	ld a,(hl)			;72e7
-	or a			;72e8
+	or a			;72e8   ; hueco vacio
 	jr z,L_7310		;72e9
 	push bc			;72eb
 	push hl			;72ec
@@ -5333,24 +5379,24 @@ L_72E7:
 	ld b,a			;72ee
 	ld hl,0e0f8h		;72ef
 	call L_4A3B		;72f2
-	inc (hl)			;72f5
+	inc (hl)			;72f5   ; la fila, uno mas
 	push hl			;72f6
 	inc hl			;72f7
 	ld a,b			;72f8
-	and 003h		;72f9
-	bit 6,b		;72fb
+	and 003h		;72f9   ; los dos bits de abajo: la velocidad
+	bit 6,b		;72fb   ; el bit 6: el sentido
 	jr nz,L_7301		;72fd
-	neg		;72ff
+	neg		;72ff   ; al reves
 L_7301:
-	add a,(hl)			;7301
+	add a,(hl)			;7301   ; aplicado a la columna
 	ld (hl),a			;7302
 	inc hl			;7303
 	inc hl			;7304
-	inc (hl)			;7305
-	set 3,(hl)		;7306
+	inc (hl)			;7305   ; el patron, uno mas
+	set 3,(hl)		;7306   ; y sus bits de color
 	res 7,(hl)		;7308
 	pop hl			;730a
-	call L_7315		;730b
+	call retira_el_proyectil_fuera		;730b
 	pop hl			;730e
 	pop bc			;730f
 L_7310:
@@ -5358,27 +5404,31 @@ L_7310:
 	inc c			;7311
 	djnz L_72E7		;7312
 	ret			;7314
-L_7315:
+
+; ----------------------------------------------------------------------
+; RETIRAR EL PROYECTIL que se sale de la banda 0x18..0xC1 o cuyo tipo quede fuera del rango util: se le pone la fila 0xC3 y se borra la ficha.
+; ----------------------------------------------------------------------
+retira_el_proyectil_fuera:
 	ld b,a			;7315
 	ld a,(hl)			;7316
-	sub 018h		;7317
-	cp 0a9h		;7319
+	sub 018h		;7317   ; la banda util empieza en 0x18
+	cp 0a9h		;7319   ; y mide 0xA9
 	jr nc,L_7325		;731b
 	ld a,b			;731d
-	cp 002h		;731e
+	cp 002h		;731e   ; por debajo de dos
 	jr c,L_7325		;7320
-	cp 0f0h		;7322
+	cp 0f0h		;7322   ; o por encima de 0xF0
 	ret c			;7324
 L_7325:
-	ld (hl),0c3h		;7325
+	ld (hl),0c3h		;7325   ; 0xC3: fuera de la pantalla
 	xor a			;7327
-	ld (de),a			;7328
+	ld (de),a			;7328   ; y la ficha, borrada
 	ret			;7329
-L_732A:
+el_jugador_alcanzado:
 	ld hl,0e1b5h		;732a
-	ld (hl),00ch		;732d
+	ld (hl),00ch		;732d   ; el paso del dibujo
 	ld a,(0e003h)		;732f
-	and 01fh		;7332
+	and 01fh		;7332   ; uno de cada treinta y dos cuadros
 	ret nz			;7334
 	inc (hl)			;7335
 	ld (0e1b6h),a		;7336
@@ -6035,7 +6085,7 @@ L_790F:
 	ld a,(0e003h)		;7929
 	and 007h		;792c
 	ret nz			;792e
-	call L_71B9		;792f
+	call alterna_el_dibujo_del_bicho		;792f
 	bit 3,b		;7932
 	ret z			;7934
 	ld a,040h		;7935
