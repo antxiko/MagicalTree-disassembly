@@ -1967,3 +1967,291 @@ C 0x60f1 dieciseis bytes por tanda
 C 0x6110 y de tanda en tanda
 C 0x6122 el resultado, a la VRAM
 C 0x6125 y el ultimo bloque
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x77cf mira_los_huecos_de_tipo_c0
+C 0x77d0 solo los de tipo 0xC0
+C 0x77d6 ocho por dieciseis de caja
+C 0x77de acarreo: hay contacto
+C 0x77e0 cuatro bytes por hueco
+C 0x7804 libre
+C 0x7808 el numero de hueco
+L 0x780d coloca_el_bicho_caido
+C 0x780e el estado del jugador
+C 0x7811 el estado 5 lo convierte en premio
+C 0x781e su hueco de sprite
+L 0x7836 mueve_los_tres_caidos
+B 0x7836 LOS TRES BICHOS CAIDOS de 0xE225: el bit 6 de su estado decide cual de las dos maneras de moverse les toca. Los que se salen de la pantalla no se tocan.
+C 0x7839 tres
+C 0x783f hueco vacio
+C 0x7843 su hueco de sprite
+C 0x7849 esta en pantalla?
+C 0x784e el bit 6: una manera u otra
+C 0x785c un byte por hueco
+L 0x7861 cae_el_bicho
+B 0x7861 EL BICHO QUE CAE: cuatro pixeles por vez, con el dibujo alternando por el bit 2 de la propia posicion -o sea cada cuatro pixeles-, y ANTES de seguir mira la celda 0x10 por debajo: si tiene el indice 3, es que hay algo y se para.
+C 0x7862 cuatro pixeles
+C 0x7867 el dibujo, uno mas
+C 0x7868 el bit 2: alterna solo
+C 0x786c o vuelve atras
+C 0x7872 dieciseis por debajo
+C 0x7875 que hay en esa celda
+C 0x787a el indice 3: hay algo ahi
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x787e se quita el bit 6: deja de caer
+L 0x7881 anda_el_bicho
+B 0x7881 EL BICHO QUE ANDA: dos pixeles en el sentido que diga el bit 3 de su estado, y el dibujo alterna con el bit 1 de la propia posicion. Antes de cada paso mira DOS celdas -la de 0x14 por delante y la de 0x10 por debajo- y, si no puede pasar, se queda.
+C 0x7885 el bit 3: hacia donde anda
+C 0x7887 dos pixeles hacia delante
+C 0x788b o dos hacia atras
+C 0x7890 el dibujo, uno menos
+C 0x7891 el bit 1: alterna solo
+C 0x7895 o dos mas
+C 0x789b veinte pixeles por delante
+C 0x78a0 el bit 3 elige que celda mirar
+C 0x78a5 dieciseis mas abajo
+C 0x78a8 que hay ahi
+L 0x78c4 retira_el_bicho_y_avisa
+B 0x78c4 RETIRAR EL BICHO Y AVISAR A LOS PERSEGUIDORES: borra su ficha, le pone la fila 0xC3 y recorre los tres huecos de 0xE104 buscando alguno que este a menos de 0x10 en las dos coordenadas para apuntarlo.
+C 0x78c5 la ficha, a cero
+C 0x78c6 0xC3: fuera de la pantalla
+C 0x78ce tres huecos
+C 0x78d4 dieciseis pixeles
+C 0x78da y dieciseis en la otra
+C 0x78de tres bytes por hueco
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x4a0e elige_la_tabla_de_piezas
+B 0x4a0e ELEGIR LA TABLA DE PIEZAS por los bits 7, 5 y 6 del tercer byte del objeto: cuatro tablas -0x5130, 0x5188, 0x5146 y 0x5170-, y el indice son los cinco bits de abajo.
+C 0x4a12 el bit 7
+C 0x4a1c el bit 5
+C 0x4a23 el bit 6
+C 0x4a2a cinco bits de indice
+L 0x4a2c saca_la_pieza_y_su_tamano
+C 0x4a2c por dos: son punteros
+C 0x4a30 el puntero a la pieza
+C 0x4a35 y sus dos bytes de cabecera
+L 0x51f5 el_cuadro_de_la_partida
+B 0x51f5 EL CUADRO DE LA PARTIDA, y es lo mas parecido a un indice del cartucho: once llamadas seguidas, una por cada cosa que se mueve -los perseguidores, los tres de la lista, los cinco moviles, los bichos nuevos, los sueltos-.
+L 0x797b engancha_el_segundo_trozo
+C 0x797f tres bytes de ficha
+C 0x7988 veinticuatro pixeles mas alla
+C 0x798b y queda apuntada
+L 0x6fcc busca_un_objeto_util
+B 0x6fcc BUSCAR UN OBJETO QUE VALGA: ni retirado, ni fuera de la banda 0x18..0xA0, y de los tipos 0x93 o 0x94.
+C 0x6fcf retirado
+C 0x6fd3 la banda util
+C 0x6fda los tipos 0x93 y 0x94
+L 0x7079 el_bicho_alcanza_al_premio
+C 0x707c el sonido
+C 0x7084 el patron del golpe
+L 0x7948 elige_el_tipo_del_premio
+B 0x7948 EL TIPO DEL PREMIO SEGUN DE DONDE VENGA: 0xC5 si el valor es 4, 0xC6 si es 15 y 0xC7 en los demas casos.
+C 0x794d el primer tipo
+C 0x7953 el segundo
+C 0x7958 y el tercero
+C 0x795a que queda apuntado
+L 0x7992 baja_el_contador_de_premios
+C 0x7998 uno menos
+C 0x799f y al llegar a cero, el sonido 7
+L 0x7b63 mira_el_modificador_de_canal
+C 0x7b66 el bit 6: la voz esta encadenada
+C 0x7b6b y solo en el canal 3
+L 0x489f barrido_de_la_pantalla_de_fin
+C 0x489f diecisiete pasos
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6fed hueco vacio
+C 0x6ff5 cinco bytes por hueco
+L 0x518e borra_el_tanteo
+C 0x518e el tanteo de un jugador
+C 0x5191 231 bytes por delante
+C 0x5197 el bit 5: hay dos jugadores
+C 0x519c entonces el otro tanteo
+L 0x6140 descomprime_con_mascara
+C 0x6141 los siete bits de abajo: la cuenta
+C 0x6144 y el byte entero, para el bit 7
+C 0x6148 cuenta cero: fin o cambio de destino
+L 0x67c3 retrocede_la_lista_de_arriba
+C 0x67c3 tres celdas atras
+C 0x67c6 lee de la pantalla
+C 0x67ca cero: se sigue retrocediendo
+C 0x67cd uno menos
+L 0x7c2b nota_al_psg
+C 0x7c2f la escala de doce
+C 0x7c35 el periodo de esa nota
+C 0x7c38 las octavas a bajar
+C 0x7c3f doblar el periodo es bajar una octava
+L 0x48eb pinta_franja_correlativa
+C 0x48eb el patron
+C 0x48ef el siguiente, uno mas
+C 0x48f3 y al salir, la fila de abajo
+L 0x51de el_cuadro_del_juego
+B 0x51de EL CUADRO ENTERO: vuelca los sprites, mira si el jugador ha llegado a algo, luego los premios y por ultimo todo lo que se mueve. El orden importa, porque lo ultimo que se escribe es lo que se ve.
+C 0x51de la bandera de partida en marcha
+C 0x51e5 los sprites, a la VRAM
+C 0x51e8 mira el contacto
+L 0x522f el_jugador_pierde
+C 0x522f el sonido de perder
+C 0x5236 estado 8
+C 0x523e y se marca que ya paso
+L 0x5242 mira_lo_que_pisa
+C 0x5242 las dos celdas de debajo
+C 0x5245 el estado del jugador
+C 0x524b el estado 3 mira ademas el sentido
+L 0x6bc9 bucle_de_los_tres
+C 0x6bcd ficha vacia
+L 0x6c3c bucle_de_los_tres_con_decorado
+C 0x6c40 ficha vacia
+L 0x6fb7 suelta_el_premio_de_la_fase_6
+B 0x6fb7 EL PREMIO SOLO SALE DE LA SEXTA FASE EN ADELANTE, con el bit 0 de (0xE05E) a cero y en el cuadro en que el contador da la vuelta: una vez cada 256 cuadros.
+C 0x6fb7 el numero de fase
+C 0x6fba de la sexta en adelante
+C 0x6fc0 y solo en un sentido de la fase
+C 0x6fc5 una vez cada 256 cuadros
+L 0x7624 pinta_el_rotulo_grande
+C 0x7627 la fila
+C 0x7629 por donde va el guion
+C 0x7634 los siete bits de abajo
+L 0x796e busca_hueco_de_premio
+C 0x796f retirado: libre
+C 0x7973 tres bytes por objeto
+L 0x7a8a rearranca_el_mismo_sonido
+C 0x7a8f se fuerza: no se compara prioridad
+C 0x7a96 con las vueltas apuntadas
+L 0x7bb0 sostiene_la_nota
+C 0x7bb0 lo que le queda a la nota
+C 0x7bb6 y la cuenta del apagado
+C 0x7bbc cuando se juntan, empieza a bajar el volumen
+L 0x60f3 saca_un_byte_a_transponer
+C 0x60f3 el byte de origen
+C 0x60f7 y el del bufer
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x612c el destino de VRAM, delante del bloque
+C 0x6130 la mascara de color de esta fase
+C 0x763d un indice del guion
+C 0x763f y al puerto de datos
+C 0x7647 la fila de abajo, 32 celdas
+C 0x793d la posicion del premio
+C 0x7940 el bit 0 elige el desplazamiento
+C 0x7aa4 tres rotaciones: el bit del canal
+C 0x7aa7 D=1 pone, D=0 quita
+C 0x7ba1 las vueltas, a cero
+C 0x7baa y el estado de la voz: se calla
+C 0x7bdb el nibble alto
+C 0x7bdd 0xDn: el paso del arpegio
+C 0x4a00 la banda util
+C 0x4a06 de posicion a celda
+C 0x4a09 y se borra con el indice 3
+C 0x6160 el par de bits, junto
+C 0x6162 y al puerto de datos
+C 0x67e1 tres celdas atras
+C 0x67e4 lee de la pantalla
+C 0x6c1a esta en pantalla?
+C 0x6c1e a donde va
+C 0x7070 cinco bytes por ficha
+C 0x79ad hueco vacio
+C 0x79b1 el numero de hueco
+C 0x614f el nibble alto
+C 0x6152 el valor 0x30
+C 0x6158 el nibble bajo
+C 0x615b el valor 3
+C 0x67d6 lee de la pantalla
+C 0x67da uno menos
+C 0x6f96 aplicado a la posicion
+C 0x7018 el color
+C 0x701c y el tercer byte, a cero
+C 0x726c un byte por hueco
+C 0x7657 por donde va el guion
+C 0x765a dos bytes mas alla
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x51f8 los tres perseguidores
+C 0x5201 y los cinco moviles
+C 0x48a4 la cortinilla, por arriba del todo
+C 0x48aa el bloque de la pantalla de fin
+C 0x6e53 la posicion, corregida
+C 0x6e57 en las dos coordenadas
+C 0x7a9a la copia del registro 7
+C 0x7a9e el canal
+C 0x7b93 la duracion que toca
+C 0x7b99 y tres mas al contador de apagado
+C 0x7be9 0xFn: el vibrato
+C 0x7bed el nibble bajo
+C 0x7bf4 0xEn: el volumen de la voz
+C 0x7bf8 el nibble bajo
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x425d carga_los_graficos_del_titulo
+L 0x4289 pinta_el_cursor
+L 0x42d1 saca_los_sprites_de_pantalla
+L 0x4381 imprime_tres_bytes_bcd
+L 0x43dc barre_la_pantalla_entera
+L 0x4445 vuelca_bc_bytes
+L 0x4476 duplica_los_tres_tercios
+L 0x449f descomprime_en_de
+L 0x44ee vuelca_los_registros_del_vdp
+L 0x4512 lee_un_puerto_del_psg
+L 0x48ea pinta_franja_y_baja
+L 0x49b5 pinta_bloque_de_la_ficha
+L 0x49bc pinta_bloque_recortado
+L 0x4a00 borra_la_celda_de_ahi
+L 0x4a3b hueco_de_sprite
+L 0x4a41 hueco_de_sprite_en_de
+L 0x4a47 hueco_de_sprite_por_indice
+L 0x51d2 pinta_la_altura_y_el_marcador
+L 0x53de avanza_el_guion_y_sigue
+L 0x612c descomprime_con_mascara_de_color
+L 0x6170 mira_el_contacto_del_jugador
+L 0x6396 baja_si_puede
+L 0x664f mete_un_sprite
+L 0x66c2 pinta_la_altura_en_bcd
+L 0x66e2 imprime_dos_bytes_bcd
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x6713 ajusta_la_altura_alcanzada
+L 0x6749 mueve_el_decorado_un_paso
+L 0x6ab9 mira_el_digito_y_suelta
+L 0x6f47 retira_el_movil
+L 0x6fa2 repinta_el_objeto
+L 0x701f mueve_los_premios
+L 0x708d esta_en_la_banda_util
+L 0x7098 mira_si_el_bicho_se_ve
+L 0x7107 repinta_el_hueco
+L 0x77ca mira_los_bichos_caidos
+L 0x79a4 suma_los_puntos_del_tipo
+L 0x79ee limpia_los_huecos_sobrantes
+L 0x7a9a abre_o_cierra_el_canal
+L 0x7c42 escribe_la_nota
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x7b92 fija_la_duracion_de_la_nota
