@@ -1,0 +1,4 @@
+# Zonas que NO son codigo aunque el trazado pueda entrar en ellas.
+
+# La cabecera del cartucho.
+0x4000 0x4010

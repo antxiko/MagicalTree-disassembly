@@ -1,0 +1,28 @@
+# Puntos de entrada que el trazado NO puede deducir solo.
+#
+# Cada uno lleva escrito POR QUE hace falta. Una entrada sin justificar es una
+# direccion metida a mano para que la cobertura cuadre.
+
+# El arranque: la cabecera del cartucho da INIT en 0x4077.
+0x4077   # INIT, la direccion que trae la cabecera del cartucho
+
+# ======================================================================
+# EL GANCHO DE LA INTERRUPCION
+# ======================================================================
+# INIT escribe un `jp` (0xC3) en 0xFD9A y la direccion 0x402C en 0xFD9B, que
+# es H.KEYI, y se queda en el `jr $` de 0x40A5. O sea que todo el juego cuelga
+# de la interrupcion, una vez por cuadro. Es el mismo armazon que Circus
+# Charlie (RC-712), que engancha en la misma direccion.
+0x402C   # H.KEYI, enganchado por INIT en 0x407F
+
+# ======================================================================
+# LAS TABLAS PEGADAS DETRAS DEL `call`
+# ======================================================================
+# El despachador de 0x404A hace `add a,a / pop hl / ... / ld e,(hl) / inc hl /
+# ld d,(hl) / ex de,hl / jp (hl)`: el `pop hl` recupera su propia direccion de
+# retorno, que es donde empieza la tabla, porque la tabla va PEGADA detras del
+# `call`. Cuantas entradas tiene lo fija el encaje, no una estimacion: la
+# tabla acaba justo donde empieza su primera entrada, que es donde sigue el
+# codigo. Lo mide tools/encaja_tablas.py.
+!tabla 0x40c3  16   # desde 0x40C0; cierra en 0x40E3, su entrada mas baja
+!tabla 0x617a  19   # desde 0x6177; cierra en 0x61A0, y ademas el `ld hl,061a0h / push hl` de 0x6173 lo confirma por otro camino
