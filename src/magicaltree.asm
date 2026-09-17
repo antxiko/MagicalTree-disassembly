@@ -1618,9 +1618,9 @@ L_51DE:
 	call L_77E7		;51f2
 L_51F5:
 	call L_6170		;51f5
-	call L_6B22		;51f8
+	call mueve_los_tres_perseguidores		;51f8
 	call L_6AB9		;51fb
-	call L_6BBF		;51fe
+	call mueve_los_tres_de_la_lista		;51fe
 	call L_6DD2		;5201
 	call L_6D6D		;5204
 	call L_71C7		;5207
@@ -3562,7 +3562,7 @@ L_690D:
 	inc hl			;6911
 	inc c			;6912   ; el numero de objeto
 	djnz L_68FD		;6913
-	call L_6C32		;6915
+	call corre_los_tres_con_el_decorado		;6915
 
 ; ----------------------------------------------------------------------
 ; CORRER TODOS LOS SPRITES CON EL DECORADO, ocho pixeles en el sentido que diga (0xE1AA): diecisiete de la banda de 0xE0E4 y cuatro de la de 0xE0C0. El que se sale de la pantalla se marca con la fila 0xC3.
@@ -3723,43 +3723,43 @@ L_6A08:
 	ld a,(hl)			;6a08
 	inc hl			;6a09
 	inc hl			;6a0a
-	cp 0d0h		;6a0b
+	cp 0d0h		;6a0b   ; retirado: al siguiente
 	jr z,L_6A1C		;6a0d
 	ld a,(hl)			;6a0f
-	cp 087h		;6a10
+	cp 087h		;6a10   ; los tres tipos que sirven para trepar
 	jr z,L_6A21		;6a12
 	cp 00ah		;6a14
 	jr z,L_6A21		;6a16
 	cp 08ah		;6a18
 	jr z,L_6A21		;6a1a
 L_6A1C:
-	inc hl			;6a1c
+	inc hl			;6a1c   ; tres bytes por objeto
 	djnz L_6A08		;6a1d
 	and a			;6a1f
 	ret			;6a20
 L_6A21:
 	dec hl			;6a21
 	dec hl			;6a22
-	ld de,0e1cfh		;6a23
+	ld de,0e1cfh		;6a23   ; los tres bytes del objeto, copiados
 	ld bc,00003h		;6a26
 	ldir		;6a29
-	ld hl,06a42h		;6a2b
+	ld hl,06a42h		;6a2b   ; la tabla de trece equivalencias
 L_6A2E:
 	cp (hl)			;6a2e
 	jr z,L_6A3A		;6a2f
 	ld c,(hl)			;6a31
-	inc c			;6a32
+	inc c			;6a32   ; un 0xFF la cierra
 	ret z			;6a33
-	inc hl			;6a34
+	inc hl			;6a34   ; cuatro bytes por entrada
 	inc hl			;6a35
 	inc hl			;6a36
 	inc hl			;6a37
 	jr L_6A2E		;6a38
 L_6A3A:
 	inc hl			;6a3a
-	ld bc,00003h		;6a3b
+	ld bc,00003h		;6a3b   ; y de ahi salen los tres que faltan
 	ldir		;6a3e
-	scf			;6a40
+	scf			;6a40   ; acarreo: encontrado
 	ret			;6a41
 
 ; ----------------------------------------------------------------------
@@ -3772,64 +3772,72 @@ DATA_6A42:
 ; ======================================================================
 
 
-L_6A4F:
+
+; ----------------------------------------------------------------------
+; ESTADO 6: agarrado a una rama. Con direccion horizontal se suelta -0x6A93-, y con vertical trepa o baja. Subir vuelve a costar uno de cada dos cuadros. Ademas mira el indice que hay bajo los pies: si es el 3, baja ocho y pasa al estado 4.
+; ----------------------------------------------------------------------
+estado_6_en_la_rama:
 	ld a,(0e009h)		;6a4f
 	ld b,a			;6a52
-	and 00ch		;6a53
+	and 00ch		;6a53   ; los bits de direccion horizontal
 	jr z,L_6A5C		;6a55
-	call se_acaba_de_pulsar_direccion		;6a57
-	jr nz,L_6A93		;6a5a
+	call se_acaba_de_pulsar_direccion		;6a57   ; y que se acabe de pulsar
+	jr nz,se_suelta_de_la_rama		;6a5a
 L_6A5C:
 	ld a,b			;6a5c
-	and 003h		;6a5d
+	and 003h		;6a5d   ; los de direccion vertical
 	ret z			;6a5f
-	rra			;6a60
+	rra			;6a60   ; el bit 0
 	jr nc,L_6A7C		;6a61
-	ld a,(0e003h)		;6a63
-	rra			;6a66
+	ld a,(0e003h)		;6a63   ; el contador de cuadros
+	rra			;6a66   ; uno de cada dos
 	ret c			;6a67
 	call paso_de_trepar_10		;6a68
 	call L_6396		;6a6b
 	ld hl,(0e1b3h)		;6a6e
-	ld bc,0000ch		;6a71
+	ld bc,0000ch		;6a71   ; doce por debajo
 	add hl,bc			;6a74
-	call mira_los_cuarenta_objetos		;6a75
+	call mira_los_cuarenta_objetos		;6a75   ; hay objeto ahi?
 	ret nc			;6a78
 	jp L_6334		;6a79
 L_6A7C:
 	call paso_de_trepar_10		;6a7c
 	call mira_si_puede_subir		;6a7f
-	call lee_las_dos_celdas_de_debajo		;6a82
+	call lee_las_dos_celdas_de_debajo		;6a82   ; lo que hay bajo los pies
 	ld a,(0e1bfh)		;6a85
-	cp 003h		;6a88
+	cp 003h		;6a88   ; el indice 3
 	ret nz			;6a8a
-	ld a,008h		;6a8b
+	ld a,008h		;6a8b   ; ocho hacia abajo
 	call mueve_al_jugador		;6a8d
 	jp estado_4_con_sonido		;6a90
-L_6A93:
+
+; ----------------------------------------------------------------------
+; SOLTARSE DE LA RAMA. El bit 3 de lo que se pulsa decide a que lado se cae: +0x0D o -5 en el byte alto de la posicion. La lectura del mando se congela DOS veces, en (0xE1B6) y en (0xE1B7), para que la caida siga la direccion con la que se solto.
+; ----------------------------------------------------------------------
+se_suelta_de_la_rama:
 	ld hl,(0e1b3h)		;6a93
 	ld a,(0e009h)		;6a96
 	ld b,a			;6a99
-	bit 3,a		;6a9a
-	ld a,00dh		;6a9c
+	bit 3,a		;6a9a   ; el bit 3: hacia donde
+	ld a,00dh		;6a9c   ; trece a un lado
 	jr nz,L_6AA2		;6a9e
-	ld a,0fbh		;6aa0
+	ld a,0fbh		;6aa0   ; o cinco al otro
 L_6AA2:
 	add a,h			;6aa2
 	ld h,a			;6aa3
 	ld (0e1b3h),hl		;6aa4
 	ld hl,0e1b5h		;6aa7
-	ld (hl),005h		;6aaa
+	ld (hl),005h		;6aaa   ; el paso, a cinco
 	ld a,b			;6aac
-	and 00ch		;6aad
+	and 00ch		;6aad   ; la direccion, congelada
 	inc hl			;6aaf
 	ld (hl),a			;6ab0
 	inc hl			;6ab1
 	ld (hl),a			;6ab2
-	ld hl,06576h		;6ab3
+	ld hl,06576h		;6ab3   ; y el guion de la caida
 	jp L_62DE		;6ab6
 L_6AB9:
-	call L_6B1A		;6ab9
+	call mira_el_digito_de_la_altura		;6ab9
 	ret nc			;6abc
 	ld a,(0e05fh)		;6abd
 	or a			;6ac0
@@ -3837,45 +3845,49 @@ L_6AB9:
 	ld a,(0e23ah)		;6ac2
 	or a			;6ac5
 	ret nz			;6ac6
-	ld a,080h		;6ac7
-	ld de,06afah		;6ac9
+
+; ----------------------------------------------------------------------
+; EL BARRIDO DE LOS OBJETOS 0x80 Y 0x81, con la rutina a la que hay que llamar metida en DE y saltada con `ex de,hl / jp (hl)`: un salto indirecto hecho a mano. Solo se atienden los que caigan en la banda 0x18..0x90.
+; ----------------------------------------------------------------------
+	ld a,080h		;6ac7   ; el primer tipo que cuenta
+	ld de,06afah		;6ac9   ; la rutina que se les aplica
 L_6ACC:
 	ld hl,0e137h		;6acc
-	ld bc,02701h		;6acf
+	ld bc,02701h		;6acf   ; treinta y nueve, y C lleva el numero
 L_6AD2:
 	push af			;6ad2
 	push de			;6ad3
 	push hl			;6ad4
 	push bc			;6ad5
-	cp (hl)			;6ad6
+	cp (hl)			;6ad6   ; este tipo
 	jr z,L_6ADD		;6ad7
-	inc a			;6ad9
+	inc a			;6ad9   ; o el siguiente
 	cp (hl)			;6ada
 	jr nz,L_6AED		;6adb
 L_6ADD:
 	dec hl			;6add
 	dec hl			;6ade
 	ld a,(hl)			;6adf
-	cp 0d0h		;6ae0
+	cp 0d0h		;6ae0   ; retirado: no
 	jr z,L_6AED		;6ae2
-	sub 018h		;6ae4
-	cp 078h		;6ae6
+	sub 018h		;6ae4   ; la banda util empieza en 0x18
+	cp 078h		;6ae6   ; y mide 0x78
 	jr nc,L_6AED		;6ae8
-	call L_6AF8		;6aea
+	call salta_a_la_rutina_de_de		;6aea
 L_6AED:
 	pop bc			;6aed
 	pop hl			;6aee
 	pop de			;6aef
 	pop af			;6af0
-	inc hl			;6af1
+	inc hl			;6af1   ; tres bytes por objeto
 	inc hl			;6af2
 	inc hl			;6af3
 	inc c			;6af4
 	djnz L_6AD2		;6af5
 	ret			;6af7
-L_6AF8:
+salta_a_la_rutina_de_de:
 	ex de,hl			;6af8
-	jp (hl)			;6af9
+	jp (hl)			;6af9   ; el salto indirecto: a donde diga DE
 
 ; ----------------------------------------------------------------------
 ; DATOS sin identificar  0x6afa..0x6b1a  (32 bytes)
@@ -3888,47 +3900,51 @@ DATA_6AFA:
 ; ======================================================================
 
 
-L_6B1A:
-	ld a,(0e1bch)		;6b1a
-	and 0f0h		;6b1d
-	cp 050h		;6b1f
+mira_el_digito_de_la_altura:
+	ld a,(0e1bch)		;6b1a   ; la altura en BCD
+	and 0f0h		;6b1d   ; el nibble alto
+	cp 050h		;6b1f   ; contra el 5
 	ret			;6b21
-L_6B22:
-	ld a,(0e003h)		;6b22
-	and 01fh		;6b25
+
+; ----------------------------------------------------------------------
+; LOS TRES PERSEGUIDORES, atendidos UNA VEZ DE CADA 32 CUADROS (`and 01fh`). Cada uno guarda en 0xE21C el numero del objeto al que sigue; si ese objeto se salio de la banda o ya no es de los tipos 0x80/0x81, se borra la ficha y su sprite se saca de la pantalla.
+; ----------------------------------------------------------------------
+mueve_los_tres_perseguidores:
+	ld a,(0e003h)		;6b22   ; el contador de cuadros
+	and 01fh		;6b25   ; uno de cada treinta y dos
 	ret nz			;6b27
 	ld hl,0e21ch		;6b28
-	ld bc,00300h		;6b2b
+	ld bc,00300h		;6b2b   ; tres perseguidores
 L_6B2E:
 	push hl			;6b2e
 	push bc			;6b2f
 	ld a,(hl)			;6b30
-	or a			;6b31
+	or a			;6b31   ; ficha vacia
 	jr z,L_6B65		;6b32
 	inc hl			;6b34
-	ld a,(hl)			;6b35
+	ld a,(hl)			;6b35   ; el objeto al que sigue
 	ld e,a			;6b36
-	add a,a			;6b37
+	add a,a			;6b37   ; por tres, que es lo que ocupa
 	add a,e			;6b38
 	ld de,0e132h		;6b39
 	call suma_a_a_de		;6b3c
 	ld a,(de)			;6b3f
-	sub 018h		;6b40
+	sub 018h		;6b40   ; la banda util
 	cp 078h		;6b42
 	jr nc,L_6B56		;6b44
 	inc de			;6b46
 	inc de			;6b47
-	ld a,(de)			;6b48
+	ld a,(de)			;6b48   ; el tipo del objeto
 	cp 080h		;6b49
 	jr z,L_6B51		;6b4b
 	cp 081h		;6b4d
 	jr nz,L_6B56		;6b4f
 L_6B51:
-	call L_6B6E		;6b51
+	call pinta_un_perseguidor		;6b51
 	jr L_6B65		;6b54
 L_6B56:
 	xor a			;6b56
-	ld (hl),a			;6b57
+	ld (hl),a			;6b57   ; la ficha, borrada
 	dec hl			;6b58
 	ld (hl),a			;6b59
 	inc hl			;6b5a
@@ -3936,33 +3952,37 @@ L_6B56:
 	ld (hl),a			;6b5c
 	ld hl,0e104h		;6b5d
 	call L_4A3B		;6b60
-	ld (hl),0c3h		;6b63
+	ld (hl),0c3h		;6b63   ; y el sprite, fuera de la pantalla
 L_6B65:
 	pop bc			;6b65
 	pop hl			;6b66
-	inc hl			;6b67
+	inc hl			;6b67   ; tres bytes por perseguidor
 	inc hl			;6b68
 	inc hl			;6b69
 	inc c			;6b6a
 	djnz L_6B2E		;6b6b
 	ret			;6b6d
-L_6B6E:
+
+; ----------------------------------------------------------------------
+; PINTAR UN PERSEGUIDOR. Su contador avanza cada vez y, con el bit 6 puesto, dos bits del contador eligen uno de cuatro patrones de la tabla de 0x6BBB. El desplazamiento de la columna es 4 o 5 segun el tipo del objeto al que sigue, que es lo que le deja pegado a el.
+; ----------------------------------------------------------------------
+pinta_un_perseguidor:
 	dec hl			;6b6e
-	bit 7,(hl)		;6b6f
+	bit 7,(hl)		;6b6f   ; el bit 7: no se pinta
 	ret nz			;6b71
 	inc hl			;6b72
 	inc hl			;6b73
-	inc (hl)			;6b74
+	inc (hl)			;6b74   ; su contador, uno mas
 	ld a,(0e23ah)		;6b75
 	or a			;6b78
-	jr nz,L_6BB2		;6b79
+	jr nz,saca_el_sprite_de_pantalla		;6b79
 	ld a,(hl)			;6b7b
-	bit 6,a		;6b7c
-	jr z,L_6BB2		;6b7e
-	and 006h		;6b80
+	bit 6,a		;6b7c   ; el bit 6
+	jr z,saca_el_sprite_de_pantalla		;6b7e
+	and 006h		;6b80   ; dos bits del contador
 	rra			;6b82
 	push de			;6b83
-	ld de,06bbbh		;6b84
+	ld de,06bbbh		;6b84   ; los cuatro patrones
 	call suma_a_a_de		;6b87
 	ld a,(de)			;6b8a
 	ex af,af'			;6b8b
@@ -3973,32 +3993,32 @@ L_6B6E:
 	ld de,0e104h		;6b90
 	call L_4A41		;6b93
 	ld a,(hl)			;6b96
-	add a,00dh		;6b97
+	add a,00dh		;6b97   ; trece pixeles de desplazamiento
 	ld (de),a			;6b99
 	inc hl			;6b9a
 	inc de			;6b9b
 	ld c,(hl)			;6b9c
 	inc hl			;6b9d
 	ld a,(hl)			;6b9e
-	cp 080h		;6b9f
-	ld b,005h		;6ba1
+	cp 080h		;6b9f   ; el tipo del objeto
+	ld b,005h		;6ba1   ; cinco
 	jr nz,L_6BA7		;6ba3
-	ld b,004h		;6ba5
+	ld b,004h		;6ba5   ; o cuatro
 L_6BA7:
 	ld a,c			;6ba7
 	sub b			;6ba8
 	ld (de),a			;6ba9
 	inc de			;6baa
 	ex de,hl			;6bab
-	ld (hl),0a0h		;6bac
+	ld (hl),0a0h		;6bac   ; el color del sprite
 	ex af,af'			;6bae
 	inc hl			;6baf
 	ld (hl),a			;6bb0
 	ret			;6bb1
-L_6BB2:
+saca_el_sprite_de_pantalla:
 	ld hl,0e104h		;6bb2
-	call L_4A3B		;6bb5
-	ld (hl),0c3h		;6bb8
+	call L_4A3B		;6bb5   ; su hueco de sprite
+	ld (hl),0c3h		;6bb8   ; 0xC3: fuera de la pantalla
 	ret			;6bba
 
 ; ----------------------------------------------------------------------
@@ -4011,12 +4031,16 @@ DATA_6BBB:
 ; ======================================================================
 
 
-L_6BBF:
-	ld a,(0e1aah)		;6bbf
+
+; ----------------------------------------------------------------------
+; LOS TRES DE 0xE1DE, que solo se mueven cuando el decorado esta quieto. El ritmo lo dan los bits del contador de cuadros: uno de cada ocho en general, uno de cada cuatro si el bit 6 esta puesto, y con el bit 5 puesto no se mueven. El paso es +4 o -4 segun el bit 7 de su ficha.
+; ----------------------------------------------------------------------
+mueve_los_tres_de_la_lista:
+	ld a,(0e1aah)		;6bbf   ; la direccion del decorado
 	or a			;6bc2
-	ret nz			;6bc3
+	ret nz			;6bc3   ; si se esta moviendo, estos no
 	ld hl,0e1deh		;6bc4
-	ld b,003h		;6bc7
+	ld b,003h		;6bc7   ; tres
 L_6BC9:
 	push hl			;6bc9
 	push bc			;6bca
@@ -4030,50 +4054,54 @@ L_6BC9:
 L_6BD4:
 	inc hl			;6bd4
 	ld c,(hl)			;6bd5
-	ld a,(0e003h)		;6bd6
-	ld b,007h		;6bd9
-	bit 6,c		;6bdb
+	ld a,(0e003h)		;6bd6   ; el contador de cuadros
+	ld b,007h		;6bd9   ; uno de cada ocho
+	bit 6,c		;6bdb   ; el bit 6: el doble de rapido
 	jr nz,L_6BE3		;6bdd
 	bit 4,c		;6bdf
 	jr z,L_6BE5		;6be1
 L_6BE3:
-	ld b,003h		;6be3
+	ld b,003h		;6be3   ; uno de cada cuatro
 L_6BE5:
 	and b			;6be5
 	jr nz,L_6C28		;6be6
-	bit 5,c		;6be8
+	bit 5,c		;6be8   ; el bit 5 los para
 	jr nz,L_6C28		;6bea
 	push bc			;6bec
 	ld a,c			;6bed
-	ld bc,00004h		;6bee
-	bit 7,(hl)		;6bf1
+	ld bc,00004h		;6bee   ; cuatro pixeles
+	bit 7,(hl)		;6bf1   ; el bit 7: hacia el otro lado
 	jr z,L_6BF8		;6bf3
-	ld bc,0fffch		;6bf5
+	ld bc,0fffch		;6bf5   ; cuatro hacia atras
 L_6BF8:
 	inc hl			;6bf8
-	bit 3,a		;6bf9
+	bit 3,a		;6bf9   ; el bit 3
 	jr nz,L_6C00		;6bfb
-	call L_6C72		;6bfd
+	call suma_bc_a_la_posicion		;6bfd
 L_6C00:
 	pop bc			;6c00
 	push hl			;6c01
 	inc hl			;6c02
 	inc hl			;6c03
 	inc hl			;6c04
-	ld (hl),0e1h		;6c05
-	bit 2,e		;6c07
+
+; ----------------------------------------------------------------------
+; EL COLOR DEL BICHO, y aqui vuelve a salir el azar del registro R: por defecto 0xE1, o 0xE0 si el bit 2 esta a cero, y entonces una vez de cada dieciseis -`ld a,r / and 00fh`- se pone 0xE2. O sea que de vez en cuando parpadea de otro color, sin ningun contador.
+; ----------------------------------------------------------------------
+	ld (hl),0e1h		;6c05   ; el color por defecto
+	bit 2,e		;6c07   ; el bit 2
 	jr nz,L_6C19		;6c09
-	ld (hl),0e0h		;6c0b
+	ld (hl),0e0h		;6c0b   ; el otro color
 	bit 6,c		;6c0d
 	jr nz,L_6C17		;6c0f
-	ld a,r		;6c11
-	and 00fh		;6c13
+	ld a,r		;6c11   ; el registro de refresco: el azar
+	and 00fh		;6c13   ; una vez de cada dieciseis
 	jr nz,L_6C19		;6c15
 L_6C17:
-	ld (hl),0e2h		;6c17
+	ld (hl),0e2h		;6c17   ; y el tercer color
 L_6C19:
 	pop hl			;6c19
-	call L_6C7C		;6c1a
+	call marca_si_esta_en_pantalla		;6c1a
 	dec hl			;6c1d
 	call L_6CA1		;6c1e
 	inc hl			;6c21
@@ -4082,16 +4110,20 @@ L_6C19:
 L_6C28:
 	pop bc			;6c28
 	pop hl			;6c29
-	ld a,009h		;6c2a
+	ld a,009h		;6c2a   ; nueve bytes por ficha
 	call suma_a_a_hl		;6c2c
 	djnz L_6BC9		;6c2f
 	ret			;6c31
-L_6C32:
-	ld a,(0e1aah)		;6c32
+
+; ----------------------------------------------------------------------
+; LOS TRES DE 0xE1DE, corridos CON el decorado: ocho pixeles en el sentido que lleve (0xE1AA). Es la rutina contraria a la de arriba, que solo actua cuando el decorado esta quieto.
+; ----------------------------------------------------------------------
+corre_los_tres_con_el_decorado:
+	ld a,(0e1aah)		;6c32   ; la direccion del decorado
 	or a			;6c35
-	ret z			;6c36
+	ret z			;6c36   ; si esta quieto, aqui no hay nada que hacer
 	ld hl,0e1deh		;6c37
-	ld b,003h		;6c3a
+	ld b,003h		;6c3a   ; tres
 L_6C3C:
 	push hl			;6c3c
 	push bc			;6c3d
@@ -4106,47 +4138,51 @@ L_6C47:
 	inc hl			;6c47
 	ld c,(hl)			;6c48
 	ld a,(0e1aah)		;6c49
-	rra			;6c4c
+	rra			;6c4c   ; ocho hacia un lado
 	ld bc,00008h		;6c4d
 	jr c,L_6C55		;6c50
-	ld bc,0fff8h		;6c52
+	ld bc,0fff8h		;6c52   ; u ocho hacia el otro
 L_6C55:
 	inc hl			;6c55
-	call L_6C72		;6c56
+	call suma_bc_a_la_posicion		;6c56   ; se corre la ficha
 	push hl			;6c59
 	inc hl			;6c5a
 	inc hl			;6c5b
 	inc hl			;6c5c
 	inc hl			;6c5d
-	call L_6C72		;6c5e
+	call suma_bc_a_la_posicion		;6c5e   ; y su pareja
 	pop hl			;6c61
-	call L_6C7C		;6c62
+	call marca_si_esta_en_pantalla		;6c62
 	call L_6D41		;6c65
 L_6C68:
 	pop bc			;6c68
 	pop hl			;6c69
-	ld a,009h		;6c6a
+	ld a,009h		;6c6a   ; nueve bytes por ficha
 	call suma_a_a_hl		;6c6c
 	djnz L_6C3C		;6c6f
 	ret			;6c71
-L_6C72:
-	ld d,(hl)			;6c72
+
+; ----------------------------------------------------------------------
+; SUMAR BC A UNA POSICION DE 16 BITS guardada del reves -byte alto primero-, que es como este cartucho guarda las posiciones de los bichos.
+; ----------------------------------------------------------------------
+suma_bc_a_la_posicion:
+	ld d,(hl)			;6c72   ; el byte alto
 	inc hl			;6c73
-	ld e,(hl)			;6c74
+	ld e,(hl)			;6c74   ; y el bajo
 	ex de,hl			;6c75
-	add hl,bc			;6c76
+	add hl,bc			;6c76   ; sumado
 	ex de,hl			;6c77
-	ld (hl),e			;6c78
+	ld (hl),e			;6c78   ; y devuelto en el mismo orden
 	dec hl			;6c79
 	ld (hl),d			;6c7a
 	ret			;6c7b
-L_6C7C:
+marca_si_esta_en_pantalla:
 	push hl			;6c7c
 	call L_6C8E		;6c7d
 	dec hl			;6c80
-	set 5,(hl)		;6c81
+	set 5,(hl)		;6c81   ; el bit 5: fuera de la pantalla
 	jr c,L_6C8C		;6c83
-	res 5,(hl)		;6c85
+	res 5,(hl)		;6c85   ; dentro: se pinta
 	inc hl			;6c87
 	inc hl			;6c88
 	call L_49B5		;6c89

@@ -1012,3 +1012,138 @@ C 0x69fb hacia atras
 C 0x6a01 acarreo: encontrado
 L 0x6a03 mira_los_objetos_de_cerca
 C 0x6a06 los cuarenta objetos
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6a0b retirado: al siguiente
+C 0x6a10 los tres tipos que sirven para trepar
+C 0x6a1c tres bytes por objeto
+C 0x6a23 los tres bytes del objeto, copiados
+C 0x6a2b la tabla de trece equivalencias
+C 0x6a32 un 0xFF la cierra
+C 0x6a34 cuatro bytes por entrada
+C 0x6a3b y de ahi salen los tres que faltan
+C 0x6a40 acarreo: encontrado
+L 0x6a4f estado_6_en_la_rama
+B 0x6a4f ESTADO 6: agarrado a una rama. Con direccion horizontal se suelta -0x6A93-, y con vertical trepa o baja. Subir vuelve a costar uno de cada dos cuadros. Ademas mira el indice que hay bajo los pies: si es el 3, baja ocho y pasa al estado 4.
+C 0x6a53 los bits de direccion horizontal
+C 0x6a57 y que se acabe de pulsar
+C 0x6a5d los de direccion vertical
+C 0x6a60 el bit 0
+C 0x6a63 el contador de cuadros
+C 0x6a66 uno de cada dos
+C 0x6a71 doce por debajo
+C 0x6a75 hay objeto ahi?
+C 0x6a82 lo que hay bajo los pies
+C 0x6a88 el indice 3
+C 0x6a8b ocho hacia abajo
+L 0x6a93 se_suelta_de_la_rama
+B 0x6a93 SOLTARSE DE LA RAMA. El bit 3 de lo que se pulsa decide a que lado se cae: +0x0D o -5 en el byte alto de la posicion. La lectura del mando se congela DOS veces, en (0xE1B6) y en (0xE1B7), para que la caida siga la direccion con la que se solto.
+C 0x6a9a el bit 3: hacia donde
+C 0x6a9c trece a un lado
+C 0x6aa0 o cinco al otro
+C 0x6aaa el paso, a cinco
+C 0x6aad la direccion, congelada
+C 0x6ab3 y el guion de la caida
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+B 0x6ac7 EL BARRIDO DE LOS OBJETOS 0x80 Y 0x81, con la rutina a la que hay que llamar metida en DE y saltada con `ex de,hl / jp (hl)`: un salto indirecto hecho a mano. Solo se atienden los que caigan en la banda 0x18..0x90.
+C 0x6ac7 el primer tipo que cuenta
+C 0x6ac9 la rutina que se les aplica
+C 0x6acf treinta y nueve, y C lleva el numero
+C 0x6ad6 este tipo
+C 0x6ad9 o el siguiente
+C 0x6ae0 retirado: no
+C 0x6ae4 la banda util empieza en 0x18
+C 0x6ae6 y mide 0x78
+C 0x6af1 tres bytes por objeto
+L 0x6af8 salta_a_la_rutina_de_de
+C 0x6af9 el salto indirecto: a donde diga DE
+L 0x6b1a mira_el_digito_de_la_altura
+C 0x6b1a la altura en BCD
+C 0x6b1d el nibble alto
+C 0x6b1f contra el 5
+L 0x6b22 mueve_los_tres_perseguidores
+B 0x6b22 LOS TRES PERSEGUIDORES, atendidos UNA VEZ DE CADA 32 CUADROS (`and 01fh`). Cada uno guarda en 0xE21C el numero del objeto al que sigue; si ese objeto se salio de la banda o ya no es de los tipos 0x80/0x81, se borra la ficha y su sprite se saca de la pantalla.
+C 0x6b22 el contador de cuadros
+C 0x6b25 uno de cada treinta y dos
+C 0x6b2b tres perseguidores
+C 0x6b31 ficha vacia
+C 0x6b35 el objeto al que sigue
+C 0x6b37 por tres, que es lo que ocupa
+C 0x6b40 la banda util
+C 0x6b48 el tipo del objeto
+C 0x6b57 la ficha, borrada
+C 0x6b63 y el sprite, fuera de la pantalla
+C 0x6b67 tres bytes por perseguidor
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x6b6e pinta_un_perseguidor
+B 0x6b6e PINTAR UN PERSEGUIDOR. Su contador avanza cada vez y, con el bit 6 puesto, dos bits del contador eligen uno de cuatro patrones de la tabla de 0x6BBB. El desplazamiento de la columna es 4 o 5 segun el tipo del objeto al que sigue, que es lo que le deja pegado a el.
+C 0x6b6f el bit 7: no se pinta
+C 0x6b74 su contador, uno mas
+C 0x6b7c el bit 6
+C 0x6b80 dos bits del contador
+C 0x6b84 los cuatro patrones
+C 0x6b97 trece pixeles de desplazamiento
+C 0x6b9f el tipo del objeto
+C 0x6ba1 cinco
+C 0x6ba5 o cuatro
+C 0x6bac el color del sprite
+L 0x6bb2 saca_el_sprite_de_pantalla
+C 0x6bb5 su hueco de sprite
+C 0x6bb8 0xC3: fuera de la pantalla
+L 0x6bbf mueve_los_tres_de_la_lista
+B 0x6bbf LOS TRES DE 0xE1DE, que solo se mueven cuando el decorado esta quieto. El ritmo lo dan los bits del contador de cuadros: uno de cada ocho en general, uno de cada cuatro si el bit 6 esta puesto, y con el bit 5 puesto no se mueven. El paso es +4 o -4 segun el bit 7 de su ficha.
+C 0x6bbf la direccion del decorado
+C 0x6bc3 si se esta moviendo, estos no
+C 0x6bc7 tres
+C 0x6bd6 el contador de cuadros
+C 0x6bd9 uno de cada ocho
+C 0x6bdb el bit 6: el doble de rapido
+C 0x6be3 uno de cada cuatro
+C 0x6be8 el bit 5 los para
+C 0x6bee cuatro pixeles
+C 0x6bf1 el bit 7: hacia el otro lado
+C 0x6bf5 cuatro hacia atras
+C 0x6bf9 el bit 3
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+B 0x6c05 EL COLOR DEL BICHO, y aqui vuelve a salir el azar del registro R: por defecto 0xE1, o 0xE0 si el bit 2 esta a cero, y entonces una vez de cada dieciseis -`ld a,r / and 00fh`- se pone 0xE2. O sea que de vez en cuando parpadea de otro color, sin ningun contador.
+C 0x6c05 el color por defecto
+C 0x6c07 el bit 2
+C 0x6c0b el otro color
+C 0x6c11 el registro de refresco: el azar
+C 0x6c13 una vez de cada dieciseis
+C 0x6c17 y el tercer color
+C 0x6c2a nueve bytes por ficha
+L 0x6c32 corre_los_tres_con_el_decorado
+B 0x6c32 LOS TRES DE 0xE1DE, corridos CON el decorado: ocho pixeles en el sentido que lleve (0xE1AA). Es la rutina contraria a la de arriba, que solo actua cuando el decorado esta quieto.
+C 0x6c32 la direccion del decorado
+C 0x6c36 si esta quieto, aqui no hay nada que hacer
+C 0x6c3a tres
+C 0x6c4c ocho hacia un lado
+C 0x6c52 u ocho hacia el otro
+C 0x6c56 se corre la ficha
+C 0x6c5e y su pareja
+C 0x6c6a nueve bytes por ficha
+L 0x6c72 suma_bc_a_la_posicion
+B 0x6c72 SUMAR BC A UNA POSICION DE 16 BITS guardada del reves -byte alto primero-, que es como este cartucho guarda las posiciones de los bichos.
+C 0x6c72 el byte alto
+C 0x6c74 y el bajo
+C 0x6c76 sumado
+C 0x6c78 y devuelto en el mismo orden
+L 0x6c7c marca_si_esta_en_pantalla
+C 0x6c81 el bit 5: fuera de la pantalla
+C 0x6c85 dentro: se pinta
