@@ -646,7 +646,7 @@ pinta_el_marcador:
 	call pinta_el_tanteo		;435b   ; y se pinta su tanteo con la misma rutina
 L_435E:
 	call pinta_las_vidas		;435e   ; el contador de vidas
-	call L_66BC		;4361   ; la altura
+	call pinta_la_altura		;4361   ; la altura
 	call pinta_las_vidas_numero		;4364
 L_4367:
 	ld hl,0e045h		;4367   ; el record
@@ -1815,7 +1815,7 @@ L_532F:
 	ld de,0e1b3h		;533b
 	ld bc,00005h		;533e
 	ldir		;5341
-	jp L_6584		;5343
+	jp mete_al_jugador_en_los_sprites		;5343
 L_5346:
 	ld de,0e0b0h		;5346
 	ld hl,05394h		;5349
@@ -2279,7 +2279,7 @@ DATA_tabla_617A:
 
 
 L_61A0:
-	jp L_6584		;61a0
+	jp mete_al_jugador_en_los_sprites		;61a0
 
 ; ----------------------------------------------------------------------
 ; LEER DE LA VRAM LAS DOS CELDAS QUE HAY BAJO EL JUGADOR, para saber sobre que esta. En vez de llevar un mapa en RAM, el cartucho PREGUNTA A LA PANTALLA: convierte la posicion en celda y se trae los dos indices de patron a 0xE1BF.
@@ -2300,8 +2300,8 @@ L_61B2:
 	djnz L_61B2		;61bc
 	ret			;61be
 mira_si_agarra:
-	call L_6490		;61bf
-	call L_64B7		;61c2
+	call elige_el_paso_del_dibujo		;61bf
+	call se_acaba_de_pulsar_direccion		;61c2
 	jp nz,estado_3		;61c5
 	ld a,(0e009h)		;61c8   ; lo que se esta pulsando
 	rra			;61cb   ; el bit 0
@@ -2326,7 +2326,7 @@ DATA_61DE:
 
 
 mira_si_sube:
-	call L_66AF		;61e4
+	call mira_si_llego_a_la_marca		;61e4
 	jp nc,estado_4_con_sonido		;61e7
 	ld a,(0e009h)		;61ea   ; lo que se esta pulsando
 	and 00ch		;61ed   ; los dos bits de direccion
@@ -2446,8 +2446,8 @@ L_627B:
 	ld a,(hl)			;6283
 	call L_79A4		;6284   ; y suena el que toque
 sigue_el_cuadro_del_jugador:
-	call L_6490		;6287
-	call L_64B7		;628a   ; mira si se cae
+	call elige_el_paso_del_dibujo		;6287
+	call se_acaba_de_pulsar_direccion		;628a   ; mira si se cae
 	jr nz,estado_3		;628d
 	call se_acaba_de_pulsar_boton		;628f   ; y si hay suelo debajo
 	ret z			;6292
@@ -2494,12 +2494,12 @@ L_62D3:
 estado_3:
 	ld hl,06572h		;62db   ; el guion del jugador
 L_62DE:
-	call L_654E		;62de
+	call arranca_gesto_con_sonido		;62de
 	ld a,003h		;62e1   ; estado 3
 	jp pasa_al_estado		;62e3
 estado_4_con_sonido:
 	ld hl,06572h		;62e6
-	call L_6558		;62e9
+	call arranca_gesto		;62e9
 	ld a,005h		;62ec   ; el sonido de este estado
 	call L_7A13		;62ee
 	ld a,004h		;62f1   ; estado 4
@@ -2509,15 +2509,15 @@ rehace_la_pantalla:
 L_62F8:
 	push bc			;62f8
 	ld a,008h		;62f9   ; el patron de partida
-	call L_670A		;62fb
-	call L_6584		;62fe   ; monta el decorado
+	call mueve_al_jugador		;62fb
+	call mete_al_jugador_en_los_sprites		;62fe   ; monta el decorado
 	call L_52A2		;6301
 	call mira_si_puede_subir		;6304
 	pop bc			;6307
 	djnz L_62F8		;6308
 	ret			;630a
 estado_1:
-	call L_64C1		;630b   ; mira el suelo
+	call avanza_el_gesto_dos		;630b   ; mira el suelo
 	call hay_suelo_debajo		;630e
 	jr z,se_engancha		;6311
 	ld a,(0e1c7h)		;6313   ; la bandera de 0xE1C7
@@ -2527,7 +2527,7 @@ estado_1:
 	ld hl,(0e1b3h)		;631c   ; la posicion del jugador
 	ld bc,00018h		;631f   ; veinticuatro por debajo
 	add hl,bc			;6322
-	call L_6665		;6323
+	call mira_los_cuarenta_objetos		;6323
 	jr nc,mira_si_llego_al_suelo		;6326
 	ld a,002h		;6328   ; el sonido de agarrarse
 	call L_7A13		;632a
@@ -2537,7 +2537,7 @@ estado_1:
 L_6334:
 	ld a,(0e1cbh)		;6334
 	sub 020h		;6337   ; treinta y dos hacia arriba
-	call L_6706		;6339
+	call sube_al_jugador		;6339
 	call sube_hasta_la_fila_48		;633c
 	ld a,002h		;633f   ; estado 2
 	jp pasa_al_estado		;6341
@@ -2559,7 +2559,7 @@ mira_si_llego_al_suelo:
 	ld a,098h		;635c   ; el suelo esta en 0x98
 	sub (hl)			;635e
 	ret nc			;635f   ; si aun no ha llegado, nada
-	call L_670A		;6360
+	call mueve_al_jugador		;6360
 	ld a,000h		;6363   ; estado 0
 	jp pasa_al_estado		;6365
 
@@ -2608,7 +2608,7 @@ L_6396:
 	ld a,(hl)			;63a5
 	add a,008h		;63a6   ; y baja ocho
 	ld (hl),a			;63a8
-	jp L_672E		;63a9
+	jp marca_movimiento_abajo		;63a9
 
 ; ----------------------------------------------------------------------
 ; LO MISMO PARA SUBIR: entre 0x88 y 0x90, y con el bit 1 de (0xE1AB) a cero. Sube de ocho en ocho, que es la altura de una celda.
@@ -2626,15 +2626,15 @@ mira_si_puede_subir:
 	ld a,(hl)			;63bc
 	sub 008h		;63bd   ; y sube ocho
 	ld (hl),a			;63bf
-	jp L_6732		;63c0
+	jp marca_movimiento_arriba		;63c0
 estado_2_subiendo:
-	call L_64C5		;63c3
+	call avanza_el_gesto		;63c3
 	call mira_si_puede_subir		;63c6
 	ld hl,(0e1b3h)		;63c9   ; la posicion del jugador
-	call L_6665		;63cc   ; mira si hay algo ahi
+	call mira_los_cuarenta_objetos		;63cc   ; mira si hay algo ahi
 	jr nc,mira_si_llego_al_suelo		;63cf
 	ld a,(0e1cbh)		;63d1
-	call L_6706		;63d4   ; se coloca
+	call sube_al_jugador		;63d4   ; se coloca
 	ld a,006h		;63d7   ; el sonido
 	call L_7A13		;63d9
 	ld a,005h		;63dc   ; estado 5
@@ -2646,11 +2646,11 @@ estado_2_subiendo:
 estado_0_en_el_suelo:
 	ld a,(0e009h)		;63e1   ; lo que se pulsa
 	ld (0e1b7h),a		;63e4   ; congelado para el resto del cuadro
-	call L_66AF		;63e7
+	call mira_si_llego_a_la_marca		;63e7
 	jp nc,estado_4_con_sonido		;63ea
 	ld a,(0e003h)		;63ed   ; el contador de cuadros
 	rra			;63f0   ; uno de cada dos
-	call c,L_6490		;63f1
+	call c,elige_el_paso_del_dibujo		;63f1
 	ld a,(0e009h)		;63f4
 	and 00ch		;63f7   ; los dos bits de direccion
 	jr z,L_6400		;63f9
@@ -2676,8 +2676,8 @@ L_6410:
 L_641D:
 	push bc			;641d
 	ld a,0f8h		;641e   ; ocho pixeles hacia arriba cada una
-	call L_670A		;6420
-	call L_6584		;6423
+	call mueve_al_jugador		;6420
+	call mete_al_jugador_en_los_sprites		;6423
 	call L_52A2		;6426
 	call L_6396		;6429
 	pop bc			;642c
@@ -2698,7 +2698,7 @@ L_644A:
 	call hay_suelo_debajo		;644a
 	jp z,se_engancha		;644d   ; se engancha
 	ld hl,06572h		;6450
-	call L_6558		;6453
+	call arranca_gesto		;6453
 	ld a,003h		;6456   ; estado 3
 	jp pasa_al_estado		;6458
 
@@ -2731,9 +2731,9 @@ baja_un_tramo:
 	ld a,(hl)			;6473
 	add a,008h		;6474   ; ocho pixeles hacia abajo
 	ld (hl),a			;6476
-	call L_6584		;6477   ; y se repinta
+	call mete_al_jugador_en_los_sprites		;6477   ; y se repinta
 	call L_52A2		;647a
-	call L_672E		;647d
+	call marca_movimiento_abajo		;647d
 	ld hl,0e1b3h		;6480
 	ld a,(hl)			;6483
 	ret			;6484
@@ -2752,84 +2752,92 @@ pasa_al_estado:
 	ld hl,0e1b2h		;6486   ; el estado del jugador
 	ld (hl),a			;6489
 	ret			;648a
-L_648B:
+pasa_al_estado_siguiente:
 	ld hl,0e1b2h		;648b
-	inc (hl)			;648e
+	inc (hl)			;648e   ; el estado del jugador, uno mas
 	ret			;648f
-L_6490:
-	ld a,(0e009h)		;6490
-	and 00ch		;6493
-	ld (0e1b6h),a		;6495
+
+; ----------------------------------------------------------------------
+; EL PASO DEL DIBUJO SEGUN LO QUE SE PULSE. Si no hay direccion pulsada el paso se queda en 3 -el quieto-; si la hay, avanza el contador y de sus bits 2 y 3 sale el paso, o sea que la animacion va sola con el movimiento.
+; ----------------------------------------------------------------------
+elige_el_paso_del_dibujo:
+	ld a,(0e009h)		;6490   ; lo que se esta pulsando
+	and 00ch		;6493   ; los dos bits de direccion
+	ld (0e1b6h),a		;6495   ; guardado para el cuadro
 	ld hl,0e1b4h		;6498
 	ld de,0e1b8h		;649b
 	jr z,L_64B3		;649e
 	ex de,hl			;64a0
-	inc (hl)			;64a1
+	inc (hl)			;64a1   ; el contador de la animacion
 	ex de,hl			;64a2
-	ld (0e1b7h),a		;64a3
+	ld (0e1b7h),a		;64a3   ; y la lectura, congelada
 	ld c,001h		;64a6
-	call L_6530		;64a8
+	call mueve_sin_pasar_de_los_topes		;64a8
 	ld a,(de)			;64ab
-	and 00ch		;64ac
-	rrca			;64ae
+	and 00ch		;64ac   ; los bits 2 y 3
+	rrca			;64ae   ; bajados a su sitio: el paso
 	rrca			;64af
 L_64B0:
 	inc hl			;64b0
 	ld (hl),a			;64b1
 	ret			;64b2
 L_64B3:
-	ld a,003h		;64b3
+	ld a,003h		;64b3   ; el paso quieto
 	jr L_64B0		;64b5
-L_64B7:
+se_acaba_de_pulsar_direccion:
 	ld hl,0e008h		;64b7
-	ld a,(hl)			;64ba
-	cpl			;64bb
+	ld a,(hl)			;64ba   ; lo de antes
+	cpl			;64bb   ; invertido y cruzado con lo de ahora: el flanco
 	and 030h		;64bc
 	inc hl			;64be
 	and (hl)			;64bf
 	ret			;64c0
-L_64C1:
+avanza_el_gesto_dos:
 	ld c,002h		;64c1
 	jr L_64C7		;64c3
-L_64C5:
+
+; ----------------------------------------------------------------------
+; AVANZAR UN GESTO. El bit 0 de (0xE1C7) decide el sentido -el paso sube o baja-, y a partir del octavo cambia el dibujo de 3 a 5. El desplazamiento se saca de la rampa que apunta (0xE1C9), con el signo cambiado si el gesto va marcha atras.
+; ----------------------------------------------------------------------
+avanza_el_gesto:
 	ld c,001h		;64c5
 L_64C7:
-	ld a,(0e1c7h)		;64c7
+	ld a,(0e1c7h)		;64c7   ; el sentido del gesto
 	ld b,a			;64ca
 	ld hl,0e1c8h		;64cb
-	bit 0,b		;64ce
+	bit 0,b		;64ce   ; el bit 0
 	jr nz,L_64D5		;64d0
-	inc (hl)			;64d2
+	inc (hl)			;64d2   ; hacia delante
 	jr L_64D6		;64d3
 L_64D5:
-	dec (hl)			;64d5
+	dec (hl)			;64d5   ; o hacia atras
 L_64D6:
 	ld a,(hl)			;64d6
-	cp 008h		;64d7
+	cp 008h		;64d7   ; a partir del paso 8
 	ld a,003h		;64d9
 	jr c,L_64DF		;64db
-	ld a,005h		;64dd
+	ld a,005h		;64dd   ; el otro dibujo
 L_64DF:
 	ld (0e1b5h),a		;64df
 	ld hl,0e1b3h		;64e2
-	ld de,(0e1c9h)		;64e5
-	ld a,(de)			;64e9
+	ld de,(0e1c9h)		;64e5   ; por donde va la rampa
+	ld a,(de)			;64e9   ; el desplazamiento de este paso
 	bit 0,b		;64ea
 	jr nz,L_64F0		;64ec
-	neg		;64ee
+	neg		;64ee   ; al reves si va marcha atras
 L_64F0:
 	push bc			;64f0
 	ld c,a			;64f1
 	add a,(hl)			;64f2
-	cp 018h		;64f3
+	cp 018h		;64f3   ; veinticuatro de tope
 	jr nc,L_64FA		;64f5
 	ld a,(hl)			;64f7
-	ld c,000h		;64f8
+	ld c,000h		;64f8   ; y si se pasa, no se mueve
 L_64FA:
 	ld (hl),a			;64fa
 	inc hl			;64fb
 	ld a,c			;64fc
-	ld (0e1beh),a		;64fd
+	ld (0e1beh),a		;64fd   ; lo que se movio de verdad, apuntado
 	pop bc			;6500
 	bit 0,b		;6501
 	jr z,L_6507		;6503
@@ -2838,24 +2846,24 @@ L_6507:
 	neg		;6507
 	push hl			;6509
 	push de			;650a
-	call L_6713		;650b
+	call L_6713		;650b   ; se repinta
 	pop de			;650e
 	pop hl			;650f
-	call L_6530		;6510
+	call mueve_sin_pasar_de_los_topes		;6510
 	bit 0,b		;6513
 	jr nz,L_651A		;6515
-	inc de			;6517
+	inc de			;6517   ; la rampa avanza
 	jr L_651B		;6518
 L_651A:
-	dec de			;651a
+	dec de			;651a   ; o retrocede
 L_651B:
 	ld a,(de)			;651b
-	inc a			;651c
+	inc a			;651c   ; un 0xFF en la rampa es el final
 	jr nz,L_652A		;651d
 	dec de			;651f
 	dec de			;6520
 	inc a			;6521
-	ld (0e1c7h),a		;6522
+	ld (0e1c7h),a		;6522   ; se baja la senal: se acabo el gesto
 L_6525:
 	ld (0e1c9h),de		;6525
 	ret			;6529
@@ -2864,48 +2872,56 @@ L_652A:
 	jr nz,L_6525		;652b
 	inc de			;652d
 	jr L_6525		;652e
-L_6530:
-	ld a,(0e1b6h)		;6530
+
+; ----------------------------------------------------------------------
+; MOVER SIN PASARSE DE LOS TOPES. Los dos limites viven juntos en 0xE057 y 0xE058, y el bit 3 de lo que se pulsa decide contra cual se compara: si el paso se saliera, se deshace (`sub c` / `add a,c`) y el jugador se queda donde estaba.
+; ----------------------------------------------------------------------
+mueve_sin_pasar_de_los_topes:
+	ld a,(0e1b6h)		;6530   ; lo que se esta pulsando
 	or a			;6533
 	ret z			;6534
-	bit 3,a		;6535
+	bit 3,a		;6535   ; el bit 3: hacia un lado o hacia el otro
 	ld a,(hl)			;6537
 	push hl			;6538
-	ld hl,0e057h		;6539
+	ld hl,0e057h		;6539   ; los dos topes, juntos
 	jr z,L_6545		;653c
-	add a,c			;653e
+	add a,c			;653e   ; un paso hacia delante
 	cp (hl)			;653f
-	jr c,L_6543		;6540
+	jr c,L_6543		;6540   ; si se pasa del tope, se deshace
 	sub c			;6542
 L_6543:
 	jr L_654B		;6543
 L_6545:
-	sub c			;6545
+	sub c			;6545   ; o un paso hacia atras
 	inc hl			;6546
 	cp (hl)			;6547
-	jr nc,L_654B		;6548
+	jr nc,L_654B		;6548   ; contra el otro tope
 	add a,c			;654a
 L_654B:
 	pop hl			;654b
 	ld (hl),a			;654c
 	ret			;654d
-L_654E:
+arranca_gesto_con_sonido:
 	push hl			;654e
-	ld a,003h		;654f
+	ld a,003h		;654f   ; el sonido del gesto
 	call L_7A13		;6551
 	pop hl			;6554
 	xor a			;6555
 	jr L_655A		;6556
-L_6558:
+
+; ----------------------------------------------------------------------
+; ARRANCAR UN GESTO: la rampa queda apuntada en (0xE1C9), el sentido en (0xE1C7) y el paso a cero. Ademas se apunta la posicion de partida y la marca de altura de ese momento.
+; ----------------------------------------------------------------------
+arranca_gesto:
 	ld a,001h		;6558
 L_655A:
-	ld (0e1c9h),hl		;655a
-	ld (0e1c7h),a		;655d
+	ld (0e1c9h),hl		;655a   ; la rampa que hay que recorrer
+	ld (0e1c7h),a		;655d   ; el sentido
 	xor a			;6560
-	ld (0e1c8h),a		;6561
-	ld a,(0e1b3h)		;6564
+	ld (0e1c8h),a		;6561   ; el paso, a cero
+	ld a,(0e1b3h)		;6564   ; la posicion de partida
 	ld (0e1b9h),a		;6567
-	ld hl,(0e054h)		;656a
+	ld hl,(0e054h)		;656a   ; y la marca de altura
 	ld (0e1bah),hl		;656d
 	ret			;6570
 
@@ -2920,15 +2936,19 @@ DATA_6571:
 ; ======================================================================
 
 
-L_6584:
+
+; ----------------------------------------------------------------------
+; METER AL JUGADOR EN EL BUFER DE SPRITES. Segun el estado -el 5, por debajo del 15 o por encima- se corrige la posicion y se elige una de dos tablas de patrones, la de 0x65FF (cuatro bytes por pose) o la de 0x6638 (CINCO, `a*4+a`). En los estados altos se le restan tres pixeles a dos de los sprites, que es lo que le inclina la figura.
+; ----------------------------------------------------------------------
+mete_al_jugador_en_los_sprites:
 	ld hl,0e1b3h		;6584
 	ld b,(hl)			;6587
-	ld a,(0e1b2h)		;6588
-	cp 005h		;658b
+	ld a,(0e1b2h)		;6588   ; el estado del jugador
+	cp 005h		;658b   ; el estado 5 va aparte
 	jr z,L_659D		;658d
-	cp 00fh		;658f
-	jr nc,L_65D7		;6591
-	inc b			;6593
+	cp 00fh		;658f   ; de 15 en adelante, la otra tabla
+	jr nc,mete_al_jugador_inclinado		;6591
+	inc b			;6593   ; cuatro pixeles de correccion
 	inc b			;6594
 	inc b			;6595
 	inc b			;6596
@@ -2936,63 +2956,63 @@ L_6584:
 	cp 006h		;6599
 	jr nc,L_65A2		;659b
 L_659D:
-	ld a,008h		;659d
+	ld a,008h		;659d   ; el paso quieto
 	ld (0e1b7h),a		;659f
 L_65A2:
 	inc hl			;65a2
 	ld c,(hl)			;65a3
 	inc hl			;65a4
 	ld a,(hl)			;65a5
-	bit 0,a		;65a6
+	bit 0,a		;65a6   ; el bit 0 del paso corrige un pixel
 	jr z,L_65AB		;65a8
 	inc b			;65aa
 L_65AB:
-	ld de,065ffh		;65ab
-	add a,a			;65ae
+	ld de,065ffh		;65ab   ; la tabla de poses
+	add a,a			;65ae   ; por cuatro
 	add a,a			;65af
 	call suma_a_a_de		;65b0
-	ld hl,0e0d0h		;65b3
-	call L_664C		;65b6
-	ld a,010h		;65b9
+	ld hl,0e0d0h		;65b3   ; el bufer de sprites
+	call mete_dos_sprites		;65b6
+	ld a,010h		;65b9   ; dieciseis mas abajo: el segundo sprite
 	add a,b			;65bb
 	ld b,a			;65bc
-	call L_664C		;65bd
-	ld (hl),0c3h		;65c0
+	call mete_dos_sprites		;65bd
+	ld (hl),0c3h		;65c0   ; y el tercero, fuera de pantalla
 	ld a,(0e1b5h)		;65c2
-	cp 006h		;65c5
+	cp 006h		;65c5   ; en los estados altos
 	ret c			;65c7
 	ld hl,0e0d4h		;65c8
 	ld a,(hl)			;65cb
-	sub 003h		;65cc
+	sub 003h		;65cc   ; tres pixeles menos
 	ld (hl),a			;65ce
 	ld hl,0e0dch		;65cf
 	ld a,(hl)			;65d2
-	sub 003h		;65d3
+	sub 003h		;65d3   ; a los dos sprites
 	ld (hl),a			;65d5
 	ret			;65d6
-L_65D7:
+mete_al_jugador_inclinado:
 	inc b			;65d7
 	inc b			;65d8
 	inc hl			;65d9
 	ld c,(hl)			;65da
 	inc hl			;65db
 	ld a,(hl)			;65dc
-	add a,a			;65dd
+	add a,a			;65dd   ; por cinco: esta tabla gasta uno mas
 	add a,a			;65de
 	add a,(hl)			;65df
-	ld de,06638h		;65e0
+	ld de,06638h		;65e0   ; la otra tabla de poses
 	call suma_a_a_de		;65e3
 	ld hl,0e0d0h		;65e6
-	call L_664C		;65e9
-	ld a,010h		;65ec
+	call mete_dos_sprites		;65e9   ; el primer sprite
+	ld a,010h		;65ec   ; dieciseis mas abajo
 	add a,b			;65ee
 	ld b,a			;65ef
-	call L_664C		;65f0
+	call mete_dos_sprites		;65f0
 	ld a,c			;65f3
-	sub 008h		;65f4
+	sub 008h		;65f4   ; ocho a un lado
 	ld (0e0d9h),a		;65f6
 	ld a,c			;65f9
-	add a,008h		;65fa
+	add a,008h		;65fa   ; y ocho al otro
 	ld c,a			;65fc
 	jr $+82		;65fd
 
@@ -3010,46 +3030,54 @@ DATA_65FF:
 ; ======================================================================
 
 
-L_664C:
+
+; ----------------------------------------------------------------------
+; METER UN SPRITE EN EL BUFER: fila, columna y patron. El bit 3 de la lectura congelada decide si el patron va tal cual o SUMANDO 0x28, que es como se dibuja la figura mirando al otro lado sin una segunda hoja de patrones.
+; ----------------------------------------------------------------------
+mete_dos_sprites:
 	call L_664F		;664c
 L_664F:
-	ld (hl),b			;664f
+	ld (hl),b			;664f   ; la fila
 	inc hl			;6650
-	ld (hl),c			;6651
+	ld (hl),c			;6651   ; la columna
 	inc hl			;6652
-	ld a,(0e1b7h)		;6653
-	bit 3,a		;6656
+	ld a,(0e1b7h)		;6653   ; la lectura congelada
+	bit 3,a		;6656   ; su bit 3: hacia donde mira
 	ld a,(de)			;6658
 	jr nz,L_6660		;6659
-	ld a,028h		;665b
+	ld a,028h		;665b   ; y entonces el patron va 0x28 mas alla
 	ex de,hl			;665d
 	add a,(hl)			;665e
 	ex de,hl			;665f
 L_6660:
 	ld (hl),a			;6660
-	inc de			;6661
+	inc de			;6661   ; cuatro bytes por sprite
 	inc hl			;6662
 	inc hl			;6663
 	ret			;6664
-L_6665:
+
+; ----------------------------------------------------------------------
+; LA CAJA CONTRA LOS CUARENTA OBJETOS. Se saltan los retirados (0xD0) y los que tengan algo en el nibble alto; la ventana es de NUEVE en una coordenada, y en la otra la anchura la trae C, que viene del tipo del objeto por ocho. Al acertar, copia sus tres bytes a 0xE1CB y devuelve acarreo.
+; ----------------------------------------------------------------------
+mira_los_cuarenta_objetos:
 	ex de,hl			;6665
 	ld hl,0e132h		;6666
-	ld b,028h		;6669
+	ld b,028h		;6669   ; cuarenta objetos
 L_666B:
 	push bc			;666b
 	push hl			;666c
 	ld a,(hl)			;666d
-	cp 0d0h		;666e
+	cp 0d0h		;666e   ; retirado
 	jr z,L_6679		;6670
 	inc hl			;6672
 	inc hl			;6673
 	ld a,(hl)			;6674
-	and 0f0h		;6675
+	and 0f0h		;6675   ; el nibble alto tiene que estar limpio
 	jr z,L_6682		;6677
 L_6679:
 	pop hl			;6679
 	pop bc			;667a
-	inc hl			;667b
+	inc hl			;667b   ; tres bytes por objeto
 	inc hl			;667c
 	inc hl			;667d
 	djnz L_666B		;667e
@@ -3059,51 +3087,55 @@ L_6682:
 	dec hl			;6682
 	dec hl			;6683
 	push de			;6684
-	call L_66A5		;6685
+	call ancho_del_objeto		;6685
 	pop de			;6688
-	ld a,e			;6689
+	ld a,e			;6689   ; nueve pixeles de margen
 	sub (hl)			;668a
 	cp 009h		;668b
 	jr nc,L_6679		;668d
 	inc hl			;668f
 	ld a,d			;6690
 	sub (hl)			;6691
-	add a,008h		;6692
-	cp c			;6694
+	add a,008h		;6692   ; ocho de desplazamiento
+	cp c			;6694   ; y el ancho, que lo trae el tipo
 	jr nc,L_6679		;6695
 	ld a,c			;6697
 	pop hl			;6698
 	pop bc			;6699
-	ld de,0e1cbh		;669a
+	ld de,0e1cbh		;669a   ; los tres bytes del objeto, copiados
 	ld bc,00003h		;669d
 	ldir		;66a0
 	ld (de),a			;66a2
-	scf			;66a3
+	scf			;66a3   ; acarreo: hay contacto
 	ret			;66a4
-L_66A5:
+ancho_del_objeto:
 	call L_4A0E		;66a5
-	ld a,c			;66a8
+	ld a,c			;66a8   ; el tipo, por ocho
 	add a,a			;66a9
 	add a,a			;66aa
 	add a,a			;66ab
-	inc a			;66ac
+	inc a			;66ac   ; mas uno
 	ld c,a			;66ad
 	ret			;66ae
-L_66AF:
-	ld a,(0e1b4h)		;66af
-	ld hl,0e1cch		;66b2
+mira_si_llego_a_la_marca:
+	ld a,(0e1b4h)		;66af   ; la posicion del jugador
+	ld hl,0e1cch		;66b2   ; contra la marca
 	sub (hl)			;66b5
-	add a,008h		;66b6
+	add a,008h		;66b6   ; ocho de margen
 	inc hl			;66b8
 	inc hl			;66b9
 	cp (hl)			;66ba
 	ret			;66bb
-L_66BC:
-	ld hl,066e7h		;66bc
+pinta_la_altura:
+	ld hl,066e7h		;66bc   ; el rotulo "HEIGHT"
 	call pinta_rotulo		;66bf
 L_66C2:
-	ld hl,(0e054h)		;66c2
-	srl h		;66c5
+	ld hl,(0e054h)		;66c2   ; y la altura alcanzada
+
+; ----------------------------------------------------------------------
+; LA ALTURA, DIVIDIDA ENTRE DIECISEIS. Cuatro parejas de `srl h / rr l`, o sea cuatro divisiones entre dos encadenadas de 16 bits, y luego se pasa a BCD para poder pintarla.
+; ----------------------------------------------------------------------
+	srl h		;66c5   ; dividir entre dos, arrastrando el bit
 	rr l		;66c7
 	srl h		;66c9
 	rr l		;66cb
@@ -3111,12 +3143,12 @@ L_66C2:
 	rr l		;66cf
 	srl h		;66d1
 	rr l		;66d3
-	call L_66F5		;66d5
+	call binario_a_bcd		;66d5   ; y de binario a BCD
 	ld (0e1bch),de		;66d8
-	ld hl,0e1bdh		;66dc
-	ld de,0385ah		;66df
+	ld hl,0e1bdh		;66dc   ; el resultado
+	ld de,0385ah		;66df   ; la celda del marcador
 L_66E2:
-	ld b,002h		;66e2
+	ld b,002h		;66e2   ; dos bytes, cuatro digitos
 	jp imprime_bcd		;66e4
 
 ; ----------------------------------------------------------------------
@@ -3130,43 +3162,51 @@ DATA_guion_0x66E7:
 ; ======================================================================
 
 
-L_66F5:
-	ld b,010h		;66f5
-	ld de,00000h		;66f7
+
+; ----------------------------------------------------------------------
+; DE BINARIO A BCD, sin dividir ni una vez. Recorre los dieciseis bits del numero de arriba abajo (`add hl,hl` saca el de mas peso al acarreo) y va DOBLANDO el resultado en BCD con `adc a,a / daa`: doblar en decimal es lo mismo que doblar en binario si se corrige con `daa` en cada paso.
+; ----------------------------------------------------------------------
+binario_a_bcd:
+	ld b,010h		;66f5   ; dieciseis bits
+	ld de,00000h		;66f7   ; el resultado, a cero
 L_66FA:
-	add hl,hl			;66fa
-	ld a,e			;66fb
+	add hl,hl			;66fa   ; el bit de mas peso, al acarreo
+	ld a,e			;66fb   ; el BCD se dobla y recoge ese bit
 	adc a,a			;66fc
-	daa			;66fd
+	daa			;66fd   ; corregido a decimal
 	ld e,a			;66fe
 	ld a,d			;66ff
-	adc a,a			;6700
+	adc a,a			;6700   ; y el byte alto, igual
 	daa			;6701
 	ld d,a			;6702
 	djnz L_66FA		;6703
 	ret			;6705
-L_6706:
-	ld hl,0e1b3h		;6706
+sube_al_jugador:
+	ld hl,0e1b3h		;6706   ; la posicion del jugador
 	sub (hl)			;6709
-L_670A:
+
+; ----------------------------------------------------------------------
+; MOVER AL JUGADOR Y AJUSTAR LA ALTURA ALCANZADA, que va en sentido contrario: lo que baja la posicion sube la marca. Y la marca tiene suelo: si la resta se pasa de cero, se queda en cero.
+; ----------------------------------------------------------------------
+mueve_al_jugador:
 	push af			;670a
 	ld hl,0e1b3h		;670b
-	add a,(hl)			;670e
+	add a,(hl)			;670e   ; se aplica a la posicion
 	ld (hl),a			;670f
 	pop af			;6710
-	neg		;6711
+	neg		;6711   ; y al reves para la altura
 L_6713:
-	ld hl,(0e054h)		;6713
+	ld hl,(0e054h)		;6713   ; la altura acumulada
 	ld d,000h		;6716
 	ld e,a			;6718
 	or a			;6719
-	jp p,L_6729		;671a
+	jp p,L_6729		;671a   ; positivo: se suma
 	neg		;671d
 	ld e,a			;671f
 	and a			;6720
-	sbc hl,de		;6721
+	sbc hl,de		;6721   ; negativo: se resta
 	jr nc,L_672A		;6723
-	ld h,d			;6725
+	ld h,d			;6725   ; y si se pasa, cero
 	ld l,d			;6726
 	jr L_672A		;6727
 L_6729:
@@ -3174,47 +3214,51 @@ L_6729:
 L_672A:
 	ld (0e054h),hl		;672a
 	ret			;672d
-L_672E:
+marca_movimiento_abajo:
 	ld a,001h		;672e
 	jr L_6734		;6730
-L_6732:
+marca_movimiento_arriba:
 	ld a,002h		;6732
 L_6734:
-	ld hl,0e1aah		;6734
+	ld hl,0e1aah		;6734   ; la direccion del ultimo movimiento
 	ld (hl),a			;6737
 	inc hl			;6738
 	or a			;6739
 	ret z			;673a
-	and (hl)			;673b
+	and (hl)			;673b   ; cruzada con lo que se puede
 	ld (hl),a			;673c
 	or a			;673d
-	jr z,L_6744		;673e
+	jr z,mueve_el_decorado		;673e
 	dec hl			;6740
 	ld (hl),000h		;6741
 	ret			;6743
-L_6744:
+
+; ----------------------------------------------------------------------
+; EL MOVIMIENTO DEL DECORADO, otra vez leyendo de la VRAM: compara el indice que hay en pantalla con el que espera y, cuando coincide, escribe un cero y avanza el puntero. Dos listas a la vez, la de 0xE1C4 y la de 0xE059.
+; ----------------------------------------------------------------------
+mueve_el_decorado:
 	dec hl			;6744
 	ld a,(hl)			;6745
-	rra			;6746
+	rra			;6746   ; el bit 0
 	jr nc,L_678F		;6747
 L_6749:
 	ld hl,0e1c4h		;6749
-	ld de,(0e1c5h)		;674c
+	ld de,(0e1c5h)		;674c   ; por donde va la primera lista
 	inc (hl)			;6750
-	call lee_de_vram		;6751
-	cp (hl)			;6754
+	call lee_de_vram		;6751   ; lee la celda de la pantalla
+	cp (hl)			;6754   ; contra lo que se espera
 	jr nz,L_6768		;6755
 	inc de			;6757
 	call lee_de_vram		;6758
-	cp 0ffh		;675b
+	cp 0ffh		;675b   ; un 0xFF cierra la lista
 	jr z,L_6788		;675d
-	ld (hl),000h		;675f
+	ld (hl),000h		;675f   ; se borra
 	call L_67EC		;6761
 	ld (0e1c5h),de		;6764
 L_6768:
 	call L_6889		;6768
 	ld hl,0e059h		;676b
-	ld de,(0e05ah)		;676e
+	ld de,(0e05ah)		;676e   ; y la segunda lista
 	inc (hl)			;6772
 	call lee_de_vram		;6773
 	cp (hl)			;6776
@@ -3559,7 +3603,7 @@ L_6962:
 	ret nc			;6980
 	cp b			;6981
 	ret c			;6982
-	call L_66A5		;6983
+	call ancho_del_objeto		;6983
 	ld de,0e1cbh		;6986
 	push de			;6989
 	ld bc,00003h		;698a
@@ -3581,7 +3625,7 @@ L_699F:
 	ld a,l			;69ab
 	add a,024h		;69ac
 	ld l,a			;69ae
-	call L_6665		;69af
+	call mira_los_cuarenta_objetos		;69af
 	jp nc,mira_si_llego_al_suelo		;69b2
 	jp L_6334		;69b5
 L_69B8:
@@ -3612,7 +3656,7 @@ L_69CF:
 	jr nc,L_69DF		;69dc
 	dec a			;69de
 L_69DF:
-	call L_670A		;69df
+	call mueve_al_jugador		;69df
 	ld a,002h		;69e2
 	jp L_7A13		;69e4
 L_69E7:
@@ -3695,7 +3739,7 @@ L_6A4F:
 	ld b,a			;6a52
 	and 00ch		;6a53
 	jr z,L_6A5C		;6a55
-	call L_64B7		;6a57
+	call se_acaba_de_pulsar_direccion		;6a57
 	jr nz,L_6A93		;6a5a
 L_6A5C:
 	ld a,b			;6a5c
@@ -3711,7 +3755,7 @@ L_6A5C:
 	ld hl,(0e1b3h)		;6a6e
 	ld bc,0000ch		;6a71
 	add hl,bc			;6a74
-	call L_6665		;6a75
+	call mira_los_cuarenta_objetos		;6a75
 	ret nc			;6a78
 	jp L_6334		;6a79
 L_6A7C:
@@ -3722,7 +3766,7 @@ L_6A7C:
 	cp 003h		;6a88
 	ret nz			;6a8a
 	ld a,008h		;6a8b
-	call L_670A		;6a8d
+	call mueve_al_jugador		;6a8d
 	jp estado_4_con_sonido		;6a90
 L_6A93:
 	ld hl,(0e1b3h)		;6a93
@@ -5225,18 +5269,18 @@ L_732A:
 	inc (hl)			;7335
 	ld (0e1b6h),a		;7336
 	ld hl,06572h		;7339
-	call L_6558		;733c
+	call arranca_gesto		;733c
 	xor a			;733f
 	ld (0e032h),a		;7340
 	ld a,00bh		;7343
 	call L_7A13		;7345
-	jp L_648B		;7348
+	jp pasa_al_estado_siguiente		;7348
 L_734B:
 	ld a,(0e003h)		;734b
 	rra			;734e
 	ret nc			;734f
 	push af			;7350
-	call L_64C5		;7351
+	call avanza_el_gesto		;7351
 	call mira_si_puede_subir		;7354
 	pop af			;7357
 	bit 2,a		;7358
@@ -5249,7 +5293,7 @@ L_735F:
 	ld a,098h		;7365
 	sub (hl)			;7367
 	ret nc			;7368
-	call L_670A		;7369
+	call mueve_al_jugador		;7369
 	ld a,09fh		;736c
 	call L_7A13		;736e
 	ld a,0c3h		;7371
@@ -5263,7 +5307,7 @@ L_737B:
 	call L_7A13		;737d
 	ld a,(0e1cbh)		;7380
 	sub 020h		;7383
-	call L_6706		;7385
+	call sube_al_jugador		;7385
 	ld a,001h		;7388
 	ld (0e1b5h),a		;738a
 	ld (0e001h),a		;738d
@@ -5333,7 +5377,7 @@ L_7400:
 	ld a,00eh		;7417
 	jp pasa_al_estado		;7419
 L_741C:
-	jp L_648B		;741c
+	jp pasa_al_estado_siguiente		;741c
 
 ; ----------------------------------------------------------------------
 ; DATOS sin identificar  0x741f..0x7427  (8 bytes)
@@ -5371,14 +5415,14 @@ L_7446:
 	add a,a			;7452
 L_7453:
 	ld (0e009h),a		;7453
-	call L_6490		;7456
+	call elige_el_paso_del_dibujo		;7456
 	dec hl			;7459
 	ld a,098h		;745a
 	cp (hl)			;745c
 	ret nz			;745d
 	ld a,008h		;745e
 	ld (0e1b7h),a		;7460
-	jp L_648B		;7463
+	jp pasa_al_estado_siguiente		;7463
 L_7466:
 	call L_7612		;7466
 	push af			;7469
@@ -5442,7 +5486,7 @@ L_74D9:
 L_74E3:
 	xor a			;74e3
 	ld (0e003h),a		;74e4
-	jp L_648B		;74e7
+	jp pasa_al_estado_siguiente		;74e7
 L_74EA:
 	ld hl,07600h		;74ea
 	call L_7553		;74ed
@@ -5480,7 +5524,7 @@ L_7534:
 	ret nz			;7538
 	ld a,020h		;7539
 	ld (0e004h),a		;753b
-	jp L_648B		;753e
+	jp pasa_al_estado_siguiente		;753e
 L_7541:
 	call baja_los_contadores_y_barre		;7541
 	ret p			;7544

@@ -709,3 +709,165 @@ C 0x6474 ocho pixeles hacia abajo
 C 0x6477 y se repinta
 L 0x6486 pasa_al_estado
 C 0x6486 el estado del jugador
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x648b pasa_al_estado_siguiente
+C 0x648e el estado del jugador, uno mas
+L 0x6490 elige_el_paso_del_dibujo
+B 0x6490 EL PASO DEL DIBUJO SEGUN LO QUE SE PULSE. Si no hay direccion pulsada el paso se queda en 3 -el quieto-; si la hay, avanza el contador y de sus bits 2 y 3 sale el paso, o sea que la animacion va sola con el movimiento.
+C 0x6490 lo que se esta pulsando
+C 0x6493 los dos bits de direccion
+C 0x6495 guardado para el cuadro
+C 0x64a1 el contador de la animacion
+C 0x64a3 y la lectura, congelada
+C 0x64ac los bits 2 y 3
+C 0x64ae bajados a su sitio: el paso
+C 0x64b3 el paso quieto
+L 0x64b7 se_acaba_de_pulsar_direccion
+C 0x64ba lo de antes
+C 0x64bb invertido y cruzado con lo de ahora: el flanco
+L 0x64c1 avanza_el_gesto_dos
+L 0x64c5 avanza_el_gesto
+B 0x64c5 AVANZAR UN GESTO. El bit 0 de (0xE1C7) decide el sentido -el paso sube o baja-, y a partir del octavo cambia el dibujo de 3 a 5. El desplazamiento se saca de la rampa que apunta (0xE1C9), con el signo cambiado si el gesto va marcha atras.
+C 0x64c7 el sentido del gesto
+C 0x64ce el bit 0
+C 0x64d2 hacia delante
+C 0x64d5 o hacia atras
+C 0x64d7 a partir del paso 8
+C 0x64dd el otro dibujo
+C 0x64e5 por donde va la rampa
+C 0x64e9 el desplazamiento de este paso
+C 0x64ee al reves si va marcha atras
+C 0x64f3 veinticuatro de tope
+C 0x64f8 y si se pasa, no se mueve
+C 0x64fd lo que se movio de verdad, apuntado
+C 0x650b se repinta
+C 0x6517 la rampa avanza
+C 0x651a o retrocede
+C 0x651c un 0xFF en la rampa es el final
+C 0x6522 se baja la senal: se acabo el gesto
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x6530 mueve_sin_pasar_de_los_topes
+B 0x6530 MOVER SIN PASARSE DE LOS TOPES. Los dos limites viven juntos en 0xE057 y 0xE058, y el bit 3 de lo que se pulsa decide contra cual se compara: si el paso se saliera, se deshace (`sub c` / `add a,c`) y el jugador se queda donde estaba.
+C 0x6530 lo que se esta pulsando
+C 0x6535 el bit 3: hacia un lado o hacia el otro
+C 0x6539 los dos topes, juntos
+C 0x653e un paso hacia delante
+C 0x6540 si se pasa del tope, se deshace
+C 0x6545 o un paso hacia atras
+C 0x6548 contra el otro tope
+L 0x654e arranca_gesto_con_sonido
+C 0x654f el sonido del gesto
+L 0x6558 arranca_gesto
+B 0x6558 ARRANCAR UN GESTO: la rampa queda apuntada en (0xE1C9), el sentido en (0xE1C7) y el paso a cero. Ademas se apunta la posicion de partida y la marca de altura de ese momento.
+C 0x655a la rampa que hay que recorrer
+C 0x655d el sentido
+C 0x6561 el paso, a cero
+C 0x6564 la posicion de partida
+C 0x656a y la marca de altura
+L 0x6584 mete_al_jugador_en_los_sprites
+B 0x6584 METER AL JUGADOR EN EL BUFER DE SPRITES. Segun el estado -el 5, por debajo del 15 o por encima- se corrige la posicion y se elige una de dos tablas de patrones, la de 0x65FF (cuatro bytes por pose) o la de 0x6638 (CINCO, `a*4+a`). En los estados altos se le restan tres pixeles a dos de los sprites, que es lo que le inclina la figura.
+C 0x6588 el estado del jugador
+C 0x658b el estado 5 va aparte
+C 0x658f de 15 en adelante, la otra tabla
+C 0x6593 cuatro pixeles de correccion
+C 0x659d el paso quieto
+C 0x65a6 el bit 0 del paso corrige un pixel
+C 0x65ab la tabla de poses
+C 0x65ae por cuatro
+C 0x65b3 el bufer de sprites
+C 0x65b9 dieciseis mas abajo: el segundo sprite
+C 0x65c0 y el tercero, fuera de pantalla
+C 0x65c5 en los estados altos
+C 0x65cc tres pixeles menos
+C 0x65d3 a los dos sprites
+L 0x65d7 mete_al_jugador_inclinado
+C 0x65dd por cinco: esta tabla gasta uno mas
+C 0x65e0 la otra tabla de poses
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x65e9 el primer sprite
+C 0x65ec dieciseis mas abajo
+C 0x65f4 ocho a un lado
+C 0x65fa y ocho al otro
+L 0x664c mete_dos_sprites
+B 0x664c METER UN SPRITE EN EL BUFER: fila, columna y patron. El bit 3 de la lectura congelada decide si el patron va tal cual o SUMANDO 0x28, que es como se dibuja la figura mirando al otro lado sin una segunda hoja de patrones.
+C 0x664f la fila
+C 0x6651 la columna
+C 0x6653 la lectura congelada
+C 0x6656 su bit 3: hacia donde mira
+C 0x665b y entonces el patron va 0x28 mas alla
+C 0x6661 cuatro bytes por sprite
+L 0x6665 mira_los_cuarenta_objetos
+B 0x6665 LA CAJA CONTRA LOS CUARENTA OBJETOS. Se saltan los retirados (0xD0) y los que tengan algo en el nibble alto; la ventana es de NUEVE en una coordenada, y en la otra la anchura la trae C, que viene del tipo del objeto por ocho. Al acertar, copia sus tres bytes a 0xE1CB y devuelve acarreo.
+C 0x6669 cuarenta objetos
+C 0x666e retirado
+C 0x6675 el nibble alto tiene que estar limpio
+C 0x667b tres bytes por objeto
+C 0x6689 nueve pixeles de margen
+C 0x6692 ocho de desplazamiento
+C 0x6694 y el ancho, que lo trae el tipo
+C 0x669a los tres bytes del objeto, copiados
+C 0x66a3 acarreo: hay contacto
+L 0x66a5 ancho_del_objeto
+C 0x66a8 el tipo, por ocho
+C 0x66ac mas uno
+L 0x66af mira_si_llego_a_la_marca
+C 0x66af la posicion del jugador
+C 0x66b2 contra la marca
+C 0x66b6 ocho de margen
+L 0x66bc pinta_la_altura
+C 0x66bc el rotulo "HEIGHT"
+C 0x66c2 y la altura alcanzada
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+B 0x66c5 LA ALTURA, DIVIDIDA ENTRE DIECISEIS. Cuatro parejas de `srl h / rr l`, o sea cuatro divisiones entre dos encadenadas de 16 bits, y luego se pasa a BCD para poder pintarla.
+C 0x66c5 dividir entre dos, arrastrando el bit
+C 0x66d5 y de binario a BCD
+C 0x66dc el resultado
+C 0x66df la celda del marcador
+C 0x66e2 dos bytes, cuatro digitos
+L 0x66f5 binario_a_bcd
+B 0x66f5 DE BINARIO A BCD, sin dividir ni una vez. Recorre los dieciseis bits del numero de arriba abajo (`add hl,hl` saca el de mas peso al acarreo) y va DOBLANDO el resultado en BCD con `adc a,a / daa`: doblar en decimal es lo mismo que doblar en binario si se corrige con `daa` en cada paso.
+C 0x66f5 dieciseis bits
+C 0x66f7 el resultado, a cero
+C 0x66fa el bit de mas peso, al acarreo
+C 0x66fb el BCD se dobla y recoge ese bit
+C 0x66fd corregido a decimal
+C 0x6700 y el byte alto, igual
+L 0x6706 sube_al_jugador
+C 0x6706 la posicion del jugador
+L 0x670a mueve_al_jugador
+B 0x670a MOVER AL JUGADOR Y AJUSTAR LA ALTURA ALCANZADA, que va en sentido contrario: lo que baja la posicion sube la marca. Y la marca tiene suelo: si la resta se pasa de cero, se queda en cero.
+C 0x670e se aplica a la posicion
+C 0x6711 y al reves para la altura
+C 0x6713 la altura acumulada
+C 0x671a positivo: se suma
+C 0x6721 negativo: se resta
+C 0x6725 y si se pasa, cero
+L 0x672e marca_movimiento_abajo
+L 0x6732 marca_movimiento_arriba
+C 0x6734 la direccion del ultimo movimiento
+C 0x673b cruzada con lo que se puede
+L 0x6744 mueve_el_decorado
+B 0x6744 EL MOVIMIENTO DEL DECORADO, otra vez leyendo de la VRAM: compara el indice que hay en pantalla con el que espera y, cuando coincide, escribe un cero y avanza el puntero. Dos listas a la vez, la de 0xE1C4 y la de 0xE059.
+C 0x6746 el bit 0
+C 0x674c por donde va la primera lista
+C 0x6751 lee la celda de la pantalla
+C 0x6754 contra lo que se espera
+C 0x675b un 0xFF cierra la lista
+C 0x675f se borra
+C 0x676e y la segunda lista
