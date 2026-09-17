@@ -1,0 +1,102 @@
+# ======================================================================
+# MAGICAL TREE (RC-713) - anotaciones del desensamblado
+# ======================================================================
+# Cada directiva D declara un rango de datos con su nombre y con la MEDIDA de
+# la que sale. Los guiones de rotulos los mide tools/guiones.py ejecutando el
+# propio interprete del cartucho, y los bloques comprimidos tools/rle.py
+# ejecutando su descompresor.
+
+D 0x4000 0x4010 cabecera_del_cartucho  "AB" y la direccion de INIT (0x4077); STATEMENT, DEVICE y TEXT a cero
+F 0x4000 w
+
+# Las dos tablas del despachador de 0x404A, pegadas detras de su `call`.
+D 0x40c3 0x40e3 tabla_de_escenas  16 entradas; la primera apunta a 0x40E3, justo detras de la tabla
+F 0x40c3 w
+D 0x617a 0x61a0 tabla_617A  19 entradas; cierra en 0x61A0, y el `ld hl,061a0h / push hl` de 0x6173 lo confirma por otro camino
+F 0x617a w
+
+# ======================================================================
+# LOS BLOQUES COMPRIMIDOS Y LOS GUIONES DE ROTULOS
+# ======================================================================
+# El descompresor es 0x449B (el destino de VRAM va delante) / 0x449F / 0x44A3,
+# y es EL MISMO CODIGO que el 0x45C9 de Circus Charlie: la firma de catorce
+# bytes de su bucle esta igual en los dos cartuchos. Formato: 0nnnnnnn b
+# REPITE, 1nnnnnnn b*n COPIA, 0x80 cambia de destino, 0x00 termina.
+# Donde acaba cada bloque lo mide tools/rle.py ejecutandolo.
+D 0x47d2 0x4894 bloque_0x47D2  194 bytes comprimidos -> 256 en VRAM (1 tramos: 0x2600); lo carga 0x4265
+D 0x4894 0x489f bloque_0x4894  11 bytes comprimidos -> 16 en VRAM (1 tramos: ?); lo carga 0x4272
+D 0x48f9 0x498c bloque_0x48F9  147 bytes comprimidos -> 208 en VRAM (1 tramos: ?); lo carga 0x48AA
+D 0x5445 0x5937 bloque_0x5445  1266 bytes comprimidos -> 1600 en VRAM (2 tramos: 0x2038 0x2300); lo carga 0x60C9
+D 0x5d0d 0x60c9 bloque_0x5D0D  956 bytes comprimidos -> 1248 en VRAM (1 tramos: 0x1B00); lo carga 0x6125
+D 0x757d 0x7595 bloque_0x757D  24 bytes comprimidos -> 22 en VRAM (2 tramos: 0x394A 0x398B); lo carga 0x7505
+
+# El interprete de rotulos es 0x405E (borra) / 0x4062 (pinta) / 0x4064. Aqui
+# el indice de patron ES el codigo ASCII, cero de desplazamiento, al reves
+# que en Circus Charlie.
+D 0x4247 0x4257 guion_0x4247  16 bytes, 2 tramos, 10 bytes a la VRAM; lo pinta 0x41AB
+D 0x4710 0x4725 guion_0x4710  21 bytes, 3 tramos, 12 bytes a la VRAM; lo pinta 0x4343
+D 0x4725 0x472b guion_0x4725  6 bytes, 1 tramos, 3 bytes a la VRAM; lo pinta 0x4350
+D 0x472b 0x47a4 guion_0x472B  121 bytes, 6 tramos, 103 bytes a la VRAM; lo pinta 0x4418
+D 0x47bc 0x47d2 guion_0x47BC  22 bytes, 1 tramos, 19 bytes a la VRAM; lo pinta 0x40F9
+D 0x66e7 0x66f5 guion_0x66E7  14 bytes, 2 tramos, 8 bytes a la VRAM; lo pinta 0x66BC
+D 0x7565 0x757d guion_0x7565  24 bytes, 2 tramos, 18 bytes a la VRAM; lo pinta 0x7499
+D 0x7595 0x75a7 guion_0x7595  18 bytes, 1 tramos, 15 bytes a la VRAM; lo pinta 0x74F0
+
+# ======================================================================
+# LAS CUATRO TABLAS DE PIEZAS Y LO QUE APUNTAN
+# ======================================================================
+# 0x4A14 elige una de cuatro tablas por los bits 5 y 6 de A, la indexa con
+# `and 01fh / add a,a / call L_4022` y saca un puntero; luego lee de la
+# estructura apuntada dos bytes de cabecera (`ld b,(hl) / inc hl / ld c,(hl) /
+# inc hl`) antes del contenido.
+#
+# Los limites no son estimaciones: cada estructura empieza donde apunta un
+# puntero y acaba donde empieza la siguiente. Las cuatro tablas juntas dan 46
+# destinos distintos, el mas bajo 0x4E2F y el mas alto 0x512D, y el ultimo
+# acaba justo donde empieza la primera tabla.
+D 0x4e2f 0x5130 piezas_4E2F  46 estructuras, cada una con dos bytes de cabecera; las apuntan las cuatro tablas de abajo
+D 0x5130 0x5146 tabla_de_piezas_1  11 punteros; la elige 0x4A14
+F 0x5130 w
+D 0x5146 0x5170 tabla_de_piezas_2  21 punteros; la elige 0x4A20
+F 0x5146 w
+D 0x5170 0x5188 tabla_de_piezas_3  12 punteros; la elige 0x4A27
+F 0x5170 w
+D 0x5188 0x518e tabla_de_piezas_4  3 punteros; la elige 0x4A19
+F 0x5188 w
+
+# Diecisiete bytes que 0x51A8 copia con `ldir` a 0xE050, y de los que 0x7545
+# copia los trece que empiezan en 0x51C5.
+D 0x51c1 0x51d2 valores_iniciales  17 bytes a 0xE050; 0x7545 copia trece desde 0x51C5
+F 0x51c1 17
+
+# ======================================================================
+# EL SONIDO
+# ======================================================================
+# Los doce periodos del PSG, y las octavas salen doblando con `add hl,hl`,
+# igual que en Circus Charlie. Y no "igual" de parecido: son LOS MISMOS DOCE
+# BYTES, 6A 64 5F 59 54 50 4B 47 43 3F 3C 38, en los dos cartuchos.
+D 0x7c4e 0x7c5a escala_cromatica  los doce periodos; 0x7C2F los baja de octava con `add hl,hl`
+F 0x7c4e 12
+
+# El repertorio de sonidos, indexado por el numero de sonido. El encaje que
+# fija la cuenta: la entrada mas baja de la tabla es 0x7C9C, que es justo
+# donde la tabla acaba. 0x7C5A + 33*2 = 0x7C9C.
+D 0x7c5a 0x7c9c tabla_de_sonidos  33 punteros
+F 0x7c5a w
+D 0x7c9c 0x7f4e partituras  los sonidos a los que apunta la tabla
+D 0x7f4e 0x8000 relleno_final  178 bytes de 0xFF hasta el final del cartucho
+F 0x7f4e 16
+
+# La primera parte del bloque que acaba en 0x5937: 0x53D7 guarda 0x53E4 en
+# (0x0E24E) y desde ahi el descompresor llega hasta 0x5937 de una tirada, o
+# sea que 0x5445 -que carga 0x60C9- es una entrada a la mitad del mismo
+# bloque, como pasa con casi todos los de este cartucho.
+D 0x53e4 0x5445 bloque_53E4  97 bytes; la primera mitad de lo que 0x53D7 deja apuntado
+
+# 0x60CF lo descomprime entero.
+D 0x5937 0x5bcd bloque_5937  1174 bytes comprimidos
+
+# Y esto NO va comprimido: 0x60DB hace `ld hl,05bcdh / ld bc,00140h / call
+# L_4441`, y L_4441 vuelca BC bytes tal cual al puerto del VDP. 0x5BCD +
+# 0x140 = 0x5D0D, que es justo donde empieza el bloque siguiente.
+D 0x5bcd 0x5d0d volcado_directo_5BCD  320 bytes a la VRAM sin comprimir; 0x60E4 y 0x60E7 entran por 0x5BCD y 0x5BDD

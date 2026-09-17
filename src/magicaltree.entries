@@ -26,3 +26,21 @@
 # codigo. Lo mide tools/encaja_tablas.py.
 !tabla 0x40c3  16   # desde 0x40C0; cierra en 0x40E3, su entrada mas baja
 !tabla 0x617a  19   # desde 0x6177; cierra en 0x61A0, y ademas el `ld hl,061a0h / push hl` de 0x6173 lo confirma por otro camino
+
+# ======================================================================
+# LAS DIRECCIONES DE RETORNO EMPUJADAS A MANO
+# ======================================================================
+# 0x40A7 elige una de dos y la APILA antes de caer en el despachador, igual
+# que hace 0x40AB en Circus Charlie:
+#
+#     ld a,(0e002h) / and 040h
+#     ld hl,043aah / jr nz,L_40B8 / ld hl,04557h
+#     ld a,(0e000h) / cp 008h / jr z,L_40C0 / push hl
+#
+# O sea que la escena despachada, al hacer `ret`, sigue por 0x43AA o por
+# 0x4557. El trazado no puede seguir un retorno fabricado.
+0x43AA   # retorno apilado por 0x40B0
+0x4557   # retorno apilado por 0x40B5
+
+# Y el tercero, del despachador de 0x6177: `ld hl,061a0h / push hl`.
+0x61A0   # retorno apilado por 0x6173
