@@ -871,3 +871,144 @@ C 0x6754 contra lo que se espera
 C 0x675b un 0xFF cierra la lista
 C 0x675f se borra
 C 0x676e y la segunda lista
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x6783 el puntero de la lista, apuntado
+L 0x6788 marca_el_tope_de_abajo
+C 0x678b el bit 0 de (0xE1AB): tope por abajo
+L 0x678f retrocede_el_decorado
+B 0x678f EL DECORADO HACIA ATRAS, con las dos listas recorridas al reves: se retrocede de tres en tres celdas hasta encontrar una que no sea cero. Y si el numero de fase coincide con lo que trae la celda, se levanta el tope de arriba.
+C 0x6792 por donde va la lista
+C 0x6797 tres celdas atras
+C 0x679a lee de la pantalla
+C 0x679e cero: se sigue retrocediendo
+C 0x67a9 el numero de fase
+C 0x67ac contra lo que trae la celda
+C 0x67b2 el bit 1: tope por arriba
+C 0x67c1 si se paso de cero, se deja
+L 0x67ec busca_un_hueco_de_objeto
+B 0x67ec BUSCAR UN HUECO LIBRE ENTRE LOS CUARENTA OBJETOS -el que tenga el 0xD0 de retirado- y rellenarlo leyendo DE LA PANTALLA los dos indices que lo definen. El primer byte es 0xE8 o 0xC0 segun el bit 0 de (0xE1AA), o sea segun por donde se venga.
+C 0x67ec los cuarenta objetos
+C 0x67f1 0xD0: hueco libre
+C 0x67f6 tres bytes por objeto
+C 0x67fd la direccion del movimiento
+C 0x6801 un tipo
+C 0x6805 o el otro
+C 0x6807 el hueco elegido, apuntado
+C 0x680b el indice que hay en la pantalla
+C 0x6810 y el de al lado
+C 0x6817 los tres bits de arriba
+C 0x6819 si son todos, es un objeto especial
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+B 0x6833 EL AZAR SALE DEL REGISTRO R. `ld a,r` lee el contador de refresco de memoria del Z80, que avanza solo con cada instruccion ejecutada: es el generador aleatorio del cartucho, gratis y sin tabla. La mascara depende de la fase -tres variantes en la 1, cuatro en las demas- y, en la fase 2, el valor 3 se rebaja a 2.
+C 0x6833 el numero de fase
+C 0x6837 en la fase 1 solo hay dos variantes
+C 0x683e el contador de refresco del Z80: el azar
+C 0x6840 recortado a la mascara
+C 0x6842 el valor mas alto
+C 0x684b se rebaja en la fase 2
+C 0x684c la direccion del movimiento
+C 0x6852 y el bit 7 marca el sentido del objeto
+C 0x685b el tipo que se leyo de la pantalla
+C 0x685e 0xE8: el que lleva la marca 0xFF
+C 0x6866 tres bytes de definicion
+C 0x686c y dos mas
+C 0x6871 el hueco de origen queda retirado
+C 0x6878 la celda siguiente en la pantalla
+C 0x687c si no esta vacia, se acabo
+L 0x6881 descarta_el_objeto
+C 0x6885 0xD0: retirado
+L 0x6889 mueve_los_objetos
+B 0x6889 EL BUCLE DE LOS CUARENTA OBJETOS. Los retirados se saltan; los demas se mueven ocho pixeles arriba o abajo segun el bit 0 de (0xE1AA), y en cuanto salen de la banda 0xC0..0xF0 se retiran solos. Es lo que mantiene la lista limpia sin barrerla aparte.
+C 0x688c cuarenta
+C 0x6891 retirado: al siguiente
+C 0x689b la direccion del movimiento
+C 0x68a3 ocho hacia un lado
+C 0x68a7 u ocho hacia el otro
+C 0x68ab la banda util empieza en 0xC0
+C 0x68ad y mide 0x30
+C 0x68b1 fuera: se retira
+C 0x68b3 los topes
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x68c7 por ocho: el desplazamiento dentro del bloque
+C 0x68cc el bit 7 de la variante
+C 0x68dc los dos bits de arriba
+C 0x68e6 los topes
+C 0x68f1 tres bytes por objeto
+L 0x68f3 repinta_los_objetos
+B 0x68f3 REPINTAR LOS OBJETOS que lo pidan -bit 6 de su tercer byte- y que no esten retirados. C lleva el numero de objeto, que hace de indice para saber donde va cada uno.
+C 0x68f8 los cuarenta
+C 0x68ff el bit 6: hay que repintarlo
+C 0x6906 retirado: no
+C 0x6912 el numero de objeto
+L 0x6918 corre_los_sprites
+B 0x6918 CORRER TODOS LOS SPRITES CON EL DECORADO, ocho pixeles en el sentido que diga (0xE1AA): diecisiete de la banda de 0xE0E4 y cuatro de la de 0xE0C0. El que se sale de la pantalla se marca con la fila 0xC3.
+C 0x691b los dos bits de direccion
+C 0x691f la banda grande
+C 0x6922 diecisiete sprites
+C 0x6927 y la pequena
+C 0x692a cuatro
+C 0x6932 la tabla de atributos de la VRAM
+C 0x6935 ocho bytes
+L 0x693b corre_un_sprite
+C 0x693b la fila del sprite
+C 0x693c ocho arriba
+C 0x693e si se sale de la banda util
+C 0x6942 0xC3: fuera de la pantalla
+C 0x6946 ocho hacia abajo
+C 0x6948 el bit 1 cambia el sentido
+C 0x694c u ocho hacia arriba
+C 0x6950 cuatro bytes por sprite
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x6957 estado_7_trepando
+B 0x6957 ESTADO 7: trepando. Con el bit 0 pulsado solo se avanza uno de cada dos cuadros -es lo que hace que subir cueste-, y se mira si por encima hay un objeto con el que seguir. El valor 0x0A tiene su propio camino.
+C 0x6957 lo que se pulsa
+C 0x695d el contador de cuadros
+C 0x6960 uno de cada dos
+C 0x6965 los dos bits de direccion
+C 0x6974 la posicion del jugador
+C 0x6977 ocho por encima
+C 0x697e por encima de 0xC0 no hay nada
+C 0x6983 el ancho del objeto
+C 0x698a sus tres bytes, copiados
+C 0x6994 el valor 10, aparte
+C 0x6999 y si no, ese es el numero de fase
+L 0x699f estado_alterno_trepando
+C 0x69a8 la posicion del jugador
+C 0x69ac treinta y seis por debajo
+C 0x69af mira si hay objeto ahi
+L 0x69b8 paso_de_trepar_10
+L 0x69bc paso_de_trepar_6
+B 0x69bc EL PASO DEL DIBUJO AL TREPAR: 6 o 10 segun por donde se entre, y uno mas si el bit 2 de la posicion esta puesto. O sea que el dibujo alterna cada cuatro pixeles de subida, sin contador aparte.
+C 0x69c6 el bit 2 de la posicion
+C 0x69ca el otro dibujo
+C 0x69cd y ese es el paso
+L 0x69cf avanza_trepando
+C 0x69cf lo que se pulsa
+C 0x69d2 los dos bits de direccion
+C 0x69db el bit 0: hacia arriba
+C 0x69de o hacia abajo
+C 0x69e2 y el sonido de trepar
+L 0x69e7 busca_en_la_lista_de_agarres
+B 0x69e7 BUSCAR UN AGARRE en la lista de 0xE1D2, con ocho pixeles de margen. Si lo encuentra, guarda su valor con `ldd` -hacia atras- y devuelve acarreo.
+C 0x69ea cuantos hay
+C 0x69f0 ocho pixeles de margen
+C 0x69fb hacia atras
+C 0x6a01 acarreo: encontrado
+L 0x6a03 mira_los_objetos_de_cerca
+C 0x6a06 los cuarenta objetos

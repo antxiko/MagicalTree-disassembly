@@ -2306,9 +2306,9 @@ mira_si_agarra:
 	ld a,(0e009h)		;61c8   ; lo que se esta pulsando
 	rra			;61cb   ; el bit 0
 	ret nc			;61cc
-	call L_6A03		;61cd
+	call mira_los_objetos_de_cerca		;61cd
 	ret nc			;61d0
-	call L_69E7		;61d1
+	call busca_en_la_lista_de_agarres		;61d1
 	ret nc			;61d4
 	ld a,(0e1d1h)		;61d5
 	cp 00ah		;61d8   ; el valor 10 es el que cuenta
@@ -2452,9 +2452,9 @@ sigue_el_cuadro_del_jugador:
 	call se_acaba_de_pulsar_boton		;628f   ; y si hay suelo debajo
 	ret z			;6292
 	push af			;6293
-	call L_6A03		;6294   ; mira si agarra
+	call mira_los_objetos_de_cerca		;6294   ; mira si agarra
 	jr nc,estado_5_cayendo		;6297
-	call L_69E7		;6299
+	call busca_en_la_lista_de_agarres		;6299
 	jr nc,estado_5_cayendo		;629c
 	pop af			;629e
 	rra			;629f   ; el bit 0 de lo que se pulsa
@@ -2685,9 +2685,9 @@ L_641D:
 	ld a,002h		;642f   ; estado 2
 	jp pasa_al_estado		;6431
 L_6434:
-	call L_6A03		;6434   ; mira si agarra
+	call mira_los_objetos_de_cerca		;6434   ; mira si agarra
 	jr nc,L_644A		;6437
-	call L_69E7		;6439
+	call busca_en_la_lista_de_agarres		;6439
 	jr nc,L_644A		;643c
 	ld a,(0e1d9h)		;643e
 	ld hl,0e1b3h		;6441
@@ -3240,7 +3240,7 @@ mueve_el_decorado:
 	dec hl			;6744
 	ld a,(hl)			;6745
 	rra			;6746   ; el bit 0
-	jr nc,L_678F		;6747
+	jr nc,retrocede_el_decorado		;6747
 L_6749:
 	ld hl,0e1c4h		;6749
 	ld de,(0e1c5h)		;674c   ; por donde va la primera lista
@@ -3251,12 +3251,12 @@ L_6749:
 	inc de			;6757
 	call lee_de_vram		;6758
 	cp 0ffh		;675b   ; un 0xFF cierra la lista
-	jr z,L_6788		;675d
+	jr z,marca_el_tope_de_abajo		;675d
 	ld (hl),000h		;675f   ; se borra
-	call L_67EC		;6761
+	call busca_un_hueco_de_objeto		;6761
 	ld (0e1c5h),de		;6764
 L_6768:
-	call L_6889		;6768
+	call mueve_los_objetos		;6768
 	ld hl,0e059h		;676b
 	ld de,(0e05ah)		;676e   ; y la segunda lista
 	inc (hl)			;6772
@@ -3271,23 +3271,27 @@ L_677A:
 	call lee_de_vram		;677d
 	or a			;6780
 	jr z,L_677A		;6781
-	ld (0e05ah),de		;6783
+	ld (0e05ah),de		;6783   ; el puntero de la lista, apuntado
 	ret			;6787
-L_6788:
+marca_el_tope_de_abajo:
 	ld hl,0e1abh		;6788
-	set 0,(hl)		;678b
+	set 0,(hl)		;678b   ; el bit 0 de (0xE1AB): tope por abajo
 	jr L_6768		;678d
-L_678F:
+
+; ----------------------------------------------------------------------
+; EL DECORADO HACIA ATRAS, con las dos listas recorridas al reves: se retrocede de tres en tres celdas hasta encontrar una que no sea cero. Y si el numero de fase coincide con lo que trae la celda, se levanta el tope de arriba.
+; ----------------------------------------------------------------------
+retrocede_el_decorado:
 	ld hl,0e059h		;678f
-	ld de,(0e05ah)		;6792
+	ld de,(0e05ah)		;6792   ; por donde va la lista
 	dec (hl)			;6796
 L_6797:
-	dec de			;6797
+	dec de			;6797   ; tres celdas atras
 	dec de			;6798
 	dec de			;6799
-	call lee_de_vram		;679a
+	call lee_de_vram		;679a   ; lee de la pantalla
 	or a			;679d
-	jr z,L_6797		;679e
+	jr z,L_6797		;679e   ; cero: se sigue retrocediendo
 	ld a,(hl)			;67a0
 	or a			;67a1
 	jr nz,L_67D3		;67a2
@@ -3295,18 +3299,18 @@ L_67A4:
 	inc de			;67a4
 	call lee_de_vram		;67a5
 	ld b,a			;67a8
-	ld a,(0e056h)		;67a9
-	cp b			;67ac
+	ld a,(0e056h)		;67a9   ; el numero de fase
+	cp b			;67ac   ; contra lo que trae la celda
 	jr nz,L_67B4		;67ad
 	ld hl,0e1abh		;67af
-	set 1,(hl)		;67b2
+	set 1,(hl)		;67b2   ; el bit 1: tope por arriba
 L_67B4:
-	call L_67EC		;67b4
+	call busca_un_hueco_de_objeto		;67b4
 L_67B7:
-	call L_6889		;67b7
+	call mueve_los_objetos		;67b7
 	ld hl,0e1c4h		;67ba
 	ld de,(0e1c5h)		;67bd
-	dec (hl)			;67c1
+	dec (hl)			;67c1   ; si se paso de cero, se deja
 	ret p			;67c2
 L_67C3:
 	dec de			;67c3
@@ -3334,43 +3338,47 @@ L_67E1:
 	or a			;67e7
 	jr z,L_67E1		;67e8
 	jr L_67A4		;67ea
-L_67EC:
-	ld hl,0e132h		;67ec
+
+; ----------------------------------------------------------------------
+; BUSCAR UN HUECO LIBRE ENTRE LOS CUARENTA OBJETOS -el que tenga el 0xD0 de retirado- y rellenarlo leyendo DE LA PANTALLA los dos indices que lo definen. El primer byte es 0xE8 o 0xC0 segun el bit 0 de (0xE1AA), o sea segun por donde se venga.
+; ----------------------------------------------------------------------
+busca_un_hueco_de_objeto:
+	ld hl,0e132h		;67ec   ; los cuarenta objetos
 	ld b,028h		;67ef
 L_67F1:
-	ld a,0d0h		;67f1
+	ld a,0d0h		;67f1   ; 0xD0: hueco libre
 	cp (hl)			;67f3
 	jr z,L_67FC		;67f4
-	inc hl			;67f6
+	inc hl			;67f6   ; tres bytes por objeto
 	inc hl			;67f7
 	inc hl			;67f8
 	djnz L_67F1		;67f9
 	ret			;67fb
 L_67FC:
 	push bc			;67fc
-	ld a,(0e1aah)		;67fd
+	ld a,(0e1aah)		;67fd   ; la direccion del movimiento
 	rra			;6800
-	ld (hl),0e8h		;6801
+	ld (hl),0e8h		;6801   ; un tipo
 	jr c,L_6807		;6803
-	ld (hl),0c0h		;6805
+	ld (hl),0c0h		;6805   ; o el otro
 L_6807:
-	ld (0e1dch),hl		;6807
+	ld (0e1dch),hl		;6807   ; el hueco elegido, apuntado
 	inc hl			;680a
-	call lee_de_vram		;680b
+	call lee_de_vram		;680b   ; el indice que hay en la pantalla
 	ld b,a			;680e
 	inc de			;680f
-	call lee_de_vram		;6810
+	call lee_de_vram		;6810   ; y el de al lado
 	ld (hl),a			;6813
 	inc hl			;6814
 	ld (hl),b			;6815
 	ld a,b			;6816
-	and 0e0h		;6817
-	cp 0e0h		;6819
+	and 0e0h		;6817   ; los tres bits de arriba
+	cp 0e0h		;6819   ; si son todos, es un objeto especial
 	jr nz,L_6875		;681b
 	push de			;681d
 	push hl			;681e
 	call L_6D58		;681f
-	jr z,L_6881		;6822
+	jr z,descarta_el_objeto		;6822
 	push de			;6824
 	ld de,00000h		;6825
 	call L_6D58		;6828
@@ -3381,47 +3389,51 @@ L_6807:
 	ld (hl),e			;6830
 	inc hl			;6831
 	inc hl			;6832
-	ld a,(0e051h)		;6833
+
+; ----------------------------------------------------------------------
+; EL AZAR SALE DEL REGISTRO R. `ld a,r` lee el contador de refresco de memoria del Z80, que avanza solo con cada instruccion ejecutada: es el generador aleatorio del cartucho, gratis y sin tabla. La mascara depende de la fase -tres variantes en la 1, cuatro en las demas- y, en la fase 2, el valor 3 se rebaja a 2.
+; ----------------------------------------------------------------------
+	ld a,(0e051h)		;6833   ; el numero de fase
 	ld c,a			;6836
-	cp 001h		;6837
+	cp 001h		;6837   ; en la fase 1 solo hay dos variantes
 	ld b,003h		;6839
 	jr nz,L_683E		;683b
 	ld b,a			;683d
 L_683E:
-	ld a,r		;683e
-	and b			;6840
+	ld a,r		;683e   ; el contador de refresco del Z80: el azar
+	and b			;6840   ; recortado a la mascara
 	ld (hl),a			;6841
-	cp 003h		;6842
+	cp 003h		;6842   ; el valor mas alto
 	jr nz,L_684C		;6844
 	ld a,c			;6846
 	cp 002h		;6847
 	jr nz,L_684C		;6849
-	dec (hl)			;684b
+	dec (hl)			;684b   ; se rebaja en la fase 2
 L_684C:
-	ld a,(0e1aah)		;684c
+	ld a,(0e1aah)		;684c   ; la direccion del movimiento
 	rra			;684f
 	jr c,L_6854		;6850
-	set 7,(hl)		;6852
+	set 7,(hl)		;6852   ; y el bit 7 marca el sentido del objeto
 L_6854:
 	inc hl			;6854
 	ld de,(0e1dch)		;6855
 	push de			;6859
 	push hl			;685a
-	ld a,(de)			;685b
+	ld a,(de)			;685b   ; el tipo que se leyo de la pantalla
 	ld (hl),000h		;685c
-	cp 0e8h		;685e
+	cp 0e8h		;685e   ; 0xE8: el que lleva la marca 0xFF
 	jr nz,L_6864		;6860
 	ld (hl),0ffh		;6862
 L_6864:
 	inc hl			;6864
 	ex de,hl			;6865
-	ld bc,00003h		;6866
+	ld bc,00003h		;6866   ; tres bytes de definicion
 	ldir		;6869
 	pop hl			;686b
-	ld c,002h		;686c
+	ld c,002h		;686c   ; y dos mas
 	ldir		;686e
 	pop hl			;6870
-	ld (hl),0d0h		;6871
+	ld (hl),0d0h		;6871   ; el hueco de origen queda retirado
 L_6873:
 	pop hl			;6873
 	pop de			;6874
@@ -3429,48 +3441,52 @@ L_6875:
 	pop bc			;6875
 	inc hl			;6876
 	inc de			;6877
-	call lee_de_vram		;6878
+	call lee_de_vram		;6878   ; la celda siguiente en la pantalla
 	or a			;687b
-	ret nz			;687c
+	ret nz			;687c   ; si no esta vacia, se acabo
 	inc de			;687d
-	jp L_67EC		;687e
-L_6881:
+	jp busca_un_hueco_de_objeto		;687e
+descarta_el_objeto:
 	pop hl			;6881
 	pop de			;6882
 	dec hl			;6883
 	dec hl			;6884
-	ld (hl),0d0h		;6885
+	ld (hl),0d0h		;6885   ; 0xD0: retirado
 	jr L_6875		;6887
-L_6889:
+
+; ----------------------------------------------------------------------
+; EL BUCLE DE LOS CUARENTA OBJETOS. Los retirados se saltan; los demas se mueven ocho pixeles arriba o abajo segun el bit 0 de (0xE1AA), y en cuanto salen de la banda 0xC0..0xF0 se retiran solos. Es lo que mantiene la lista limpia sin barrerla aparte.
+; ----------------------------------------------------------------------
+mueve_los_objetos:
 	ld hl,0e132h		;6889
-	ld b,028h		;688c
+	ld b,028h		;688c   ; cuarenta
 L_688E:
 	push hl			;688e
 	push bc			;688f
 	ld a,(hl)			;6890
-	cp 0d0h		;6891
+	cp 0d0h		;6891   ; retirado: al siguiente
 	jr z,L_68EC		;6893
 	call L_4A0E		;6895
 	push bc			;6898
 	push de			;6899
 	push hl			;689a
-	ld a,(0e1aah)		;689b
+	ld a,(0e1aah)		;689b   ; la direccion del movimiento
 	or a			;689e
 	jr z,L_68D5		;689f
 	ld d,(hl)			;68a1
 	rra			;68a2
-	ld a,0f8h		;68a3
+	ld a,0f8h		;68a3   ; ocho hacia un lado
 	jr nc,L_68A9		;68a5
-	ld a,008h		;68a7
+	ld a,008h		;68a7   ; u ocho hacia el otro
 L_68A9:
 	add a,(hl)			;68a9
 	ld (hl),a			;68aa
-	sub 0c0h		;68ab
-	cp 030h		;68ad
+	sub 0c0h		;68ab   ; la banda util empieza en 0xC0
+	cp 030h		;68ad   ; y mide 0x30
 	jr nc,L_68B3		;68af
-	ld (hl),0d0h		;68b1
+	ld (hl),0d0h		;68b1   ; fuera: se retira
 L_68B3:
-	ld a,(0e1abh)		;68b3
+	ld a,(0e1abh)		;68b3   ; los topes
 	add a,a			;68b6
 	jr c,L_68D5		;68b7
 	inc hl			;68b9
@@ -3484,13 +3500,13 @@ L_68B3:
 	jr c,L_68CC		;68c3
 	dec b			;68c5
 	ld a,b			;68c6
-	add a,a			;68c7
+	add a,a			;68c7   ; por ocho: el desplazamiento dentro del bloque
 	add a,a			;68c8
 	add a,a			;68c9
 	add a,l			;68ca
 	ld l,a			;68cb
 L_68CC:
-	bit 7,e		;68cc
+	bit 7,e		;68cc   ; el bit 7 de la variante
 	jr nz,L_68D5		;68ce
 	ld b,000h		;68d0
 	call L_4A00		;68d2
@@ -3502,12 +3518,12 @@ L_68D5:
 	inc hl			;68d9
 	inc hl			;68da
 	ld a,(hl)			;68db
-	and 0c0h		;68dc
+	and 0c0h		;68dc   ; los dos bits de arriba
 	cp 0c0h		;68de
 	pop hl			;68e0
 	jr z,L_68EC		;68e1
 	ld a,(0e1abh)		;68e3
-	add a,a			;68e6
+	add a,a			;68e6   ; los topes
 	jr c,L_68EC		;68e7
 	call L_49B8		;68e9
 L_68EC:
@@ -3516,21 +3532,26 @@ L_68EC:
 	inc hl			;68ee
 	inc hl			;68ef
 	inc hl			;68f0
-	djnz L_688E		;68f1
+	djnz L_688E		;68f1   ; tres bytes por objeto
+
+; ----------------------------------------------------------------------
+; REPINTAR LOS OBJETOS que lo pidan -bit 6 de su tercer byte- y que no esten retirados. C lleva el numero de objeto, que hace de indice para saber donde va cada uno.
+; ----------------------------------------------------------------------
+repinta_los_objetos:
 	ld a,(0e1abh)		;68f3
 	add a,a			;68f6
 	ret c			;68f7
-	ld hl,0e134h		;68f8
+	ld hl,0e134h		;68f8   ; los cuarenta
 	ld b,028h		;68fb
 L_68FD:
 	push hl			;68fd
 	push bc			;68fe
-	bit 6,(hl)		;68ff
+	bit 6,(hl)		;68ff   ; el bit 6: hay que repintarlo
 	jr z,L_690D		;6901
 	dec hl			;6903
 	dec hl			;6904
 	ld a,(hl)			;6905
-	cp 0d0h		;6906
+	cp 0d0h		;6906   ; retirado: no
 	jr z,L_690D		;6908
 	call L_49B5		;690a
 L_690D:
@@ -3539,148 +3560,165 @@ L_690D:
 	inc hl			;690f
 	inc hl			;6910
 	inc hl			;6911
-	inc c			;6912
+	inc c			;6912   ; el numero de objeto
 	djnz L_68FD		;6913
 	call L_6C32		;6915
+
+; ----------------------------------------------------------------------
+; CORRER TODOS LOS SPRITES CON EL DECORADO, ocho pixeles en el sentido que diga (0xE1AA): diecisiete de la banda de 0xE0E4 y cuatro de la de 0xE0C0. El que se sale de la pantalla se marca con la fila 0xC3.
+; ----------------------------------------------------------------------
+corre_los_sprites:
 	ld a,(0e1aah)		;6918
-	and 003h		;691b
+	and 003h		;691b   ; los dos bits de direccion
 	ret z			;691d
 	ld c,a			;691e
-	ld hl,0e0e4h		;691f
-	ld b,011h		;6922
-	call L_693B		;6924
-	ld hl,0e0c0h		;6927
-	ld b,004h		;692a
-	call L_693B		;692c
+	ld hl,0e0e4h		;691f   ; la banda grande
+	ld b,011h		;6922   ; diecisiete sprites
+	call corre_un_sprite		;6924
+	ld hl,0e0c0h		;6927   ; y la pequena
+	ld b,004h		;692a   ; cuatro
+	call corre_un_sprite		;692c
 	ld hl,0e104h		;692f
-	ld de,03b54h		;6932
-	ld bc,00008h		;6935
+	ld de,03b54h		;6932   ; la tabla de atributos de la VRAM
+	ld bc,00008h		;6935   ; ocho bytes
 	jp vuelca_bloque		;6938
-L_693B:
-	ld a,(hl)			;693b
-	sub 008h		;693c
-	cp 0b9h		;693e
+corre_un_sprite:
+	ld a,(hl)			;693b   ; la fila del sprite
+	sub 008h		;693c   ; ocho arriba
+	cp 0b9h		;693e   ; si se sale de la banda util
 	jr c,L_6946		;6940
-	ld (hl),0c3h		;6942
+	ld (hl),0c3h		;6942   ; 0xC3: fuera de la pantalla
 	jr L_6950		;6944
 L_6946:
-	ld a,008h		;6946
-	bit 1,c		;6948
+	ld a,008h		;6946   ; ocho hacia abajo
+	bit 1,c		;6948   ; el bit 1 cambia el sentido
 	jr z,L_694E		;694a
-	ld a,0f8h		;694c
+	ld a,0f8h		;694c   ; u ocho hacia arriba
 L_694E:
 	add a,(hl)			;694e
 	ld (hl),a			;694f
 L_6950:
-	inc hl			;6950
+	inc hl			;6950   ; cuatro bytes por sprite
 	inc hl			;6951
 	inc hl			;6952
 	inc hl			;6953
-	djnz L_693B		;6954
+	djnz corre_un_sprite		;6954
 	ret			;6956
-L_6957:
-	ld a,(0e009h)		;6957
+
+; ----------------------------------------------------------------------
+; ESTADO 7: trepando. Con el bit 0 pulsado solo se avanza uno de cada dos cuadros -es lo que hace que subir cueste-, y se mira si por encima hay un objeto con el que seguir. El valor 0x0A tiene su propio camino.
+; ----------------------------------------------------------------------
+estado_7_trepando:
+	ld a,(0e009h)		;6957   ; lo que se pulsa
 	rra			;695a
 	jr nc,L_6962		;695b
-	ld a,(0e003h)		;695d
-	rra			;6960
+	ld a,(0e003h)		;695d   ; el contador de cuadros
+	rra			;6960   ; uno de cada dos
 	ret nc			;6961
 L_6962:
 	ld a,(0e009h)		;6962
-	and 003h		;6965
+	and 003h		;6965   ; los dos bits de direccion
 	ret z			;6967
 	rra			;6968
-	jr nc,L_699F		;6969
-	call L_69BC		;696b
+	jr nc,estado_alterno_trepando		;6969
+	call paso_de_trepar_6		;696b
 	call L_6396		;696e
-	call L_6A03		;6971
-	ld a,(0e1b3h)		;6974
-	add a,008h		;6977
+	call mira_los_objetos_de_cerca		;6971
+	ld a,(0e1b3h)		;6974   ; la posicion del jugador
+	add a,008h		;6977   ; ocho por encima
 	ld b,a			;6979
 	ld hl,0e1cfh		;697a
 	ld a,(hl)			;697d
-	cp 0c0h		;697e
+	cp 0c0h		;697e   ; por encima de 0xC0 no hay nada
 	ret nc			;6980
 	cp b			;6981
 	ret c			;6982
-	call ancho_del_objeto		;6983
+	call ancho_del_objeto		;6983   ; el ancho del objeto
 	ld de,0e1cbh		;6986
 	push de			;6989
-	ld bc,00003h		;698a
+	ld bc,00003h		;698a   ; sus tres bytes, copiados
 	ldir		;698d
 	ld (de),a			;698f
 	pop hl			;6990
 	inc hl			;6991
 	inc hl			;6992
 	ld a,(hl)			;6993
-	cp 00ah		;6994
+	cp 00ah		;6994   ; el valor 10, aparte
 	jp z,L_6334		;6996
-	ld (0e056h),a		;6999
+	ld (0e056h),a		;6999   ; y si no, ese es el numero de fase
 	jp L_737B		;699c
-L_699F:
-	call L_69BC		;699f
-	call L_6A03		;69a2
+estado_alterno_trepando:
+	call paso_de_trepar_6		;699f
+	call mira_los_objetos_de_cerca		;69a2
 	call mira_si_puede_subir		;69a5
-	ld hl,(0e1b3h)		;69a8
+	ld hl,(0e1b3h)		;69a8   ; la posicion del jugador
 	ld a,l			;69ab
-	add a,024h		;69ac
+	add a,024h		;69ac   ; treinta y seis por debajo
 	ld l,a			;69ae
-	call mira_los_cuarenta_objetos		;69af
+	call mira_los_cuarenta_objetos		;69af   ; mira si hay objeto ahi
 	jp nc,mira_si_llego_al_suelo		;69b2
 	jp L_6334		;69b5
-L_69B8:
+paso_de_trepar_10:
 	ld a,00ah		;69b8
 	jr L_69BE		;69ba
-L_69BC:
+
+; ----------------------------------------------------------------------
+; EL PASO DEL DIBUJO AL TREPAR: 6 o 10 segun por donde se entre, y uno mas si el bit 2 de la posicion esta puesto. O sea que el dibujo alterna cada cuatro pixeles de subida, sin contador aparte.
+; ----------------------------------------------------------------------
+paso_de_trepar_6:
 	ld a,006h		;69bc
 L_69BE:
 	push af			;69be
-	call L_69CF		;69bf
+	call avanza_trepando		;69bf
 	pop af			;69c2
 	ld hl,0e1b3h		;69c3
-	bit 2,(hl)		;69c6
+	bit 2,(hl)		;69c6   ; el bit 2 de la posicion
 	jr nz,L_69CB		;69c8
-	inc a			;69ca
+	inc a			;69ca   ; el otro dibujo
 L_69CB:
 	inc hl			;69cb
 	inc hl			;69cc
-	ld (hl),a			;69cd
+	ld (hl),a			;69cd   ; y ese es el paso
 	ret			;69ce
-L_69CF:
-	ld a,(0e009h)		;69cf
-	and 003h		;69d2
+avanza_trepando:
+	ld a,(0e009h)		;69cf   ; lo que se pulsa
+	and 003h		;69d2   ; los dos bits de direccion
 	ld (0e1b6h),a		;69d4
 	ret z			;69d7
 	ld hl,0e1b3h		;69d8
-	rra			;69db
+	rra			;69db   ; el bit 0: hacia arriba
 	jr nc,L_69DF		;69dc
-	dec a			;69de
+	dec a			;69de   ; o hacia abajo
 L_69DF:
 	call mueve_al_jugador		;69df
-	ld a,002h		;69e2
+	ld a,002h		;69e2   ; y el sonido de trepar
 	jp L_7A13		;69e4
-L_69E7:
+
+; ----------------------------------------------------------------------
+; BUSCAR UN AGARRE en la lista de 0xE1D2, con ocho pixeles de margen. Si lo encuentra, guarda su valor con `ldd` -hacia atras- y devuelve acarreo.
+; ----------------------------------------------------------------------
+busca_en_la_lista_de_agarres:
 	ld hl,0e1d2h		;69e7
-	ld b,(hl)			;69ea
+	ld b,(hl)			;69ea   ; cuantos hay
 L_69EB:
 	inc hl			;69eb
 	ld a,(0e1b4h)		;69ec
 	sub (hl)			;69ef
-	cp 008h		;69f0
+	cp 008h		;69f0   ; ocho pixeles de margen
 	jr c,L_69F8		;69f2
 	djnz L_69EB		;69f4
 	and a			;69f6
 	ret			;69f7
 L_69F8:
 	ld de,0e1dah		;69f8
-	ldd		;69fb
+	ldd		;69fb   ; hacia atras
 	ld a,(0e1cfh)		;69fd
 	ld (de),a			;6a00
-	scf			;6a01
+	scf			;6a01   ; acarreo: encontrado
 	ret			;6a02
-L_6A03:
+mira_los_objetos_de_cerca:
 	ld hl,0e132h		;6a03
-	ld b,028h		;6a06
+	ld b,028h		;6a06   ; los cuarenta objetos
 L_6A08:
 	ld a,(hl)			;6a08
 	inc hl			;6a09
@@ -3750,7 +3788,7 @@ L_6A5C:
 	ld a,(0e003h)		;6a63
 	rra			;6a66
 	ret c			;6a67
-	call L_69B8		;6a68
+	call paso_de_trepar_10		;6a68
 	call L_6396		;6a6b
 	ld hl,(0e1b3h)		;6a6e
 	ld bc,0000ch		;6a71
@@ -3759,7 +3797,7 @@ L_6A5C:
 	ret nc			;6a78
 	jp L_6334		;6a79
 L_6A7C:
-	call L_69B8		;6a7c
+	call paso_de_trepar_10		;6a7c
 	call mira_si_puede_subir		;6a7f
 	call lee_las_dos_celdas_de_debajo		;6a82
 	ld a,(0e1bfh)		;6a85
