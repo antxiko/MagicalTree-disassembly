@@ -100,3 +100,370 @@ D 0x5937 0x5bcd bloque_5937  1174 bytes comprimidos
 # L_4441`, y L_4441 vuelca BC bytes tal cual al puerto del VDP. 0x5BCD +
 # 0x140 = 0x5D0D, que es justo donde empieza el bloque siguiente.
 D 0x5bcd 0x5d0d volcado_directo_5BCD  320 bytes a la VRAM sin comprimir; 0x60E4 y 0x60E7 entran por 0x5BCD y 0x5BDD
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x4010 escribe_en_vram
+B 0x4010 ESCRIBIR Y LEER LA VRAM. Las dos rutinas que usa todo el cartucho en vez de la BIOS: preparan el puerto una vez y luego mueven los bytes con el registro C ya cargado en el juego alternativo, de modo que sacar un byte es un solo `out (c),a`.
+C 0x4010 pone el puntero de escritura y deja 0x98 en C'
+C 0x4013 al juego alternativo, donde C es el puerto de datos del VDP
+C 0x4014 y ahi va el byte
+C 0x4017 la rutina de abajo entro con `di`
+L 0x4019 lee_de_vram
+C 0x4019 lo mismo para leer
+C 0x401d el byte leido vuelve en A
+L 0x4022 suma_a_a_hl
+B 0x4022 SUMAR UN INDICE DE OCHO BITS A UN PUNTERO, con el acarreo propagado a mano. Dos gemelas, una para HL y otra para DE; las llama medio cartucho para indexar tablas.
+C 0x4022 HL += A
+C 0x4024 sin acarreo, ya esta
+C 0x4025 y con acarreo, el byte alto
+L 0x4027 suma_a_a_de
+C 0x4027 DE += A, la gemela
+L 0x402c gancho_de_interrupcion
+B 0x402c EL GANCHO DE LA INTERRUPCION, donde vive el juego entero: INIT lo engancha en H.KEYI y se queda en el `jr $` de 0x40A5, asi que todo lo que pasa, pasa una vez por cuadro desde aqui. El cerrojo de (0xE005) es de UN BIT -`bit 0,(hl)`-, al contrario que en Circus Charlie, que lleva un contador.
+C 0x402d lee el estado del VDP para que baje su bandera
+C 0x4030 el sonido, lo primero
+C 0x4033 el cerrojo de reentrada
+C 0x4036 si ya hay una dentro, no se entra otra vez
+C 0x403b se abren las interrupciones ESTANDO dentro
+C 0x403c lee los mandos y el teclado
+C 0x403f y aqui se despacha la escena
+C 0x4044 se suelta el cerrojo
+L 0x404a despacha_por_tabla
+B 0x404a EL DESPACHADOR DE ESCENAS: la tabla va PEGADA detras del `call`, y el `pop hl` recupera su propia direccion de retorno, que es justo donde empieza. Quien llama solo pasa el numero de escena en A.
+C 0x404a el numero de escena, por dos: son palabras
+C 0x404b la direccion de retorno ES la tabla
+C 0x404c la entrada que toca
+C 0x404f y de ahi el destino
+C 0x4053 se salta sin dejar retorno
+L 0x4054 intercambia_bloques
+B 0x4054 INTERCAMBIAR DOS BLOQUES DE B BYTES sin memoria auxiliar, byte a byte.
+C 0x4054 el de (HL)
+C 0x4055 y el de (DE)
+C 0x4056 cada uno al sitio del otro
+B 0x405e EL INTERPRETE DE ROTULOS, con dos puertas que solo cambian la mascara. El guion trae [destino en VRAM, palabra] y luego los indices, con 0xFE para saltar a otro destino y 0xFF para terminar. Con la mascara a 0x00 se escriben ceros: el MISMO guion borra el rotulo.
+L 0x4062 pinta_rotulo
+C 0x4062 mascara 0xFF: pinta
+C 0x4064 de la cabecera sale el destino en la VRAM
+C 0x4068 el siguiente byte del guion
+C 0x406b 0xFF es el fin del rotulo
+C 0x406d 0xFE es "sigue en otro sitio"
+C 0x4070 aqui muerde la mascara
+C 0x4071 y a la VRAM
+C 0x4074 la siguiente celda
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x4077 init
+B 0x4077 INIT, la direccion que trae la cabecera. Cuatro cosas y a dormir: modo 1 de interrupcion, gancho en H.KEYI, pila en 0xE400 y un kilobyte de RAM a cero. Desde el `ei` final, el juego entero corre dentro de la interrupcion.
+C 0x407a un `jp` en 0xFD9A y la direccion detras: asi se engancha H.KEYI
+C 0x407f el gancho es el de 0x402C
+C 0x4085 la pila, por encima de las variables
+C 0x4088 y las variables, a cero de 0xE000 a 0xE3FF
+C 0x4095 el cerrojo, tomado durante el arranque
+C 0x409a prepara el VDP y la pantalla
+C 0x409e y ahora si, se suelta
+L 0x40a5 espera_para_siempre
+C 0x40a5 aqui se queda el hilo principal: lo demas pasa en la interrupcion
+L 0x40a7 reparte_la_escena
+B 0x40a7 EL REPARTO DE ESCENAS. El numero esta en (0xE000) y, ademas, se APILA a mano la direccion por la que seguira cuando la escena haga `ret`: una de dos, segun el bit 6 de (0xE002). La escena 8 es la excepcion y por eso se salta el `push`.
+C 0x40a7 el contador de cuadros
+C 0x40ab el bit 6 decide cual de los dos remates se apila
+C 0x40b0 uno
+C 0x40b5 y el otro
+C 0x40b8 el numero de escena
+C 0x40bb la escena 8 no lleva remate
+C 0x40bf aqui se fabrica el retorno
+C 0x40c0 y la tabla de dieciseis va pegada detras
+B 0x40e3 ESCENA 0: el arranque frio, que monta la pantalla del titulo.
+B 0x40f0 ESCENA 1: el letrero de "VIDEO CARTRIDGE" parpadeando, uno de cada dos cuadros.
+C 0x40f0 el contador de cuadros
+C 0x40f3 su bit 0 al acarreo
+C 0x40f9 el rotulo
+C 0x40fc con la mascara a 0xFF: pintandolo
+B 0x4102 ESCENA 2: la cuenta atras que limpia la franja y apaga la bandera de 0xE00A.
+C 0x4102 el plazo
+C 0x4107 la franja de abajo
+C 0x410a 256 celdas
+B 0x4116 ESCENA 3: espera a que el jugador se decida.
+B 0x411d ESCENA 4: otro plazo, el de la pantalla de seleccion.
+B 0x4126 ESCENA 5: empieza partida.
+B 0x412f ESCENA 6: arranca la vida.
+C 0x4132 si (0xE00C) esta a cero, todavia no toca
+B 0x413b ESCENA 7.
+C 0x413b la senal de fin de partida
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x4145 el contador de vidas
+C 0x4148 una menos: esta se va a jugar
+C 0x4149 repinta el marcador
+C 0x414c el bit 5 dice si hay dos jugadores
+C 0x4153 el rotulo "PLAYER 1"
+L 0x415e espera_a_que_pare_el_sonido
+B 0x415e EL CIERRE DE LA VIDA. Espera a que no quede nada sonando y entonces elige el sonido segun el bit 0 de (0xE05E): el 9 o el 0x8C. Deja el plazo en 32 cuadros y pasa a la escena siguiente.
+C 0x415e lo que este sonando
+C 0x4163 la bandera que elige el sonido
+C 0x4166 su bit 0
+C 0x4167 un sonido
+C 0x416b o el otro
+L 0x417a plazo_de_32_y_siguiente_escena
+C 0x417a 32 cuadros de plazo
+L 0x417f pasa_a_la_escena_siguiente
+C 0x417f el numero de escena
+C 0x4182 la siguiente
+B 0x4184 ESCENA 8: el compas de la partida. Mientras (0xE00C) o el byte de al lado no sean cero, se sigue; cuando los dos lo son, se pasa a la escena 15.
+C 0x4187 la senal de fin
+C 0x418f y su pareja
+C 0x4191 escena 15
+B 0x4195 ESCENA 9: quedan vidas? Si no, suena el 0x93, se pintan los rotulos del final y se pasa a la escena 13.
+C 0x4195 las vidas
+C 0x419b espera a que pare el sonido
+C 0x41a0 el sonido del final
+C 0x41a5 los rotulos
+C 0x41b7 y la altura alcanzada
+C 0x41bd escena 13
+C 0x41c5 si el otro jugador tiene partida, se le cede el turno
+L 0x41cf cambia_de_jugador
+B 0x41cf EL CAMBIO DE JUGADOR, y es una sola instruccion la que lo hace todo: los treinta y dos bytes del que juega viven en 0xE050 y los del otro en 0xE080, y se PERMUTAN. No hay indices ni dos copias de la logica: el jugador en turno esta siempre en 0xE050.
+C 0x41cf el estado del que juega
+C 0x41d2 y el del que espera
+C 0x41d5 treinta y dos bytes cada uno
+C 0x41d7 y se cambian de sitio
+C 0x41de el bit 7 dice de quien es el turno
+B 0x41e3 ESCENA 10: el relevo, cuando se agota el plazo.
+C 0x41e3 el plazo
+C 0x41e8 el estado del otro jugador
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x41f2 apaga el bit 6 de (0xE002)
+L 0x41f8 escena_13_con_plazo_de_32
+C 0x41f8 escena 13
+C 0x41fd y 32 cuadros de plazo
+B 0x4203 ESCENA 11: el plazo del relevo; al agotarse, escena 9.
+C 0x4208 escena 9
+L 0x420e fin_de_partida
+B 0x420e ESCENA 15: el fin de partida. Suena el 0x96, se pinta el cartel y quedan 80 cuadros; mientras corren, el bit 3 del propio plazo hace parpadear lo que hay en pantalla.
+C 0x420e solo la primera vez
+C 0x4214 el sonido del fin de partida
+C 0x4219 80 cuadros
+C 0x421e limpia
+C 0x422a se marca que ya se hizo
+C 0x4232 el bit 3 del plazo: parpadeo de ocho en ocho cuadros
+C 0x423a 27 celdas que borrar
+L 0x4257 monta_la_pantalla_del_titulo
+B 0x4257 EL MONTAJE DE LA PANTALLA DEL TITULO, y acaba con un bucle que repite DIECISEIS veces el mismo bloquecito de dieciseis bytes por la VRAM: es como se pinta la cenefa sin guardarla dieciseis veces.
+C 0x425d el relleno de color
+C 0x4265 los patrones del titulo
+C 0x426e dieciseis veces
+C 0x4272 el mismo bloquecito
+C 0x4279 y cada vuelta dieciseis celdas mas alla
+L 0x4282 parpadea_el_cursor
+C 0x4282 el par de patrones del cursor
+C 0x4285 el bit 3 del plazo
+C 0x4289 y en la otra mitad, celdas vacias
+C 0x428c donde va el cursor
+L 0x4299 donde_va_el_cursor
+B 0x4299 DONDE CAE EL CURSOR DEL MENU. La opcion vive en (0xE042); sumando 0x14 y girando dos veces sale el byte bajo de la celda, con la fila 0x7A fija en D.
+C 0x4299 la opcion elegida
+C 0x429c el desplazamiento a la primera fila del menu
+C 0x429e dos giros: cuatro filas por opcion
+C 0x42a1 la pagina, fija
+L 0x42a4 pinta_rotulo_con_marca
+C 0x42a4 el rotulo
+C 0x42a7 el turno
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x42ac el patron de la marca
+L 0x42b3 baja_los_contadores_y_barre
+B 0x42b3 BAJAR LOS DOS CONTADORES Y, AL LLEGAR A CERO, BARRER LA PANTALLA. El `srl a / jr c / xor 01fh` hace que el indice vaya al reves en media vuelta: de ahi sale el vaiven del barrido.
+C 0x42b3 el contador de cuadros
+C 0x42b8 veinticuatro filas
+C 0x42bb si se paso de cero, se sale con el signo puesto
+C 0x42bd el bit de abajo al acarreo
+C 0x42c1 y en media vuelta, al reves
+C 0x42c4 la fila 0x38 de la VRAM
+C 0x42c7 un cero en cada fila
+C 0x42ca la de abajo, 32 celdas mas alla
+C 0x42d1 los atributos de sprites
+C 0x42d4 0xD0 en la fila: los saca de la pantalla
+L 0x42db suma_puntos
+B 0x42db SUMAR PUNTOS, en BCD y a seis digitos. DE trae lo que se suma; el tanteo es el de 0xE049 o el de 0xE046 segun el turno -bit 7 de (0xE002)-, y con el bit 6 puesto no se suma nada, que es como se congela el marcador en los cortes.
+C 0x42db el turno y las banderas
+C 0x42de el bit 7 al acarreo, el 6 al signo
+C 0x42df con el bit 6 puesto no se suman puntos
+C 0x42e0 el tanteo de un jugador
+C 0x42e5 o el del otro
+C 0x42e8 los dos digitos de abajo
+C 0x42e9 en BCD
+C 0x42ee los del medio, con acarreo
+C 0x42f6 y el tercer par
+C 0x42fc si desborda los seis digitos, el record se clava en 999999
+L 0x4309 mira_la_vida_extra
+B 0x4309 LA VIDA EXTRA. El umbral vive en (0xE052) y se compara con las centenas de millar del tanteo. Cada vez que se cruza, el umbral sube DOS -no uno- y, cuando desbordaria, se clava en 0xFF: a partir de ahi ya no hay mas vidas de regalo. Igual que en Circus Charlie.
+C 0x4309 el umbral
+C 0x430c contra los digitos altos del tanteo
+C 0x4311 el siguiente umbral, dos mas
+C 0x4316 si se paso, 0xFF: no habra mas
+C 0x431e una vida mas
+C 0x431f repinta el contador
+C 0x4322 y suena el aviso
+L 0x4329 mira_si_es_record
+B 0x4329 EL RECORD: primero el par alto y, solo si empata, los cuatro digitos de abajo con `sbc hl,de`.
+C 0x4329 el par alto del record
+C 0x432d contra el del tanteo
+C 0x4330 si el record es mayor, nada que hacer
+C 0x4332 empatan arriba: se miran los de abajo
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x4339 el tanteo nuevo manda
+L 0x4343 pinta_el_marcador
+B 0x4343 EL MARCADOR ENTERO: los rotulos fijos -"HI", "STAGE" y "1P", mas "2P" si hay dos jugadores-, la altura, las vidas y los numeros. Con dos jugadores le da la vuelta al bit 7 antes de pintar el segundo tanteo, de modo que la misma rutina sirve para los dos.
+C 0x4343 los rotulos del marcador
+C 0x434c el bit 5: hay dos jugadores?
+C 0x4350 entonces tambien el "2P"
+C 0x4359 se finge el otro turno
+C 0x435b y se pinta su tanteo con la misma rutina
+C 0x435e el contador de vidas
+C 0x4361 la altura
+C 0x4367 el record
+C 0x436a en la fila de arriba, columna 15
+L 0x4373 pinta_el_tanteo
+C 0x4373 la celda del primer tanteo
+C 0x4376 y su variable
+C 0x4379 el bit 7 al acarreo
+C 0x437c la columna del segundo
+C 0x4381 tres bytes de BCD
+L 0x4385 pinta_las_vidas_numero
+C 0x4385 la celda del contador
+C 0x438b un solo byte
+L 0x438d imprime_bcd
+B 0x438d EL IMPRESOR DE BCD, de donde salen todos los numeros. Parte cada byte en sus dos digitos y les suma 0x30 -que aqui es donde empieza el "0", porque la fuente va ordenada como el ASCII-; el digito alto va primero y el puntero de la variable retrocede mientras el de la VRAM avanza, porque el BCD esta guardado del reves.
+C 0x438d el byte
+C 0x438f el digito de abajo
+C 0x4391 +0x30: el "0" de la fuente
+C 0x4395 y el de arriba
+C 0x4397 cuatro veces a la derecha
+C 0x439d primero el alto
+C 0x43a2 y detras el bajo
+C 0x43a5 la variable va hacia atras
+C 0x43a6 y la pantalla hacia delante
+L 0x43aa parpadea_el_turno
+B 0x43aa EL PARPADEO DEL "1P" / "2P", cada 32 cuadros. Con dos jugadores se descuenta uno para que los dos no parpadeen a la vez.
+C 0x43aa de un tiron: (0xE002) y el contador de cuadros
+C 0x43ad los cinco bits de abajo
+C 0x43b0 uno de cada 32 cuadros
+C 0x43b6 con dos jugadores, se desfasa
+C 0x43b7 el bit 7 dice de quien es el turno
+L 0x43c4 pinta_las_vidas
+B 0x43c4 EL CONTADOR DE VIDAS, cinco marcas de derecha a izquierda: mientras queden se escribe la marca 0x2E y, en cuanto se acaban, un cero. Por eso el hueco se ve siempre.
+C 0x43c4 la celda mas a la derecha
+C 0x43c7 las vidas que quedan
+C 0x43cb cinco marcas como maximo
+C 0x43cd la marca
+C 0x43d3 agotadas: celda vacia
+C 0x43d8 y hacia la izquierda
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x43e7 barre_una_franja
+B 0x43e7 EL BARRIDO DE LA PANTALLA, dos filas por llamada. (0xE00A) dice por donde va; devuelve acarreo mientras quede trabajo, y al pasar de 15 saca la pantalla de seleccion. Ademas, cuando la franja cae en un sitio concreto (0xCC) pinta un patron aparte: es el remate del borde.
+C 0x43e7 por donde iba
+C 0x43eb y se deja avanzada
+C 0x43ec quince pasadas
+C 0x43f0 la esquina de arriba
+C 0x43f4 mas el paso, que es la columna
+C 0x43f7 el paso por dos
+C 0x43f8 +0xC0: de ahi sale el patron de la cortina
+C 0x43fb dos filas de golpe
+C 0x4401 la de abajo
+C 0x440a el remate del borde
+C 0x4415 acarreo: todavia queda
+C 0x4418 "PLAY SELECT" con sus cuatro opciones
+C 0x441f y se avisa si se llego al paso 52
+L 0x4422 limpia_la_pantalla
+C 0x4425 la tabla de nombres
+C 0x4428 sus 768 celdas
+L 0x442c rellena_vram
+B 0x442c RELLENAR LA VRAM con el mismo byte, BC veces. Los dos `ex af,af'` seguidos de 0x442F no son un despiste: valen como espera y dejan el byte en el juego correcto para el bucle.
+C 0x442c prepara el puntero de escritura
+C 0x4430 aqui entra tambien la de repetir del descompresor
+C 0x4432 el byte, tal cual
+C 0x4439 hasta que BC llega a cero
+L 0x443d repite_byte
+C 0x443d el byte que se repite
+L 0x4441 vuelca_bloque
+B 0x4441 VOLCAR BC BYTES DE MEMORIA A LA VRAM, tal cual. Es lo que usan los bloques que NO van comprimidos.
+C 0x4445 un byte
+C 0x4447 y al puerto de datos
+C 0x444b una menos
+L 0x4452 copia_vram_a_vram
+B 0x4452 COPIAR DE VRAM A VRAM byte a byte, pasando por el Z80: el VDP no sabe hacerlo solo.
+C 0x4452 lee de (HL) en la VRAM
+C 0x4456 y escribe en (DE), tambien en la VRAM
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x4462 duplica_los_tercios_de_color
+C 0x4462 el primer tercio de la tabla de color
+C 0x4465 al segundo
+C 0x4468 dos kilobytes
+C 0x446e y los otros dos
+L 0x4473 duplica_los_tercios_de_patrones
+C 0x4473 primero el color
+C 0x4476 y luego los patrones, del primer tercio a los otros dos
+L 0x447e rellena_y_vuelca
+C 0x447e el patron de relleno
+C 0x4480 384 celdas
+L 0x4488 rellena_una_franja
+C 0x4488 384 celdas
+C 0x448e la tira de indices
+C 0x4491 y la franja de al lado, 0x20 mas alla
+L 0x449b descomprime
+B 0x449b EL DESCOMPRESOR, con tres puertas: por 0x449B el bloque trae delante su destino de VRAM, por 0x449F el destino ya viene en DE y por 0x44A3 esta puesto ademas el puntero. Es EL MISMO CODIGO que el 0x45C9 de Circus Charlie -la firma de catorce bytes de este bucle esta igual en los dos cartuchos-, y el lenguaje es al reves de lo que parece: bit 7 a CERO repite un byte, bit 7 PUESTO copia n bytes tal cual.
+C 0x449b el destino de VRAM, que va delante del bloque
+C 0x449f aqui entran los que ya lo traen en DE
+C 0x44a3 el byte de control
+C 0x44a4 los siete bits de abajo son la cuenta
+C 0x44a7 y el byte entero se guarda para mirarle el bit 7
+C 0x44a9 cuenta distinta de cero: hay tramo
+C 0x44ab cuenta cero y byte 0x00: se acabo el bloque
+C 0x44ac cuenta cero y byte 0x80: detras viene otro destino
+C 0x44b2 compara el byte con su cuenta: solo difieren si el bit 7 esta puesto
+C 0x44b4 bit 7 puesto -> copiar n bytes tal cual
+C 0x44b8 bit 7 a cero -> repetir el siguiente byte n veces
+L 0x44be prepara_escritura_vram
+B 0x44be PREPARAR EL PUERTO DE LA VRAM con SETWRT de la BIOS, y guardarse el puerto de datos en C' para que los bucles solo tengan que hacer `out (c),a`. SETWRT se queda con los catorce bits de abajo, que es por lo que los bloques llevan destinos como 0x5800 -que es 0x1800.
+C 0x44c0 SETWRT: el puntero de escritura
+C 0x44c6 el puerto de datos, de la tabla de la BIOS
+C 0x44c9 a C', donde lo esperan los bucles
+L 0x44cd prepara_lectura_vram
+C 0x44ce SETRD: el puntero de lectura
+L 0x44da arranca_el_hardware
+B 0x44da EL ARRANQUE DEL HARDWARE: apaga el sonido, borra los dieciseis kilobytes de VRAM y vuelca los ocho registros del VDP desde 0x44FF.
+C 0x44df el sonido de arranque
+C 0x44e4 la VRAM entera
+C 0x44e7 los dieciseis kilobytes
+C 0x44ee los ocho registros del VDP
+C 0x44f1 ocho escrituras
+C 0x44f5 el valor
+C 0x44f6 WRTVDP: C lleva el numero de registro
