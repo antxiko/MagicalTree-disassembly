@@ -44,3 +44,44 @@
 
 # Y el tercero, del despachador de 0x6177: `ld hl,061a0h / push hl`.
 0x61A0   # retorno apilado por 0x6173
+
+# ======================================================================
+# LAS RUTINAS QUE SE PASAN EN DE
+# ======================================================================
+# El recorrido de objetos de 0x6ACC no llama a una rutina fija: recibe su
+# direccion en DE y la salta con `ex de,hl / jp (hl)` en 0x6AF8. El trazado
+# ve el `jp (hl)` pero no puede saber que hay en DE, asi que los dos unicos
+# valores que se le pasan hay que declararlos. Son los dos, y no hay mas:
+# un `grep "ld de,0....h"` seguido de la entrada a 0x6ACC solo da estos.
+0x6AFA   # la rutina que 0x6AC9 pasa en DE (tipos 0x80/0x81)
+0x6D7A   # la rutina que 0x6D72 pasa en DE (tipo 0x93)
+
+# ======================================================================
+# LOS CUATRO TROZOS QUE NO ALCANZA NADIE
+# ======================================================================
+# Once bytes en total. No son datos: desensamblan a instrucciones coherentes
+# que caen dentro de la rutina de al lado. Lo que no hay es ninguna
+# instruccion del cartucho que lleve a ellos, y se dice en cada uno.
+
+# `ld c,000h / jr L_4064`: la puerta de BORRAR del interprete de rotulos. La
+# de al lado (0x4062) pone la mascara a 0xFF y pinta; con la mascara a 0x00
+# todo byte sale cero y el MISMO guion borra el rotulo. Que es eso y no otra
+# cosa lo confirma Circus Charlie (RC-712), que comparte armazon y ademas SI
+# usa su puerta de borrar. Magical Tree no: su unico camino de borrado entra
+# por 0x43C1 con `jp L_4064` y la mascara ya puesta en C.
+0x405E   # codigo huerfano: la puerta de la mascara 0x00
+
+# `xor a`, la otra puerta de la rutina de 0x6486, que deja (0xE1B2) valiendo
+# lo que traiga A. Entrando aqui valdria cero. Nadie entra aqui.
+0x6485   # codigo huerfano: la variante con A=0 de 0x6486
+
+# `ld hl,0e012h / jr $+3`: la ranura de la voz de efectos en el reparto de
+# 0x7A2F. Es inalcanzable Y redundante: los dos `jr z` de 0x7A31 y 0x7A35
+# saltan por encima, y para el sonido 9 -el que tendria que caer aqui- da
+# igual, porque 0x7A1E ya ha dejado HL valiendo 0xE012.
+0x7A3C   # codigo huerfano: la ranura que 0x7A1E ya deja hecha
+
+# Un `ret` solo, detras del `jp 00093h` de 0x7BD7. Un `jp` no cae en lo que
+# tiene debajo, asi que a este `ret` no se llega por arriba, y ningun salto
+# del cartucho apunta a el.
+0x7BDA   # codigo huerfano: un `ret` detras de un `jp`

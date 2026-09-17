@@ -17,7 +17,7 @@ DATA_cabecera_del_cartucho:
 	defw 04241h,04077h,00000h,00000h,00000h,00000h,00000h,00000h	; 4000
 
 ; ======================================================================
-; CODIGO 0x4010..0x405e  (78 bytes)
+; CODIGO 0x4010..0x40c3  (179 bytes)
 ; ======================================================================
 
 
@@ -105,19 +105,11 @@ intercambia_bloques:
 	ret			;405d
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x405e..0x4062  (4 bytes)
-
-; ----------------------------------------------------------------------
 ; EL INTERPRETE DE ROTULOS, con dos puertas que solo cambian la mascara. El guion trae [destino en VRAM, palabra] y luego los indices, con 0xFE para saltar a otro destino y 0xFF para terminar. Con la mascara a 0x00 se escriben ceros: el MISMO guion borra el rotulo.
 ; ----------------------------------------------------------------------
-DATA_405E:
-	defb 00eh,000h,018h,002h	; 405e
-
-; ======================================================================
-; CODIGO 0x4062..0x40c3  (97 bytes)
-; ======================================================================
-
-
+borra_rotulo:
+	ld c,000h		;405e   ; mascara 0x00: BORRA
+	jr L_4064		;4060
 pinta_rotulo:
 	ld c,0ffh		;4062   ; mascara 0xFF: pinta
 L_4064:
@@ -146,7 +138,7 @@ init:
 	im 1		;4078
 	ld a,0c3h		;407a   ; un `jp` en 0xFD9A y la direccion detras: asi se engancha H.KEYI
 	ld (0fd9ah),a		;407c
-	ld hl,0402ch		;407f   ; el gancho es el de 0x402C
+	ld hl,gancho_de_interrupcion		;407f   ; el gancho es el de 0x402C
 	ld (0fd9bh),hl		;4082
 	ld sp,0e400h		;4085   ; la pila, por encima de las variables
 	ld hl,0e000h		;4088   ; y las variables, a cero de 0xE000 a 0xE3FF
@@ -958,8 +950,11 @@ L_44F5:
 	ret			;44fe
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x44ff..0x4507  (8 bytes)
-DATA_44FF:
+; DATOS registros_del_vdp: los ocho valores que 0x44EE baja al VDP con `ld
+;   hl,044ffh / ld d,008h / WRTVDP` subiendo C de 0 a 7: 0x02 0xE2 0x0E 0x7F
+;   0x07 0x76 0x03 0xE1
+;   0x44ff..0x4507  (8 bytes)
+DATA_registros_del_vdp:
 	defb 002h,0e2h,00eh,07fh,007h,076h,003h,0e1h	; 44ff  .....v..
 
 ; ======================================================================
@@ -1101,34 +1096,49 @@ L_45AF:
 	ret			;45b3
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x45b4..0x4710  (348 bytes)
+; DATOS modos_de_juego: cuatro bytes, uno por opcion del menu; 0x4586 los
+;   indexa con la opcion de (0xE042) y deja el elegido en (0xE002). Son 0x40
+;   0x60 0x50 0x70: el bit 6 va siempre puesto y los que distinguen las cuatro
+;   opciones son el 5 y el 4
+;   0x45b4..0x45b8  (4 bytes)
 
 ; ----------------------------------------------------------------------
 ; LOS CUATRO MODOS DE JUEGO que el menu deja en (0xE002). El bit 6 va puesto siempre -es lo que le dice a 0x40A7 que ya no estamos en el menu-, el bit 5 significa DOS JUGADORES y el bit 4, TECLADO en vez de mando.
 ; ----------------------------------------------------------------------
-DATA_45B4:
-	defb 040h,060h,050h,070h,000h,01ch,022h,063h,063h,063h,022h,01ch,000h,018h,038h,018h	; 45b4  @`Pp.."ccc"...8.
-	defb 018h,018h,018h,07eh,000h,03eh,063h,003h,00eh,03ch,070h,07fh,000h,03eh,063h,003h	; 45c4  ...~.>c..<p..>c.
-	defb 00eh,003h,063h,03eh,000h,00eh,01eh,036h,066h,066h,07fh,006h,000h,07fh,060h,07eh	; 45d4  ..c>...6ff....`~
-	defb 063h,003h,063h,03eh,000h,03eh,063h,060h,07eh,063h,063h,03eh,000h,07fh,063h,006h	; 45e4  c.c>.>c`~cc>..c.
-	defb 00ch,018h,018h,018h,000h,03eh,063h,063h,03eh,063h,063h,03eh,000h,03eh,063h,063h	; 45f4  .....>cc>cc>.>cc
-	defb 03fh,003h,063h,03eh,03ch,042h,099h,0a1h,0a1h,099h,042h,03ch,000h,024h,024h,024h	; 4604  ?.c><B....B<.$$$
-	defb 000h,000h,000h,000h,000h,000h,002h,000h,08ah,0aah,0aah,0dah,000h,000h,008h,048h	; 4614  ...............H
-	defb 0eeh,04ah,04ah,06ah,000h,00fh,01fh,0ffh,0ffh,0ffh,0ffh,00fh,000h,000h,0feh,0e0h	; 4624  .JJj............
-	defb 0e0h,0c0h,0c0h,080h,000h,000h,000h,000h,07eh,000h,000h,000h,000h,01ch,036h,063h	; 4634  ........~.....6c
-	defb 063h,07fh,063h,063h,000h,07eh,063h,063h,07eh,063h,063h,07eh,000h,03eh,063h,060h	; 4644  c.cc.~cc~cc~.>c`
-	defb 060h,060h,063h,03eh,000h,07ch,066h,063h,063h,063h,066h,07ch,000h,07fh,060h,060h	; 4654  ``c>.|fcccf|..``
-	defb 07eh,060h,060h,07fh,000h,07fh,060h,060h,07eh,060h,060h,060h,000h,03eh,063h,060h	; 4664  ~``...``~```.>c`
-	defb 067h,063h,063h,03fh,000h,063h,063h,063h,07fh,063h,063h,063h,000h,03ch,018h,018h	; 4674  gcc?.ccc.ccc.<..
-	defb 018h,018h,018h,03ch,000h,01fh,006h,006h,006h,006h,066h,03ch,000h,063h,066h,06ch	; 4684  ...<......f<.cfl
-	defb 078h,07ch,06eh,067h,000h,060h,060h,060h,060h,060h,060h,07fh,000h,063h,077h,07fh	; 4694  x|ng.``````..cw.
-	defb 07fh,06bh,063h,063h,000h,063h,073h,07bh,07fh,06fh,067h,063h,000h,03eh,063h,063h	; 46a4  .kcc.cs{.ogc.>cc
-	defb 063h,063h,063h,03eh,000h,07eh,063h,063h,063h,07eh,060h,060h,000h,03eh,063h,063h	; 46b4  ccc>.~ccc~``.>cc
-	defb 063h,06fh,066h,03dh,000h,07eh,063h,063h,062h,07ch,066h,063h,000h,03eh,063h,060h	; 46c4  cof=.~ccb|fc.>c`
-	defb 03eh,003h,063h,03eh,000h,07eh,018h,018h,018h,018h,018h,018h,000h,063h,063h,063h	; 46d4  >.c>.~.......ccc
-	defb 063h,063h,063h,03eh,000h,063h,063h,063h,063h,036h,01ch,008h,000h,063h,063h,06bh	; 46e4  ccc>.cccc6...cck
-	defb 06bh,07fh,077h,022h,000h,063h,076h,03ch,01ch,01eh,037h,063h,000h,066h,066h,07eh	; 46f4  k.w".cv<..7c.ff~
-	defb 03ch,018h,018h,018h,000h,07fh,007h,00eh,01ch,038h,070h,07fh	; 4704  <........8p.
+DATA_modos_de_juego:
+	defb 040h,060h,050h,070h	; 45b4
+
+; ----------------------------------------------------------------------
+; DATOS fuente: 43 dibujos de 8x8 que 0x448E vuelca a la tabla de patrones. El
+;   reparto sale de la propia ROM: si el primero es el tile 0x30, los diez
+;   digitos ocupan 0x30..0x39, la (c) el 0x3A, cinco dibujos sueltos el
+;   0x3B..0x3F, una raya el 0x40 y las 26 letras el 0x41..0x5A, o sea que cada
+;   letra cae en SU codigo ASCII. Por eso los rotulos guardan el texto en
+;   claro: "CASTLE" esta escrito tal cual en 0x75B0
+;   0x45b8..0x4710  (344 bytes)
+DATA_fuente:
+	defb 000h,01ch,022h,063h,063h,063h,022h,01ch,000h,018h,038h,018h,018h,018h,018h,07eh	; 45b8  .."ccc"...8....~
+	defb 000h,03eh,063h,003h,00eh,03ch,070h,07fh,000h,03eh,063h,003h,00eh,003h,063h,03eh	; 45c8  .>c..<p..>c...c>
+	defb 000h,00eh,01eh,036h,066h,066h,07fh,006h,000h,07fh,060h,07eh,063h,003h,063h,03eh	; 45d8  ...6ff....`~c.c>
+	defb 000h,03eh,063h,060h,07eh,063h,063h,03eh,000h,07fh,063h,006h,00ch,018h,018h,018h	; 45e8  .>c`~cc>..c.....
+	defb 000h,03eh,063h,063h,03eh,063h,063h,03eh,000h,03eh,063h,063h,03fh,003h,063h,03eh	; 45f8  .>cc>cc>.>cc?.c>
+	defb 03ch,042h,099h,0a1h,0a1h,099h,042h,03ch,000h,024h,024h,024h,000h,000h,000h,000h	; 4608  <B....B<.$$$....
+	defb 000h,000h,002h,000h,08ah,0aah,0aah,0dah,000h,000h,008h,048h,0eeh,04ah,04ah,06ah	; 4618  ...........H.JJj
+	defb 000h,00fh,01fh,0ffh,0ffh,0ffh,0ffh,00fh,000h,000h,0feh,0e0h,0e0h,0c0h,0c0h,080h	; 4628  ................
+	defb 000h,000h,000h,000h,07eh,000h,000h,000h,000h,01ch,036h,063h,063h,07fh,063h,063h	; 4638  ....~.....6cc.cc
+	defb 000h,07eh,063h,063h,07eh,063h,063h,07eh,000h,03eh,063h,060h,060h,060h,063h,03eh	; 4648  .~cc~cc~.>c```c>
+	defb 000h,07ch,066h,063h,063h,063h,066h,07ch,000h,07fh,060h,060h,07eh,060h,060h,07fh	; 4658  .|fcccf|..``~``.
+	defb 000h,07fh,060h,060h,07eh,060h,060h,060h,000h,03eh,063h,060h,067h,063h,063h,03fh	; 4668  ..``~```.>c`gcc?
+	defb 000h,063h,063h,063h,07fh,063h,063h,063h,000h,03ch,018h,018h,018h,018h,018h,03ch	; 4678  .ccc.ccc.<.....<
+	defb 000h,01fh,006h,006h,006h,006h,066h,03ch,000h,063h,066h,06ch,078h,07ch,06eh,067h	; 4688  ......f<.cflx|ng
+	defb 000h,060h,060h,060h,060h,060h,060h,07fh,000h,063h,077h,07fh,07fh,06bh,063h,063h	; 4698  .``````..cw..kcc
+	defb 000h,063h,073h,07bh,07fh,06fh,067h,063h,000h,03eh,063h,063h,063h,063h,063h,03eh	; 46a8  .cs{.ogc.>ccccc>
+	defb 000h,07eh,063h,063h,063h,07eh,060h,060h,000h,03eh,063h,063h,063h,06fh,066h,03dh	; 46b8  .~ccc~``.>cccof=
+	defb 000h,07eh,063h,063h,062h,07ch,066h,063h,000h,03eh,063h,060h,03eh,003h,063h,03eh	; 46c8  .~ccb|fc.>c`>.c>
+	defb 000h,07eh,018h,018h,018h,018h,018h,018h,000h,063h,063h,063h,063h,063h,063h,03eh	; 46d8  .~.......cccccc>
+	defb 000h,063h,063h,063h,063h,036h,01ch,008h,000h,063h,063h,06bh,06bh,07fh,077h,022h	; 46e8  .cccc6...cckk.w"
+	defb 000h,063h,076h,03ch,01ch,01eh,037h,063h,000h,066h,066h,07eh,03ch,018h,018h,018h	; 46f8  .cv<..7c.ff~<...
+	defb 000h,07fh,007h,00eh,01ch,038h,070h,07fh	; 4708  .....8p.
 
 ; ----------------------------------------------------------------------
 ; DATOS guion_0x4710: 21 bytes, 3 tramos, 12 bytes a la VRAM; lo pinta 0x4343
@@ -1158,8 +1168,11 @@ DATA_guion_0x472B:
 	defb 041h,04dh,049h,000h,031h,039h,038h,034h,0ffh	; 479b  AMI.1984.
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x47a4..0x47bc  (24 bytes)
-DATA_47A4:
+; DATOS guion_0x47A4: 24 bytes, 2 tramos, 18 bytes a la VRAM (0x396B y
+;   0x392C); lo pinta 0x41A5. El interprete de rotulos lo consume entero y se
+;   para en el borde
+;   0x47a4..0x47bc  (24 bytes)
+DATA_guion_0x47A4:
 	defb 06bh,039h,047h,041h,04dh,045h,000h,000h,04fh,056h,045h,052h,0feh,02ch,039h,050h	; 47a4  k9GAME..OVER.,9P
 	defb 04ch,041h,059h,045h,052h,000h,031h,0ffh	; 47b4  LAYER.1.
 
@@ -1424,8 +1437,13 @@ hueco_de_sprite_por_indice:
 	jp suma_a_a_hl		;4a4d
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x4a50..0x4e2f  (991 bytes)
-DATA_4A50:
+; DATOS trozos_del_decorado: los 25 trozos que la tabla de 0x4D30 apunta, cada
+;   uno una tira de parejas de patrones. No hay que estimar donde acaba
+;   ninguno: el principio de cada trozo mas dos veces su cuenta cae CLAVADO en
+;   el principio de otro, y entre todos cubren el bloque hasta 0x4D2E; los dos
+;   ultimos bytes (0xFF 0x00) cierran la tira
+;   0x4a50..0x4d30  (736 bytes)
+DATA_trozos_del_decorado:
 	defb 006h,000h,070h,093h,0d8h,005h,04ch,005h,090h,000h,004h,001h,088h,081h,0d8h,005h	; 4a50  ..p...L.........
 	defb 0bah,0e0h,0a1h,0c0h,091h,000h,052h,0e0h,08ah,081h,0d8h,005h,05bh,0c3h,098h,0c0h	; 4a60  ......R.....[...
 	defb 0a8h,0c0h,0c0h,0c3h,019h,008h,090h,002h,006h,000h,0d8h,005h,073h,093h,022h,086h	; 4a70  ............s.".
@@ -1472,22 +1490,45 @@ DATA_4A50:
 	defb 0b3h,0c2h,091h,00ah,03ch,006h,0b3h,0c0h,091h,002h,053h,0c0h,029h,007h,043h,085h	; 4d00  ....<.....S.).C.
 	defb 0a8h,085h,0ffh,008h,08ah,000h,001h,091h,004h,092h,001h,091h,004h,092h,001h,091h	; 4d10  ................
 	defb 05bh,0c4h,098h,0c4h,001h,092h,001h,091h,004h,092h,001h,091h,0ffh,020h,0ffh,000h	; 4d20  [............ ..
+
+; ----------------------------------------------------------------------
+; DATOS tabla_de_trozos: 25 entradas de tres bytes -puntero y numero de
+;   parejas- que 0x52E9 indexa con `add a,a / add a,l` (por tres). Son 25 y no
+;   mas porque la entrada 26 daria el puntero 0x0617, que no es ROM
+;   0x4d30..0x4d7b  (75 bytes)
+DATA_tabla_de_trozos:
 	defb 050h,04ah,014h,078h,04ah,000h,078h,04ah,015h,0a2h,04ah,012h,0c6h,04ah,013h,0ech	; 4d30  PJ.xJ.xJ..J..J..
 	defb 04ah,011h,00eh,04bh,012h,032h,04bh,014h,05ah,04bh,012h,07eh,04bh,011h,0a0h,04bh	; 4d40  J..K.2K.ZK.~K..K
 	defb 011h,0c2h,04bh,010h,0e2h,04bh,012h,006h,04ch,012h,02ah,04ch,013h,050h,04ch,012h	; 4d50  ..K..K..L.*L.PL.
 	defb 0d0h,04ch,006h,0deh,04ch,00ch,074h,04ch,00ch,08ch,04ch,00dh,0a6h,04ch,00bh,0bch	; 4d60  .L..L.tL..L..L..
-	defb 04ch,00ah,00eh,04dh,010h,0f8h,04ch,00ah,0e2h,04ch,00ah,017h,006h,003h,004h,010h	; 4d70  L..M..L..L......
-	defb 00fh,014h,00ch,011h,003h,013h,004h,010h,00dh,015h,014h,016h,018h,012h,007h,000h	; 4d80  ................
-	defb 010h,00ch,009h,014h,011h,007h,012h,007h,010h,015h,00eh,00dh,016h,018h,000h,013h	; 4d90  ................
-	defb 002h,010h,00fh,00bh,015h,011h,002h,012h,005h,007h,010h,008h,00fh,00ch,016h,018h	; 4da0  ................
-	defb 003h,007h,004h,010h,00dh,00bh,008h,011h,012h,003h,002h,010h,008h,00ah,015h,008h	; 4db0  ................
-	defb 016h,018h,002h,007h,004h,010h,009h,00fh,00bh,009h,014h,009h,00eh,014h,00ah,00fh	; 4dc0  ................
-	defb 00bh,00ch,016h,018h,007h,006h,005h,010h,00dh,009h,00ch,015h,011h,012h,006h,007h	; 4dd0  ................
-	defb 010h,015h,008h,00ah,016h,018h,007h,013h,000h,010h,009h,00ch,00dh,008h,011h,007h	; 4de0  ................
-	defb 005h,002h,007h,010h,008h,009h,00eh,016h,018h,012h,000h,002h,005h,010h,015h,00ch	; 4df0  ................
-	defb 009h,00eh,00ah,014h,00dh,009h,00eh,015h,016h,018h,003h,002h,000h,006h,007h,005h	; 4e00  ................
-	defb 007h,013h,000h,010h,014h,00ah,00dh,009h,00eh,00dh,016h,07bh,04dh,08ch,04dh,09dh	; 4e10  ...........{M.M.
-	defb 04dh,0afh,04dh,0c1h,04dh,0d3h,04dh,0e5h,04dh,0f8h,04dh,009h,04eh,07bh,04dh	; 4e20  M.M.M.M.M.M.N{M
+	defb 04ch,00ah,00eh,04dh,010h,0f8h,04ch,00ah,0e2h,04ch,00ah	; 4d70  L..M..L..L.
+
+; ----------------------------------------------------------------------
+; DATOS guiones_de_decorado: nueve tiras de numeros de trozo, una por fase.
+;   Cada una acaba con el valor 0x16, que es el corte que mira 0x52E1; las
+;   nueve seguidas suman los 160 bytes justos que hay hasta la tabla de abajo
+;   0x4d7b..0x4e1b  (160 bytes)
+DATA_guiones_de_decorado:
+	defb 017h,006h,003h,004h,010h,00fh,014h,00ch,011h,003h,013h,004h,010h,00dh,015h,014h	; 4d7b  ................
+	defb 016h,018h,012h,007h,000h,010h,00ch,009h,014h,011h,007h,012h,007h,010h,015h,00eh	; 4d8b  ................
+	defb 00dh,016h,018h,000h,013h,002h,010h,00fh,00bh,015h,011h,002h,012h,005h,007h,010h	; 4d9b  ................
+	defb 008h,00fh,00ch,016h,018h,003h,007h,004h,010h,00dh,00bh,008h,011h,012h,003h,002h	; 4dab  ................
+	defb 010h,008h,00ah,015h,008h,016h,018h,002h,007h,004h,010h,009h,00fh,00bh,009h,014h	; 4dbb  ................
+	defb 009h,00eh,014h,00ah,00fh,00bh,00ch,016h,018h,007h,006h,005h,010h,00dh,009h,00ch	; 4dcb  ................
+	defb 015h,011h,012h,006h,007h,010h,015h,008h,00ah,016h,018h,007h,013h,000h,010h,009h	; 4ddb  ................
+	defb 00ch,00dh,008h,011h,007h,005h,002h,007h,010h,008h,009h,00eh,016h,018h,012h,000h	; 4deb  ................
+	defb 002h,005h,010h,015h,00ch,009h,00eh,00ah,014h,00dh,009h,00eh,015h,016h,018h,003h	; 4dfb  ................
+	defb 002h,000h,006h,007h,005h,007h,013h,000h,010h,014h,00ah,00dh,009h,00eh,00dh,016h	; 4e0b  ................
+
+; ----------------------------------------------------------------------
+; DATOS tabla_de_decorados: diez punteros a los guiones de arriba, indexados
+;   por el numero de fase de (0xE05C) en 0x52CF. El decimo repite el primero
+;   (0x4D7B), o sea que a partir de la fase 10 se vuelve al decorado de la
+;   primera
+;   0x4e1b..0x4e2f  (20 bytes)
+DATA_tabla_de_decorados:
+	defb 07bh,04dh,08ch,04dh,09dh,04dh,0afh,04dh,0c1h,04dh,0d3h,04dh,0e5h,04dh,0f8h,04dh	; 4e1b  {M.M.M.M.M.M.M.M
+	defb 009h,04eh,07bh,04dh	; 4e2b
 
 ; ----------------------------------------------------------------------
 ; DATOS piezas_4E2F: 46 estructuras, cada una con dos bytes de cabecera; las
@@ -1924,9 +1965,27 @@ L_537F:
 	ret			;5393
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x5394..0x53a2  (14 bytes)
-DATA_5394:
-	defb 008h,000h,000h,000h,098h,020h,000h,000h,008h,009h,001h,009h,006h,009h	; 5394  ..... ........
+; DATOS plantilla_de_sprite: los cuatro bytes que 0x5346 copia CUATRO veces a
+;   0xE0B0: el `pop hl` de 0x5356 devuelve HL a 0x5394 en cada vuelta, asi que
+;   las cuatro copias salen de aqui
+;   0x5394..0x5398  (4 bytes)
+DATA_plantilla_de_sprite:
+	defb 008h,000h,000h,000h	; 5394
+
+; ----------------------------------------------------------------------
+; DATOS valores_del_jugador: los cinco bytes que 0x5338 lleva de un `ldir` a
+;   0xE1B3
+;   0x5398..0x539d  (5 bytes)
+DATA_valores_del_jugador:
+	defb 098h,020h,000h,000h,008h	; 5398
+
+; ----------------------------------------------------------------------
+; DATOS patrones_de_los_cinco_sprites: un byte por sprite; 0x532A los reparte
+;   por el bufer de 0xE0D3 saltando de cuatro en cuatro, que es lo que ocupa
+;   cada sprite
+;   0x539d..0x53a2  (5 bytes)
+DATA_patrones_de_los_cinco_sprites:
+	defb 009h,001h,009h,006h,009h	; 539d
 
 ; ======================================================================
 ; CODIGO 0x53a2..0x53e4  (66 bytes)
@@ -2392,12 +2451,14 @@ mira_si_agarra:
 	jp pasa_al_estado_6		;61db
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x61de..0x61e4  (6 bytes)
-DATA_61DE:
+; DATOS sonidos_por_tipo: seis bytes, uno por tipo de objeto; 0x627B resta
+;   0xC5 al tipo y 0x627D indexa aqui
+;   0x61de..0x61e4  (6 bytes)
+DATA_sonidos_por_tipo:
 	defb 001h,002h,003h,005h,006h,007h	; 61de
 
 ; ======================================================================
-; CODIGO 0x61e4..0x6485  (673 bytes)
+; CODIGO 0x61e4..0x6571  (909 bytes)
 ; ======================================================================
 
 
@@ -2813,17 +2874,8 @@ baja_un_tramo:
 	ld hl,0e1b3h		;6480
 	ld a,(hl)			;6483
 	ret			;6484
-
-; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6485..0x6486  (1 bytes)
-DATA_6485:
-	defb 0afh	; 6485
-
-; ======================================================================
-; CODIGO 0x6486..0x6571  (235 bytes)
-; ======================================================================
-
-
+L_6485:
+	xor a			;6485
 pasa_al_estado:
 	ld hl,0e1b2h		;6486   ; el estado del jugador
 	ld (hl),a			;6489
@@ -3002,8 +3054,10 @@ L_655A:
 	ret			;6570
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6571..0x6584  (19 bytes)
-DATA_6571:
+; DATOS guion_0x6571: 19 bytes, 1 tramo, 16 bytes a la VRAM (0x08FE); lo
+;   consume el interprete de rotulos y cierra en el borde
+;   0x6571..0x6584  (19 bytes)
+DATA_guion_0x6571:
 	defb 0feh,008h,008h,008h,004h,004h,002h,002h,002h,002h,002h,001h,001h,001h,000h,000h	; 6571  ................
 	defb 000h,000h,0ffh	; 6581
 
@@ -3093,13 +3147,32 @@ mete_al_jugador_inclinado:
 	jr $+82		;65fd
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x65ff..0x664c  (77 bytes)
-DATA_65FF:
+; DATOS tabla_de_poses: catorce poses de cuatro bytes; 0x65AB entra aqui con
+;   el paso multiplicado por cuatro (`add a,a / add a,a`)
+;   0x65ff..0x6637  (56 bytes)
+DATA_tabla_de_poses:
 	defb 004h,000h,00ch,008h,004h,000h,010h,008h,004h,000h,014h,018h,004h,000h,014h,018h	; 65ff  ................
 	defb 000h,000h,000h,000h,004h,000h,01ch,008h,0c0h,0b8h,0c4h,0bch,0c8h,0b8h,0cch,0bch	; 660f  ................
 	defb 0d4h,0b8h,0c4h,0bch,0e4h,0b8h,0cch,0bch,0ech,0b8h,0f0h,0bch,0d8h,0b8h,0dch,0bch	; 661f  ................
-	defb 0b0h,0b8h,0c4h,0bch,0b4h,0b8h,0cch,0bch,0e8h,004h,000h,07ch,0a8h,0a4h,004h,000h	; 662f  ...........|....
-	defb 074h,0a8h,0a4h,004h,000h,07ch,0a8h,078h,004h,000h,074h,0a8h,078h	; 663f  t....|.x..t.x
+	defb 0b0h,0b8h,0c4h,0bch,0b4h,0b8h,0cch,0bch	; 662f  ........
+
+; ----------------------------------------------------------------------
+; DATOS byte_suelto_entre_las_dos_tablas: un byte (0xE8) que sobra entre la
+;   pose 13, que acaba aqui, y la tabla de 0x6638, que 0x65E0 nombra por su
+;   direccion
+;   0x6637..0x6638  (1 bytes)
+DATA_byte_suelto_entre_las_dos_tablas:
+	defb 0e8h	; 6637
+
+; ----------------------------------------------------------------------
+; DATOS otra_tabla_de_poses: cuatro poses de CINCO bytes; 0x65DD multiplica el
+;   paso por cinco (`add a,a / add a,a / add a,(hl)`) y 0x65E0 la carga. Las
+;   cuatro empiezan por 0x04 0x00 y los veinte bytes cierran justo donde
+;   empieza mete_dos_sprites
+;   0x6638..0x664c  (20 bytes)
+DATA_otra_tabla_de_poses:
+	defb 004h,000h,07ch,0a8h,0a4h,004h,000h,074h,0a8h,0a4h,004h,000h,07ch,0a8h,078h,004h	; 6638  ..|....t....|.x.
+	defb 000h,074h,0a8h,078h	; 6648
 
 ; ======================================================================
 ; CODIGO 0x664c..0x66e7  (155 bytes)
@@ -3839,12 +3912,14 @@ L_6A3A:
 	ret			;6a41
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6a42..0x6a4f  (13 bytes)
-DATA_6A42:
+; DATOS guion_0x6A42: 13 bytes, 1 tramo, 10 bytes a la VRAM (0x010A); lo pinta
+;   0x6A2C
+;   0x6a42..0x6a4f  (13 bytes)
+DATA_guion_0x6A42:
 	defb 00ah,001h,0b0h,000h,087h,002h,040h,0a8h,08ah,002h,040h,0a8h,0ffh	; 6a42  ......@...@..
 
 ; ======================================================================
-; CODIGO 0x6a4f..0x6afa  (171 bytes)
+; CODIGO 0x6a4f..0x6bbb  (364 bytes)
 ; ======================================================================
 
 
@@ -3926,7 +4001,7 @@ mira_el_digito_y_suelta:
 ; EL BARRIDO DE LOS OBJETOS 0x80 Y 0x81, con la rutina a la que hay que llamar metida en DE y saltada con `ex de,hl / jp (hl)`: un salto indirecto hecho a mano. Solo se atienden los que caigan en la banda 0x18..0x90.
 ; ----------------------------------------------------------------------
 	ld a,080h		;6ac7   ; el primer tipo que cuenta
-	ld de,06afah		;6ac9   ; la rutina que se les aplica
+	ld de,apunta_el_objeto_en_la_lista_de_tres		;6ac9   ; la rutina que se les aplica
 L_6ACC:
 	ld hl,0e137h		;6acc
 	ld bc,02701h		;6acf   ; treinta y nueve, y C lleva el numero
@@ -3966,16 +4041,37 @@ salta_a_la_rutina_de_de:
 	jp (hl)			;6af9   ; el salto indirecto: a donde diga DE
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6afa..0x6b1a  (32 bytes)
-DATA_6AFA:
-	defb 079h,0cdh,00dh,06bh,0c8h,0afh,0cdh,00dh,06bh,0c0h,02bh,036h,001h,023h,071h,023h	; 6afa  y..k....k.+6.#q#
-	defb 036h,040h,0c9h,021h,01dh,0e2h,006h,003h,0beh,0c8h,023h,023h,023h,010h,0f9h,0c9h	; 6b0a  6@.!......###...
+; LA RUTINA QUE 0x6AC9 PASA EN DE, para los objetos de tipo 0x80 y 0x81. El recorrido de objetos no llama a una rutina fija: recibe su direccion en DE y la salta con `ex de,hl / jp (hl)` en 0x6AF8. Esta apunta el objeto en la lista de tres de 0xE21D si no estaba ya: primero lo busca, y si no aparece busca un hueco libre -un cero- y lo ocupa.
+; ----------------------------------------------------------------------
+apunta_el_objeto_en_la_lista_de_tres:
+	ld a,c			;6afa   ; el numero de objeto, que es lo que se apunta
+	call busca_en_la_lista_de_tres		;6afb   ; ya estaba apuntado?
+	ret z			;6afe   ; si estaba, no hay nada que hacer
+	xor a			;6aff   ; y si no, se busca un hueco libre: un cero
+	call busca_en_la_lista_de_tres		;6b00
+	ret nz			;6b03   ; sin hueco, se deja como esta
+	dec hl			;6b04
+	ld (hl),001h		;6b05   ; el hueco queda marcado
+	inc hl			;6b07
+	ld (hl),c			;6b08   ; con el numero de objeto
+	inc hl			;6b09
+	ld (hl),040h		;6b0a   ; y el plazo de 0x40
+	ret			;6b0c
 
-; ======================================================================
-; CODIGO 0x6b1a..0x6bbb  (161 bytes)
-; ======================================================================
-
-
+; ----------------------------------------------------------------------
+; LA BUSQUEDA EN LA LISTA DE TRES: recorre las tres entradas de 0xE21D saltando de tres en tres y vuelve con Z si alguna vale lo que trae A. Sirve para las dos preguntas, porque buscar un hueco libre es buscar un cero.
+; ----------------------------------------------------------------------
+busca_en_la_lista_de_tres:
+	ld hl,0e21dh		;6b0d   ; la lista de tres
+	ld b,003h		;6b10   ; tres entradas
+recorre_la_lista_de_tres:
+	cp (hl)			;6b12   ; esta?
+	ret z			;6b13
+	inc hl			;6b14   ; tres bytes por entrada
+	inc hl			;6b15
+	inc hl			;6b16
+	djnz recorre_la_lista_de_tres		;6b17
+	ret			;6b19
 mira_el_digito_de_la_altura:
 	ld a,(0e1bch)		;6b1a   ; la altura en BCD
 	and 0f0h		;6b1d   ; el nibble alto
@@ -4098,12 +4194,14 @@ saca_el_sprite_de_pantalla:
 	ret			;6bba
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6bbb..0x6bbf  (4 bytes)
-DATA_6BBB:
+; DATOS patrones_del_parpadeo: los cuatro patrones que 0x6B84 elige con dos
+;   bits del contador: 0x00 0x04 0x0F 0x0C
+;   0x6bbb..0x6bbf  (4 bytes)
+DATA_patrones_del_parpadeo:
 	defb 000h,004h,00fh,00ch	; 6bbb
 
 ; ======================================================================
-; CODIGO 0x6bbf..0x6d7a  (443 bytes)
+; CODIGO 0x6bbf..0x6fab  (1004 bytes)
 ; ======================================================================
 
 
@@ -4442,25 +4540,71 @@ suelta_el_bicho_del_cuadro_cero:
 	ld a,(0e003h)		;6d6d   ; el contador de cuadros
 	or a			;6d70   ; solo cuando da la vuelta
 	ret nz			;6d71
-	ld de,06d7ah		;6d72   ; la rutina que se les aplica
+	ld de,apunta_el_objeto_en_la_lista_de_cinco		;6d72   ; la rutina que se les aplica
 	ld a,093h		;6d75
 	jp L_6ACC		;6d77
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6d7a..0x6dd2  (88 bytes)
-DATA_6D7A:
-	defb 079h,0cdh,0c5h,06dh,0c8h,0afh,0cdh,0c5h,06dh,0c0h,0e5h,0ddh,0e1h,0c5h,011h,035h	; 6d7a  y..m....m......5
-	defb 0e1h,001h,001h,027h,01ah,0feh,0d0h,028h,008h,013h,013h,013h,00ch,010h,0f5h,0c1h	; 6d8a  ...'...(........
-	defb 0c9h,021h,0fah,0e1h,079h,0cdh,0c8h,06dh,028h,0f5h,0ddh,071h,001h,0c1h,0ddh,071h	; 6d9a  .!..y..m(..q...q
-	defb 000h,0cdh,047h,04ah,001h,003h,000h,0edh,0b0h,0ebh,02bh,07eh,0feh,093h,001h,08bh	; 6daa  ..GJ......+~....
-	defb 090h,028h,003h,001h,08eh,0a0h,071h,0ddh,070h,002h,0c9h,021h,0f9h,0e1h,006h,005h	; 6dba  .(....q.p..!....
-	defb 0beh,0c8h,023h,023h,023h,010h,0f9h,0c9h	; 6dca  ..###...
-
-; ======================================================================
-; CODIGO 0x6dd2..0x6fab  (473 bytes)
-; ======================================================================
-
-
+; LA RUTINA QUE 0x6D72 PASA EN DE, para los objetos de tipo 0x93. Misma forma que la de 0x6AFA pero contra la lista de CINCO de 0xE1F9, y ademas le da un sprite al objeto: busca uno retirado entre los 39 de 0xE135 y lo pone a su nombre.
+; ----------------------------------------------------------------------
+apunta_el_objeto_en_la_lista_de_cinco:
+	ld a,c			;6d7a   ; el numero de objeto
+	call busca_en_la_lista_de_cinco		;6d7b   ; ya estaba apuntado?
+	ret z			;6d7e
+	xor a			;6d7f   ; y si no, un hueco libre
+	call busca_en_la_lista_de_cinco		;6d80
+	ret nz			;6d83
+	push hl			;6d84   ; la ficha del objeto, a IX
+	pop ix		;6d85
+	push bc			;6d87
+	ld de,0e135h		;6d88   ; los 39 sprites
+	ld bc,02701h		;6d8b
+busca_un_sprite_retirado:
+	ld a,(de)			;6d8e   ; este esta retirado?
+	cp 0d0h		;6d8f   ; 0xD0: retirado
+	jr z,da_de_alta_el_sprite_del_objeto		;6d91
+	inc de			;6d93   ; tres bytes por sprite
+	inc de			;6d94
+	inc de			;6d95
+	inc c			;6d96
+	djnz busca_un_sprite_retirado		;6d97
+L_6D99:
+	pop bc			;6d99   ; sin sprite libre, se deja
+	ret			;6d9a
+da_de_alta_el_sprite_del_objeto:
+	ld hl,0e1fah		;6d9b   ; la otra columna de la lista
+	ld a,c			;6d9e
+	call recorre_la_lista_de_cinco_desde_hl		;6d9f   ; esta ya cogida?
+	jr z,L_6D99		;6da2
+	ld (ix+001h),c		;6da4   ; el sprite queda a nombre del objeto
+	pop bc			;6da7
+	ld (ix+000h),c		;6da8
+	call hueco_de_sprite_por_indice		;6dab   ; su hueco en el bufer
+	ld bc,00003h		;6dae   ; los tres bytes del sprite
+	ldir		;6db1
+	ex de,hl			;6db3
+	dec hl			;6db4
+	ld a,(hl)			;6db5
+	cp 093h		;6db6   ; segun el tipo
+	ld bc,0908bh		;6db8   ; un patron y un color
+	jr z,L_6DC0		;6dbb
+	ld bc,0a08eh		;6dbd   ; o los otros
+L_6DC0:
+	ld (hl),c			;6dc0
+	ld (ix+002h),b		;6dc1
+	ret			;6dc4
+busca_en_la_lista_de_cinco:
+	ld hl,0e1f9h		;6dc5   ; la lista de cinco
+recorre_la_lista_de_cinco_desde_hl:
+	ld b,005h		;6dc8   ; cinco entradas
+recorre_la_lista_de_cinco:
+	cp (hl)			;6dca   ; esta?
+	ret z			;6dcb
+	inc hl			;6dcc   ; tres bytes por entrada
+	inc hl			;6dcd
+	inc hl			;6dce
+	djnz recorre_la_lista_de_cinco		;6dcf
+	ret			;6dd1
 
 ; ----------------------------------------------------------------------
 ; EL BUCLE DE LOS CINCO MOVILES de 0xE1FB. Cada uno guarda el numero del objeto al que va pegado -por tres, que es lo que ocupa cada objeto-, y con IX y IY apuntando a los dos a la vez se decide si sube o baja segun el bit 7.
@@ -4811,8 +4955,10 @@ repinta_el_objeto:
 	jp pinta_bloque_en_su_sitio		;6fa8
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x6fab..0x6fb7  (12 bytes)
-DATA_6FAB:
+; DATOS doce_celdas_en_blanco: doce bytes, todos 0x03 -el patron vacio-;
+;   0x6FA5 los pasa como "tabla de patrones" para borrar la pieza
+;   0x6fab..0x6fb7  (12 bytes)
+DATA_doce_celdas_en_blanco:
 	defb 003h,003h,003h,003h,003h,003h,003h,003h,003h,003h,003h,003h	; 6fab  ............
 
 ; ======================================================================
@@ -5272,8 +5418,10 @@ L_71EC:
 	ret			;71fe
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x71ff..0x7203  (4 bytes)
-DATA_71FF:
+; DATOS definicion_del_bicho: los cuatro bytes que 0x71F3 copia con `ld
+;   bc,00004h / ldir` al hueco que le da hueco_del_bicho
+;   0x71ff..0x7203  (4 bytes)
+DATA_definicion_del_bicho:
 	defb 010h,078h,098h,00fh	; 71ff
 
 ; ======================================================================
@@ -5644,8 +5792,10 @@ L_741C:
 	jp pasa_al_estado_siguiente		;741c
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x741f..0x7427  (8 bytes)
-DATA_741F:
+; DATOS ocho_variantes_de_tanda: ocho bytes que 0x73F9 indexa con tres bits
+;   del contador de tandas y deja en (0xE05D)
+;   0x741f..0x7427  (8 bytes)
+DATA_ocho_variantes_de_tanda:
 	defb 011h,033h,0bbh,0eeh,011h,0bbh,0eeh,011h	; 741f  .3......
 
 ; ======================================================================
@@ -5841,15 +5991,41 @@ DATA_guion_0x7595:
 	defb 053h,0ffh	; 75a5
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x75a7..0x7612  (107 bytes)
-DATA_75A7:
+; DATOS rotulo_castle: seis filas recortadas que 0x74B5 pinta con `ld
+;   bc,00608h` -B=6 filas-. La segunda fila lleva el texto "CASTLE" en claro,
+;   porque la fuente pone cada letra en su codigo ASCII
+;   0x75a7..0x75da  (51 bytes)
+DATA_rotulo_castle:
 	defb 001h,003h,006h,00eh,001h,003h,000h,088h,010h,043h,041h,053h,054h,04ch,045h,014h	; 75a7  .........CASTLE.
 	defb 000h,081h,010h,005h,001h,082h,018h,014h,000h,088h,003h,00dh,00dh,00fh,013h,00dh	; 75b7  ................
 	defb 00dh,003h,000h,003h,003h,082h,010h,014h,003h,003h,000h,003h,003h,082h,011h,012h	; 75c7  ................
-	defb 003h,003h,000h,008h,003h,000h,008h,003h,000h,008h,003h,000h,008h,003h,000h,008h	; 75d7  ................
-	defb 003h,000h,008h,003h,000h,003h,020h,0e8h,0e9h,0eah,0eeh,0efh,0f0h,0f4h,0f5h,0f6h	; 75e7  ...... .........
-	defb 0e5h,0e6h,0e7h,0ebh,0ech,0edh,0f1h,0f2h,0f3h,0e8h,0e9h,0eah,0eeh,0efh,0f0h,0fch	; 75f7  ................
-	defb 0fdh,0feh,0e5h,0e6h,0e7h,0f7h,0ech,0f8h,0f9h,0fah,0fbh	; 7607  ...........
+	defb 003h,003h,000h	; 75d7
+
+; ----------------------------------------------------------------------
+; DATOS seis_filas_de_tronco: seis filas iguales de tres bytes (0x08 0x03
+;   0x00); se entra por 0x75DA, 0x75DD o mas abajo segun cuantas filas se
+;   quieran
+;   0x75da..0x75ec  (18 bytes)
+DATA_seis_filas_de_tronco:
+	defb 008h,003h,000h,008h,003h,000h,008h,003h,000h,008h,003h,000h,008h,003h,000h,008h	; 75da  ................
+	defb 003h,000h	; 75ea
+
+; ----------------------------------------------------------------------
+; DATOS pareja_para_bc: los dos bytes que 0x74BE carga de golpe con `ld
+;   bc,(075ech)`: C=0x03 y B=0x20
+;   0x75ec..0x75ee  (2 bytes)
+DATA_pareja_para_bc:
+	defb 003h,020h	; 75ec
+
+; ----------------------------------------------------------------------
+; DATOS cuatro_bloques_de_3x3: 36 bytes en cuatro bloques de tres filas de
+;   tres; 0x7478 pinta el par que empieza en 0x75EE y 0x74EA el que empieza en
+;   0x7600
+;   0x75ee..0x7612  (36 bytes)
+DATA_cuatro_bloques_de_3x3:
+	defb 0e8h,0e9h,0eah,0eeh,0efh,0f0h,0f4h,0f5h,0f6h,0e5h,0e6h,0e7h,0ebh,0ech,0edh,0f1h	; 75ee  ................
+	defb 0f2h,0f3h,0e8h,0e9h,0eah,0eeh,0efh,0f0h,0fch,0fdh,0feh,0e5h,0e6h,0e7h,0f7h,0ech	; 75fe  ................
+	defb 0f8h,0f9h,0fah,0fbh	; 760e
 
 ; ======================================================================
 ; CODIGO 0x7612..0x7661  (79 bytes)
@@ -5918,31 +6094,52 @@ L_7657:
 	ret			;7660
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x7661..0x77ca  (361 bytes)
-DATA_7661:
+; DATOS columnas_del_decorado_A: quince columnas distintas, cada una una tira
+;   comprimida que acaba en 0x80. Las quince cierran clavadas: el interprete
+;   de 0x7629 saca de cada una VEINTE celdas, ni una mas ni una menos
+;   0x7661..0x76ce  (109 bytes)
+DATA_columnas_del_decorado_A:
 	defb 014h,088h,080h,014h,089h,080h,014h,006h,080h,014h,08ah,080h,004h,003h,001h,0ceh	; 7661  ................
 	defb 009h,003h,001h,0ceh,005h,003h,080h,004h,003h,001h,0cdh,009h,003h,001h,0cdh,005h	; 7671  ................
 	defb 003h,080h,004h,003h,001h,0cfh,009h,003h,001h,0cfh,005h,003h,080h,004h,003h,001h	; 7681  ................
 	defb 0d0h,009h,003h,001h,0d0h,005h,003h,080h,009h,003h,001h,0d0h,00ah,003h,080h,009h	; 7691  ................
 	defb 003h,001h,0cfh,00ah,003h,080h,001h,0cfh,008h,003h,001h,0cfh,00ah,003h,080h,001h	; 76a1  ................
 	defb 0cdh,008h,003h,001h,0cdh,00ah,003h,080h,001h,0d0h,008h,003h,001h,0cfh,00ah,003h	; 76b1  ................
-	defb 080h,001h,0ceh,008h,003h,001h,0ceh,00ah,003h,080h,014h,003h,080h,061h,076h,064h	; 76c1  .............avd
-	defb 076h,067h,076h,06ah,076h,06dh,076h,078h,076h,083h,076h,083h,076h,083h,076h,083h	; 76d1  vgvjvmvxv.v.v.v.
-	defb 076h,083h,076h,083h,076h,08eh,076h,08eh,076h,0cbh,076h,0cbh,076h,0cbh,076h,0cbh	; 76e1  v.v.v.v.v.v.v.v.
-	defb 076h,099h,076h,099h,076h,0a0h,076h,0a0h,076h,0b9h,076h,0b9h,076h,0a7h,076h,0a7h	; 76f1  v.v.v.v.v.v.v.v.
-	defb 076h,0a7h,076h,0a7h,076h,0a7h,076h,0a7h,076h,0b0h,076h,0c2h,076h,002h,003h,004h	; 7701  v.v.v.v.v.v.v...
-	defb 0e1h,00dh,0dch,001h,0dah,080h,002h,003h,004h,0e0h,00dh,0dbh,001h,0dah,080h,002h	; 7711  ................
-	defb 003h,006h,0e1h,00bh,0dch,001h,0dah,080h,002h,003h,006h,0e0h,00bh,0dbh,001h,0dah	; 7721  ................
-	defb 080h,002h,003h,006h,0e1h,004h,0dch,007h,0ddh,001h,0dah,080h,002h,003h,003h,0e0h	; 7731  ................
-	defb 001h,0d8h,00dh,0dbh,001h,0dah,080h,002h,003h,003h,0e1h,001h,001h,006h,0dch,007h	; 7741  ................
-	defb 0ddh,001h,0dah,080h,002h,003h,003h,0e0h,001h,0d9h,00dh,0dbh,001h,0dah,080h,002h	; 7751  ................
-	defb 003h,004h,0e1h,006h,0dch,007h,0ddh,001h,0dah,080h,007h,003h,001h,0dfh,004h,0dch	; 7761  ................
-	defb 004h,0ddh,001h,0deh,002h,0ddh,001h,0dah,080h,007h,003h,001h,0dfh,00bh,0dch,001h	; 7771  ................
-	defb 0dah,080h,006h,003h,00dh,0dch,001h,0dah,080h,00eh,077h,017h,077h,00eh,077h,017h	; 7781  ..........w.w.w.
-	defb 077h,00eh,077h,029h,077h,020h,077h,029h,077h,020h,077h,029h,077h,032h,077h,03dh	; 7791  w.w)w w)w w)w2w=
-	defb 077h,048h,077h,055h,077h,048h,077h,017h,077h,060h,077h,029h,077h,060h,077h,029h	; 77a1  wHwUwHw.w`w)w`w)
-	defb 077h,06bh,077h,029h,077h,07ah,077h,03dh,077h,083h,077h,055h,077h,083h,077h,017h	; 77b1  wkw)wzw=w.wUw.w.
-	defb 077h,083h,077h,029h,077h,07ah,077h,029h,077h	; 77c1  w.w)wzw)w
+	defb 080h,001h,0ceh,008h,003h,001h,0ceh,00ah,003h,080h,014h,003h,080h	; 76c1  .............
+
+; ----------------------------------------------------------------------
+; DATOS tabla_de_columnas_A: 32 punteros, uno por columna de la pantalla;
+;   0x73E7 lo mete en (0xE250) y 0x7629 lo va gastando de dos en dos
+;   0x76ce..0x770e  (64 bytes)
+DATA_tabla_de_columnas_A:
+	defb 061h,076h,064h,076h,067h,076h,06ah,076h,06dh,076h,078h,076h,083h,076h,083h,076h	; 76ce  avdvgvjvmvxv.v.v
+	defb 083h,076h,083h,076h,083h,076h,083h,076h,08eh,076h,08eh,076h,0cbh,076h,0cbh,076h	; 76de  .v.v.v.v.v.v.v.v
+	defb 0cbh,076h,0cbh,076h,099h,076h,099h,076h,0a0h,076h,0a0h,076h,0b9h,076h,0b9h,076h	; 76ee  .v.v.v.v.v.v.v.v
+	defb 0a7h,076h,0a7h,076h,0a7h,076h,0a7h,076h,0a7h,076h,0a7h,076h,0b0h,076h,0c2h,076h	; 76fe  .v.v.v.v.v.v.v.v
+
+; ----------------------------------------------------------------------
+; DATOS columnas_del_decorado_B: doce columnas, mismo lenguaje y las doce de
+;   veinte celdas
+;   0x770e..0x778a  (124 bytes)
+DATA_columnas_del_decorado_B:
+	defb 002h,003h,004h,0e1h,00dh,0dch,001h,0dah,080h,002h,003h,004h,0e0h,00dh,0dbh,001h	; 770e  ................
+	defb 0dah,080h,002h,003h,006h,0e1h,00bh,0dch,001h,0dah,080h,002h,003h,006h,0e0h,00bh	; 771e  ................
+	defb 0dbh,001h,0dah,080h,002h,003h,006h,0e1h,004h,0dch,007h,0ddh,001h,0dah,080h,002h	; 772e  ................
+	defb 003h,003h,0e0h,001h,0d8h,00dh,0dbh,001h,0dah,080h,002h,003h,003h,0e1h,001h,001h	; 773e  ................
+	defb 006h,0dch,007h,0ddh,001h,0dah,080h,002h,003h,003h,0e0h,001h,0d9h,00dh,0dbh,001h	; 774e  ................
+	defb 0dah,080h,002h,003h,004h,0e1h,006h,0dch,007h,0ddh,001h,0dah,080h,007h,003h,001h	; 775e  ................
+	defb 0dfh,004h,0dch,004h,0ddh,001h,0deh,002h,0ddh,001h,0dah,080h,007h,003h,001h,0dfh	; 776e  ................
+	defb 00bh,0dch,001h,0dah,080h,006h,003h,00dh,0dch,001h,0dah,080h	; 777e  ............
+
+; ----------------------------------------------------------------------
+; DATOS tabla_de_columnas_B: los otros 32 punteros; 0x73EC cambia a este
+;   decorado al llegar a la novena tanda
+;   0x778a..0x77ca  (64 bytes)
+DATA_tabla_de_columnas_B:
+	defb 00eh,077h,017h,077h,00eh,077h,017h,077h,00eh,077h,029h,077h,020h,077h,029h,077h	; 778a  .w.w.w.w.w)w w)w
+	defb 020h,077h,029h,077h,032h,077h,03dh,077h,048h,077h,055h,077h,048h,077h,017h,077h	; 779a   w)w2w=wHwUwHw.w
+	defb 060h,077h,029h,077h,060h,077h,029h,077h,06bh,077h,029h,077h,07ah,077h,03dh,077h	; 77aa  `w)w`w)wkw)wzw=w
+	defb 083h,077h,055h,077h,083h,077h,017h,077h,083h,077h,029h,077h,07ah,077h,029h,077h	; 77ba  .wUw.w.w.w)wzw)w
 
 ; ======================================================================
 ; CODIGO 0x77ca..0x79de  (532 bytes)
@@ -6358,12 +6555,14 @@ cobra_el_objeto:
 	jp pide_un_sonido		;79db
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x79de..0x79ee  (16 bytes)
-DATA_79DE:
+; DATOS premios: ocho parejas; 0x79C2 indexa con el tipo por dos y saca el
+;   patron del premio y los puntos que da
+;   0x79de..0x79ee  (16 bytes)
+DATA_premios:
 	defb 060h,001h,064h,002h,06ch,004h,080h,006h,068h,005h,08ch,010h,088h,020h,084h,030h	; 79de  `.d.l...h.... .0
 
 ; ======================================================================
-; CODIGO 0x79ee..0x7a3c  (78 bytes)
+; CODIGO 0x79ee..0x7b14  (294 bytes)
 ; ======================================================================
 
 
@@ -6406,29 +6605,21 @@ reparte_el_sonido:
 	cp 08ch		;7a21   ; por debajo de 0x8C: efecto
 	jr c,L_7A2C		;7a23
 	cp 090h		;7a25   ; de 0x8C a 0x8F
-	jr c,$+29		;7a27
+	jr c,compara_prioridades		;7a27
 	inc b			;7a29   ; y de 0x90 en adelante, una voz mas
-	jr $+26		;7a2a
+	jr compara_prioridades		;7a2a
 L_7A2C:
 	dec b			;7a2c
 	and 03fh		;7a2d   ; seis bits
 	cp 009h		;7a2f   ; los sonidos 9 y 10 tienen su hueco
-	jr z,$+19		;7a31
+	jr z,compara_prioridades		;7a31
 	cp 00ah		;7a33
-	jr z,$+12		;7a35
+	jr z,L_7A41		;7a35
 	ld hl,0e028h		;7a37
-	jr $+10		;7a3a
-
-; ----------------------------------------------------------------------
-; DATOS sin identificar  0x7a3c..0x7a41  (5 bytes)
-DATA_7A3C:
-	defb 021h,012h,0e0h,018h,003h	; 7a3c
-
-; ======================================================================
-; CODIGO 0x7a41..0x7b14  (211 bytes)
-; ======================================================================
-
-
+	jr compara_prioridades		;7a3a
+L_7A3C:
+	ld hl,0e012h		;7a3c
+	jr compara_prioridades		;7a3f
 L_7A41:
 	ld hl,0e01dh		;7a41
 compara_prioridades:
@@ -6587,12 +6778,14 @@ L_7B07:
 	jr L_7AFF		;7b12
 
 ; ----------------------------------------------------------------------
-; DATOS sin identificar  0x7b14..0x7b18  (4 bytes)
-DATA_7B14:
+; DATOS arranque_de_la_voz: los cuatro bytes que 0x7B07 copia HACIA ATRAS con
+;   `lddr` desde 0x7B17 a 0xE032..0xE035
+;   0x7b14..0x7b18  (4 bytes)
+DATA_arranque_de_la_voz:
 	defb 001h,021h,0b0h,040h	; 7b14
 
 ; ======================================================================
-; CODIGO 0x7b18..0x7bda  (194 bytes)
+; CODIGO 0x7b18..0x7c4e  (310 bytes)
 ; ======================================================================
 
 
@@ -6709,17 +6902,8 @@ L_7BD2:
 	add a,088h		;7bd4
 	ld e,h			;7bd6
 	jp 00093h		;7bd7   ; BIOS WRTPSG - Writes data to PSG-register
-
-; ----------------------------------------------------------------------
-; DATOS sin identificar  0x7bda..0x7bdb  (1 bytes)
-DATA_7BDA:
-	defb 0c9h	; 7bda
-
-; ======================================================================
-; CODIGO 0x7bdb..0x7c4e  (115 bytes)
-; ======================================================================
-
-
+L_7BDA:
+	ret			;7bda
 L_7BDB:
 	and 0f0h		;7bdb   ; el nibble alto
 	cp 0d0h		;7bdd   ; 0xDn: el paso del arpegio

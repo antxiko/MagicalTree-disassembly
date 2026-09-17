@@ -2255,3 +2255,94 @@ L 0x7c42 escribe_la_nota
 # COMENTARIOS DE LINEA
 # ======================================================================
 L 0x7b92 fija_la_duracion_de_la_nota
+
+# ======================================================================
+# EL PRESUPUESTO: LOS RANGOS QUE FALTABAN
+# ======================================================================
+# Cada uno lleva escrito de donde sale su borde. Ninguno esta puesto "a ojo":
+# o lo carga una instruccion con su cuenta al lado, o la estructura encaja
+# clavada con el rango siguiente.
+
+D 0x44ff 0x4507 registros_del_vdp  los ocho valores que 0x44EE baja al VDP con `ld hl,044ffh / ld d,008h / WRTVDP` subiendo C de 0 a 7: 0x02 0xE2 0x0E 0x7F 0x07 0x76 0x03 0xE1
+D 0x45b4 0x45b8 modos_de_juego  cuatro bytes, uno por opcion del menu; 0x4586 los indexa con la opcion de (0xE042) y deja el elegido en (0xE002). Son 0x40 0x60 0x50 0x70: el bit 6 va siempre puesto y los que distinguen las cuatro opciones son el 5 y el 4
+D 0x45b8 0x4710 fuente  43 dibujos de 8x8 que 0x448E vuelca a la tabla de patrones. El reparto sale de la propia ROM: si el primero es el tile 0x30, los diez digitos ocupan 0x30..0x39, la (c) el 0x3A, cinco dibujos sueltos el 0x3B..0x3F, una raya el 0x40 y las 26 letras el 0x41..0x5A, o sea que cada letra cae en SU codigo ASCII. Por eso los rotulos guardan el texto en claro: "CASTLE" esta escrito tal cual en 0x75B0
+D 0x47a4 0x47bc guion_0x47A4  24 bytes, 2 tramos, 18 bytes a la VRAM (0x396B y 0x392C); lo pinta 0x41A5. El interprete de rotulos lo consume entero y se para en el borde
+D 0x4a50 0x4d30 trozos_del_decorado  los 25 trozos que la tabla de 0x4D30 apunta, cada uno una tira de parejas de patrones. No hay que estimar donde acaba ninguno: el principio de cada trozo mas dos veces su cuenta cae CLAVADO en el principio de otro, y entre todos cubren el bloque hasta 0x4D2E; los dos ultimos bytes (0xFF 0x00) cierran la tira
+D 0x4d30 0x4d7b tabla_de_trozos  25 entradas de tres bytes -puntero y numero de parejas- que 0x52E9 indexa con `add a,a / add a,l` (por tres). Son 25 y no mas porque la entrada 26 daria el puntero 0x0617, que no es ROM
+D 0x4d7b 0x4e1b guiones_de_decorado  nueve tiras de numeros de trozo, una por fase. Cada una acaba con el valor 0x16, que es el corte que mira 0x52E1; las nueve seguidas suman los 160 bytes justos que hay hasta la tabla de abajo
+D 0x4e1b 0x4e2f tabla_de_decorados  diez punteros a los guiones de arriba, indexados por el numero de fase de (0xE05C) en 0x52CF. El decimo repite el primero (0x4D7B), o sea que a partir de la fase 10 se vuelve al decorado de la primera
+D 0x5394 0x5398 plantilla_de_sprite  los cuatro bytes que 0x5346 copia CUATRO veces a 0xE0B0: el `pop hl` de 0x5356 devuelve HL a 0x5394 en cada vuelta, asi que las cuatro copias salen de aqui
+D 0x5398 0x539d valores_del_jugador  los cinco bytes que 0x5338 lleva de un `ldir` a 0xE1B3
+D 0x539d 0x53a2 patrones_de_los_cinco_sprites  un byte por sprite; 0x532A los reparte por el bufer de 0xE0D3 saltando de cuatro en cuatro, que es lo que ocupa cada sprite
+D 0x61de 0x61e4 sonidos_por_tipo  seis bytes, uno por tipo de objeto; 0x627B resta 0xC5 al tipo y 0x627D indexa aqui
+D 0x6571 0x6584 guion_0x6571  19 bytes, 1 tramo, 16 bytes a la VRAM (0x08FE); lo consume el interprete de rotulos y cierra en el borde
+D 0x65ff 0x6637 tabla_de_poses  catorce poses de cuatro bytes; 0x65AB entra aqui con el paso multiplicado por cuatro (`add a,a / add a,a`)
+D 0x6637 0x6638 byte_suelto_entre_las_dos_tablas  un byte (0xE8) que sobra entre la pose 13, que acaba aqui, y la tabla de 0x6638, que 0x65E0 nombra por su direccion
+D 0x6638 0x664c otra_tabla_de_poses  cuatro poses de CINCO bytes; 0x65DD multiplica el paso por cinco (`add a,a / add a,a / add a,(hl)`) y 0x65E0 la carga. Las cuatro empiezan por 0x04 0x00 y los veinte bytes cierran justo donde empieza mete_dos_sprites
+D 0x6a42 0x6a4f guion_0x6A42  13 bytes, 1 tramo, 10 bytes a la VRAM (0x010A); lo pinta 0x6A2C
+D 0x6bbb 0x6bbf patrones_del_parpadeo  los cuatro patrones que 0x6B84 elige con dos bits del contador: 0x00 0x04 0x0F 0x0C
+D 0x6fab 0x6fb7 doce_celdas_en_blanco  doce bytes, todos 0x03 -el patron vacio-; 0x6FA5 los pasa como "tabla de patrones" para borrar la pieza
+D 0x71ff 0x7203 definicion_del_bicho  los cuatro bytes que 0x71F3 copia con `ld bc,00004h / ldir` al hueco que le da hueco_del_bicho
+D 0x741f 0x7427 ocho_variantes_de_tanda  ocho bytes que 0x73F9 indexa con tres bits del contador de tandas y deja en (0xE05D)
+D 0x75a7 0x75da rotulo_castle  seis filas recortadas que 0x74B5 pinta con `ld bc,00608h` -B=6 filas-. La segunda fila lleva el texto "CASTLE" en claro, porque la fuente pone cada letra en su codigo ASCII
+D 0x75da 0x75ec seis_filas_de_tronco  seis filas iguales de tres bytes (0x08 0x03 0x00); se entra por 0x75DA, 0x75DD o mas abajo segun cuantas filas se quieran
+D 0x75ec 0x75ee pareja_para_bc  los dos bytes que 0x74BE carga de golpe con `ld bc,(075ech)`: C=0x03 y B=0x20
+D 0x75ee 0x7612 cuatro_bloques_de_3x3  36 bytes en cuatro bloques de tres filas de tres; 0x7478 pinta el par que empieza en 0x75EE y 0x74EA el que empieza en 0x7600
+D 0x7661 0x76ce columnas_del_decorado_A  quince columnas distintas, cada una una tira comprimida que acaba en 0x80. Las quince cierran clavadas: el interprete de 0x7629 saca de cada una VEINTE celdas, ni una mas ni una menos
+D 0x76ce 0x770e tabla_de_columnas_A  32 punteros, uno por columna de la pantalla; 0x73E7 lo mete en (0xE250) y 0x7629 lo va gastando de dos en dos
+D 0x770e 0x778a columnas_del_decorado_B  doce columnas, mismo lenguaje y las doce de veinte celdas
+D 0x778a 0x77ca tabla_de_columnas_B  los otros 32 punteros; 0x73EC cambia a este decorado al llegar a la novena tanda
+D 0x79de 0x79ee premios  ocho parejas; 0x79C2 indexa con el tipo por dos y saca el patron del premio y los puntos que da
+D 0x7b14 0x7b18 arranque_de_la_voz  los cuatro bytes que 0x7B07 copia HACIA ATRAS con `lddr` desde 0x7B17 a 0xE032..0xE035
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x405e borra_rotulo
+C 0x405e mascara 0x00: BORRA
+L 0x6afa apunta_el_objeto_en_la_lista_de_tres
+L 0x6b0d busca_en_la_lista_de_tres
+L 0x6b12 recorre_la_lista_de_tres
+L 0x6d7a apunta_el_objeto_en_la_lista_de_cinco
+L 0x6d8e busca_un_sprite_retirado
+L 0x6d9b da_de_alta_el_sprite_del_objeto
+L 0x6dc5 busca_en_la_lista_de_cinco
+L 0x6dc8 recorre_la_lista_de_cinco_desde_hl
+L 0x6dca recorre_la_lista_de_cinco
+B 0x6afa LA RUTINA QUE 0x6AC9 PASA EN DE, para los objetos de tipo 0x80 y 0x81. El recorrido de objetos no llama a una rutina fija: recibe su direccion en DE y la salta con `ex de,hl / jp (hl)` en 0x6AF8. Esta apunta el objeto en la lista de tres de 0xE21D si no estaba ya: primero lo busca, y si no aparece busca un hueco libre -un cero- y lo ocupa.
+B 0x6b0d LA BUSQUEDA EN LA LISTA DE TRES: recorre las tres entradas de 0xE21D saltando de tres en tres y vuelve con Z si alguna vale lo que trae A. Sirve para las dos preguntas, porque buscar un hueco libre es buscar un cero.
+B 0x6d7a LA RUTINA QUE 0x6D72 PASA EN DE, para los objetos de tipo 0x93. Misma forma que la de 0x6AFA pero contra la lista de CINCO de 0xE1F9, y ademas le da un sprite al objeto: busca uno retirado entre los 39 de 0xE135 y lo pone a su nombre.
+C 0x6afa el numero de objeto, que es lo que se apunta
+C 0x6afb ya estaba apuntado?
+C 0x6afe si estaba, no hay nada que hacer
+C 0x6aff y si no, se busca un hueco libre: un cero
+C 0x6b03 sin hueco, se deja como esta
+C 0x6b05 el hueco queda marcado
+C 0x6b08 con el numero de objeto
+C 0x6b0a y el plazo de 0x40
+C 0x6b0d la lista de tres
+C 0x6b10 tres entradas
+C 0x6b12 esta?
+C 0x6b14 tres bytes por entrada
+C 0x6d7a el numero de objeto
+C 0x6d7b ya estaba apuntado?
+C 0x6d7f y si no, un hueco libre
+C 0x6d84 la ficha del objeto, a IX
+C 0x6d88 los 39 sprites
+C 0x6d8e este esta retirado?
+C 0x6d8f 0xD0: retirado
+C 0x6d93 tres bytes por sprite
+C 0x6d99 sin sprite libre, se deja
+C 0x6d9b la otra columna de la lista
+C 0x6d9f esta ya cogida?
+C 0x6da4 el sprite queda a nombre del objeto
+C 0x6dab su hueco en el bufer
+C 0x6dae los tres bytes del sprite
+C 0x6db6 segun el tipo
+C 0x6db8 un patron y un color
+C 0x6dbd o los otros
+C 0x6dc5 la lista de cinco
+C 0x6dc8 cinco entradas
+C 0x6dca esta?
+C 0x6dcc tres bytes por entrada
