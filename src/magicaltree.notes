@@ -467,3 +467,245 @@ C 0x44ee los ocho registros del VDP
 C 0x44f1 ocho escrituras
 C 0x44f5 el valor
 C 0x44f6 WRTVDP: C lleva el numero de registro
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x4507 lee_el_mando
+B 0x4507 LEER EL MANDO. El bit 6 del registro 15 del PSG elige el puerto, y lo decide el bit 7 de (0xE002): cada jugador tiene el suyo. Los bits se invierten con `cpl` porque en el MSX un boton pulsado se lee como cero.
+C 0x4507 la seleccion de puerto
+C 0x450c el turno
+C 0x4510 el segundo jugador usa el otro puerto
+C 0x4512 registro 15 del PSG: el que elige el puerto
+C 0x4517 y el 14, que es donde se lee
+C 0x451e pulsado es cero, asi que se invierte
+C 0x451f seis bits: cuatro direcciones y dos botones
+L 0x4522 lee_los_mandos
+B 0x4522 LA LECTURA DE CADA CUADRO. Guarda lo de ahora en (0xE009) y lo de antes en (0xE008), que es lo que permite distinguir "esta pulsado" de "se acaba de pulsar". Con el bit 4 de (0xE002) se lee el TECLADO en vez del mando.
+C 0x4522 el mando
+C 0x4525 el bit 4: se juega con teclado
+C 0x452a la lectura de este cuadro
+C 0x452d la de antes se guarda al lado
+L 0x4532 lee_el_teclado
+B 0x4532 LEER EL TECLADO por filas del PPI, armando los mismos seis bits que devuelve el mando: asi todo lo de arriba funciona igual con palanca o con teclas.
+C 0x4532 una fila del teclado
+C 0x4537 pulsado es cero, se invierte
+C 0x453c y otra fila
+C 0x4545 las dos teclas de esta fila
+C 0x454d y las dos que quedan
+L 0x4557 atiende_el_menu
+B 0x4557 EL MENU DE SELECCION, que es el remate que 0x40A7 apila cuando el bit 6 de (0xE002) esta a cero. Junta las TRES entradas -los dos puertos de mando y el teclado- con un `or`, de modo que en el menu vale cualquiera, y se queda con el FLANCO (`xor c / and b`): cuenta el momento de pulsar, no que siga pulsado.
+C 0x4557 el primer puerto de mando
+C 0x455d y el segundo
+C 0x4562 se juntan
+C 0x4564 mas el teclado
+C 0x4568 lo de ahora en (0xE040)
+C 0x456c y lo de antes justo detras
+C 0x4570 los bits que han cambiado
+C 0x4571 y de esos, los que ahora estan pulsados: el flanco
+C 0x4572 nada nuevo, nada que hacer
+C 0x4576 se reinicia el plazo de la pantalla
+C 0x4579 solo la escena 5 responde al menu
+C 0x4582 de 0x10 para arriba son botones; por debajo, direcciones
+C 0x4586 los cuatro modos de juego
+C 0x4589 indexados por la opcion elegida
+C 0x4590 y el modo queda en (0xE002)
+C 0x4593 a la escena 8, la que arranca sin remate apilado
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x459e mueve_el_cursor
+B 0x459e MOVER EL CURSOR DEL MENU: arriba resta y abajo suma, y el `and 003h` del final hace que las cuatro opciones den la vuelta sin un solo `cp`.
+C 0x459f borra el cursor de donde estaba
+C 0x45a3 la opcion elegida
+C 0x45a7 el bit 0: arriba
+C 0x45aa una menos
+C 0x45ab el bit 1: abajo
+C 0x45ae una mas
+C 0x45b0 cuatro opciones, y da la vuelta sola
+B 0x45b4 LOS CUATRO MODOS DE JUEGO que el menu deja en (0xE002). El bit 6 va puesto siempre -es lo que le dice a 0x40A7 que ya no estamos en el menu-, el bit 5 significa DOS JUGADORES y el bit 4, TECLADO en vez de mando.
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x61a3 lee_las_dos_celdas_de_debajo
+B 0x61a3 LEER DE LA VRAM LAS DOS CELDAS QUE HAY BAJO EL JUGADOR, para saber sobre que esta. En vez de llevar un mapa en RAM, el cartucho PREGUNTA A LA PANTALLA: convierte la posicion en celda y se trae los dos indices de patron a 0xE1BF.
+C 0x61a3 la posicion del jugador
+C 0x61a6 desplazada a los pies
+C 0x61aa convertida en celda de pantalla
+C 0x61ad donde se guarda lo leido
+C 0x61b0 dos celdas
+C 0x61b2 y se leen de la propia VRAM
+C 0x61b7 la de abajo, 32 celdas mas alla
+L 0x61bf mira_si_agarra
+C 0x61c8 lo que se esta pulsando
+C 0x61cb el bit 0
+C 0x61d8 el valor 10 es el que cuenta
+L 0x61e4 mira_si_sube
+C 0x61ea lo que se esta pulsando
+C 0x61ed los dos bits de direccion
+L 0x61f7 busca_a_que_se_agarra
+B 0x61f7 EL BARRIDO DE LOS CUARENTA OBJETOS, tres bytes cada uno desde 0xE134. Para que uno cuente tiene que cumplir TRES cosas: que su tipo este entre 0xC5 y 0xCA, que no este marcado como retirado (0xD0), y que caiga dentro de la caja -0x18 en una coordenada y 0x10 en la otra-. El primero que cumple corta el bucle.
+C 0x61f5 cuarenta objetos
+C 0x61fa el tipo, desde 0xC5
+C 0x61fc seis tipos validos
+C 0x6203 0xD0: retirado, no cuenta
+C 0x6207 la posicion del jugador
+C 0x620c veinticuatro pixeles
+C 0x6212 ocho de desplazamiento
+C 0x6215 y dieciseis en la otra
+C 0x621b tres bytes por objeto
+L 0x6223 agarra_el_objeto
+B 0x6223 AGARRARSE A UN OBJETO. Lo marca como retirado poniendole 0xD0 y, si su tipo es de los tres primeros, descuenta uno de (0xE05F); si no, calcula su celda en pantalla para repintarlo.
+C 0x6228 lo apunta como agarrado
+C 0x622d 0xD0: retirado
+C 0x6234 los tres primeros tipos
+C 0x623e uno menos en el contador
+C 0x6244 la referencia del decorado
+C 0x624a la distancia
+C 0x624b redondeada a ocho
+C 0x624d tres giros: la celda
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+B 0x6251 BUSCAR EL OBJETO EN LA PANTALLA PARA BORRARLO. Recorre la VRAM de tres en tres celdas leyendo indices hasta dar con el que coincide, y entonces escribe el 0xCB encima. Otra vez la pantalla haciendo de mapa: el cartucho no lleva una copia en RAM.
+C 0x6251 la referencia
+C 0x6256 lee la celda de la VRAM
+C 0x625b la compara con lo que busca
+C 0x625e tres celdas mas alla
+C 0x626a el patron que deja el hueco vacio
+C 0x6273 y si es cero, se sigue buscando
+C 0x627b el tipo, desde 0xC5
+C 0x627d la lista de sonidos por tipo
+C 0x6284 y suena el que toque
+L 0x6287 sigue_el_cuadro_del_jugador
+C 0x628a mira si se cae
+C 0x628f y si hay suelo debajo
+C 0x6294 mira si agarra
+C 0x629f el bit 0 de lo que se pulsa
+C 0x62a2 la altura a la que se llego
+C 0x62a9 treinta y seis de margen
+L 0x62b0 pasa_al_estado_6
+C 0x62b0 el paso, a seis
+C 0x62b5 y estado 6
+L 0x62ba mira_la_celda_de_al_lado
+C 0x62ba la posicion del jugador
+C 0x62be ocho a un lado
+C 0x62c2 y cuatro al otro
+C 0x62c5 que hay ahi
+C 0x62c8 el patron 0x78
+C 0x62ca y los dos siguientes
+L 0x62cf estado_5_cayendo
+C 0x62d0 el bit 1
+C 0x62d6 estado 5
+L 0x62db estado_3
+C 0x62db el guion del jugador
+C 0x62e1 estado 3
+L 0x62e6 estado_4_con_sonido
+C 0x62ec el sonido de este estado
+C 0x62f1 estado 4
+L 0x62f6 rehace_la_pantalla
+C 0x62f9 el patron de partida
+C 0x62fe monta el decorado
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x630b estado_1
+C 0x630b mira el suelo
+C 0x6313 la bandera de 0xE1C7
+C 0x631c la posicion del jugador
+C 0x631f veinticuatro por debajo
+C 0x6328 el sonido de agarrarse
+C 0x632d el bit 7 de 0xE1C8
+C 0x6337 treinta y dos hacia arriba
+C 0x633f estado 2
+L 0x6344 compara_con_la_altura
+B 0x6344 COMPARAR CON LA ALTURA ALCANZADA, con dos restas encadenadas de 16 bits: la marca menos la altura del jugador menos 0x80. Si sale acarreo, todavia no ha llegado.
+C 0x6344 la marca
+C 0x6348 la altura del jugador
+C 0x634d y ochenta mas de margen
+C 0x6354 estado 4
+L 0x6359 mira_si_llego_al_suelo
+C 0x635c el suelo esta en 0x98
+C 0x635f si aun no ha llegado, nada
+C 0x6363 estado 0
+L 0x6368 sube_hasta_la_fila_48
+B 0x6368 SUBIR HASTA LA FILA 0x48, de ocho en ocho: es el tope por arriba de la pantalla de juego.
+C 0x636b el tope
+C 0x636e un tramo mas
+L 0x6373 se_engancha
+C 0x6376 el sonido de engancharse
+C 0x637f la posicion, redondeada a ocho
+C 0x6381 alineada
+C 0x6383 y descontando cuatro
+C 0x6387 el paso, a diez
+C 0x6389 estado 7
+L 0x638e mira_si_puede_bajar
+B 0x638e MIRAR SI PUEDE BAJAR. Tres condiciones: que el desfase de (0xE1BE) sea de al menos cinco, que la posicion este entre 0x48 y 0x50, y que el bit 0 de (0xE1AB) no este puesto.
+C 0x6391 el desfase, en positivo
+C 0x6393 al menos cinco
+C 0x6399 el tope de arriba
+C 0x639d ocho de margen
+C 0x63a3 el bit 0 lo impide
+C 0x63a6 y baja ocho
+L 0x63ac mira_si_puede_subir
+B 0x63ac LO MISMO PARA SUBIR: entre 0x88 y 0x90, y con el bit 1 de (0xE1AB) a cero. Sube de ocho en ocho, que es la altura de una celda.
+C 0x63b0 el tope de abajo
+C 0x63b3 ocho de margen
+C 0x63b9 el bit 1 lo impide
+C 0x63bd y sube ocho
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x63c3 estado_2_subiendo
+C 0x63c9 la posicion del jugador
+C 0x63cc mira si hay algo ahi
+C 0x63d4 se coloca
+C 0x63d7 el sonido
+C 0x63dc estado 5
+L 0x63e1 estado_0_en_el_suelo
+B 0x63e1 ESTADO 0: en el suelo. La lectura del mando se congela en (0xE1B7), el paso de la animacion sale del bit 2 de (0xE1B8) -8 o 9- y, si se pulsa algo, suena el 2. Cuando se pulsa un boton se dispara la subida en CUATRO tandas de 0xF8, o sea ocho pixeles hacia arriba cada una.
+C 0x63e1 lo que se pulsa
+C 0x63e4 congelado para el resto del cuadro
+C 0x63ed el contador de cuadros
+C 0x63f0 uno de cada dos
+C 0x63f7 los dos bits de direccion
+C 0x63fb el sonido de andar
+C 0x6403 el bit 2 elige el paso
+C 0x640f uno mas si se esta pulsando algo
+C 0x6411 y ese es el paso del dibujo
+C 0x6414 se acaba de pulsar boton?
+C 0x641b cuatro tandas
+C 0x641e ocho pixeles hacia arriba cada una
+C 0x642f estado 2
+C 0x6434 mira si agarra
+C 0x6447 estado 6
+C 0x644d se engancha
+C 0x6456 estado 3
+L 0x645b se_acaba_de_pulsar_boton
+B 0x645b EL FLANCO DEL BOTON: invierte la lectura ANTERIOR y la cruza con la de ahora, de modo que solo queda a uno el boton que estaba suelto y ahora esta pulsado. Mantener apretado no cuenta dos veces.
+C 0x645e lo de antes
+C 0x645f invertido
+C 0x6460 los dos botones
+C 0x6463 cruzado con lo de ahora: el flanco
+L 0x6465 hay_suelo_debajo
+B 0x6465 SI HAY SUELO DEBAJO, preguntandoselo a la PANTALLA: se leen de la VRAM las dos celdas de los pies y se comparan con el patron 0x9B.
+C 0x6465 las dos celdas de debajo
+C 0x6468 el patron del suelo
+C 0x646b una
+C 0x646e y la otra
+L 0x6470 baja_un_tramo
+C 0x6474 ocho pixeles hacia abajo
+C 0x6477 y se repinta
+L 0x6486 pasa_al_estado
+C 0x6486 el estado del jugador

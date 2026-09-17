@@ -68,7 +68,7 @@ gancho_de_interrupcion:
 	jr nz,L_4047		;4038
 	inc (hl)			;403a
 	ei			;403b   ; se abren las interrupciones ESTANDO dentro
-	call L_4522		;403c   ; lee los mandos y el teclado
+	call lee_los_mandos		;403c   ; lee los mandos y el teclado
 	call reparte_la_escena		;403f   ; y aqui se despacha la escena
 	di			;4042
 	xor a			;4043
@@ -967,53 +967,65 @@ DATA_44FF:
 ; ======================================================================
 
 
-L_4507:
-	ld e,08fh		;4507
+
+; ----------------------------------------------------------------------
+; LEER EL MANDO. El bit 6 del registro 15 del PSG elige el puerto, y lo decide el bit 7 de (0xE002): cada jugador tiene el suyo. Los bits se invierten con `cpl` porque en el MSX un boton pulsado se lee como cero.
+; ----------------------------------------------------------------------
+lee_el_mando:
+	ld e,08fh		;4507   ; la seleccion de puerto
 	ld hl,0e002h		;4509
-	bit 7,(hl)		;450c
+	bit 7,(hl)		;450c   ; el turno
 	jr z,L_4512		;450e
-	set 6,e		;4510
+	set 6,e		;4510   ; el segundo jugador usa el otro puerto
 L_4512:
-	ld a,00fh		;4512
+	ld a,00fh		;4512   ; registro 15 del PSG: el que elige el puerto
 	call 00093h		;4514   ; BIOS WRTPSG - Writes data to PSG-register
-	ld a,00eh		;4517
+	ld a,00eh		;4517   ; y el 14, que es donde se lee
 	di			;4519
 	call 00096h		;451a   ; BIOS RDPSG - Reads value from PSG-register
 	ei			;451d
-	cpl			;451e
-	and 03fh		;451f
+	cpl			;451e   ; pulsado es cero, asi que se invierte
+	and 03fh		;451f   ; seis bits: cuatro direcciones y dos botones
 	ret			;4521
-L_4522:
-	call L_4507		;4522
-	bit 4,(hl)		;4525
-	call nz,L_4532		;4527
-	ld hl,0e009h		;452a
-	ld c,(hl)			;452d
+
+; ----------------------------------------------------------------------
+; LA LECTURA DE CADA CUADRO. Guarda lo de ahora en (0xE009) y lo de antes en (0xE008), que es lo que permite distinguir "esta pulsado" de "se acaba de pulsar". Con el bit 4 de (0xE002) se lee el TECLADO en vez del mando.
+; ----------------------------------------------------------------------
+lee_los_mandos:
+	call lee_el_mando		;4522   ; el mando
+	bit 4,(hl)		;4525   ; el bit 4: se juega con teclado
+	call nz,lee_el_teclado		;4527
+	ld hl,0e009h		;452a   ; la lectura de este cuadro
+	ld c,(hl)			;452d   ; la de antes se guarda al lado
 	ld (hl),a			;452e
 	dec hl			;452f
 	ld (hl),c			;4530
 	ret			;4531
-L_4532:
-	ld a,007h		;4532
+
+; ----------------------------------------------------------------------
+; LEER EL TECLADO por filas del PPI, armando los mismos seis bits que devuelve el mando: asi todo lo de arriba funciona igual con palanca o con teclas.
+; ----------------------------------------------------------------------
+lee_el_teclado:
+	ld a,007h		;4532   ; una fila del teclado
 	call 00141h		;4534   ; BIOS SNSMAT - Returns the value of the specified line from the keyboard matrix
-	cpl			;4537
+	cpl			;4537   ; pulsado es cero, se invierte
 	rrca			;4538
 	and 020h		;4539
 	ld e,a			;453b
-	ld a,008h		;453c
+	ld a,008h		;453c   ; y otra fila
 	call 00141h		;453e   ; BIOS SNSMAT - Returns the value of the specified line from the keyboard matrix
 	cpl			;4541
 	rrca			;4542
 	rrca			;4543
 	ld b,a			;4544
-	and 004h		;4545
+	and 004h		;4545   ; las dos teclas de esta fila
 	or e			;4547
 	ld c,a			;4548
 	ld a,b			;4549
 	rrca			;454a
 	rrca			;454b
 	ld b,a			;454c
-	and 018h		;454d
+	and 018h		;454d   ; y las dos que quedan
 	or c			;454f
 	ld c,a			;4550
 	ld a,b			;4551
@@ -1021,67 +1033,79 @@ L_4532:
 	and 003h		;4553
 	or c			;4555
 	ret			;4556
-L_4557:
-	ld e,08fh		;4557
+
+; ----------------------------------------------------------------------
+; EL MENU DE SELECCION, que es el remate que 0x40A7 apila cuando el bit 6 de (0xE002) esta a cero. Junta las TRES entradas -los dos puertos de mando y el teclado- con un `or`, de modo que en el menu vale cualquiera, y se queda con el FLANCO (`xor c / and b`): cuenta el momento de pulsar, no que siga pulsado.
+; ----------------------------------------------------------------------
+atiende_el_menu:
+	ld e,08fh		;4557   ; el primer puerto de mando
 	call L_4512		;4559
 	ld d,a			;455c
-	ld e,0cfh		;455d
+	ld e,0cfh		;455d   ; y el segundo
 	call L_4512		;455f
-	or d			;4562
+	or d			;4562   ; se juntan
 	ld d,a			;4563
-	call L_4532		;4564
+	call lee_el_teclado		;4564   ; mas el teclado
 	or d			;4567
-	ld hl,0e040h		;4568
+	ld hl,0e040h		;4568   ; lo de ahora en (0xE040)
 	ld c,(hl)			;456b
-	ld (hl),a			;456c
+	ld (hl),a			;456c   ; y lo de antes justo detras
 	inc hl			;456d
 	ld (hl),c			;456e
 	ld b,a			;456f
-	xor c			;4570
-	and b			;4571
-	ret z			;4572
+	xor c			;4570   ; los bits que han cambiado
+	and b			;4571   ; y de esos, los que ahora estan pulsados: el flanco
+	ret z			;4572   ; nada nuevo, nada que hacer
 	ld b,a			;4573
 	ld a,000h		;4574
-	ld (0e004h),a		;4576
-	ld a,005h		;4579
+	ld (0e004h),a		;4576   ; se reinicia el plazo de la pantalla
+	ld a,005h		;4579   ; solo la escena 5 responde al menu
 	ld hl,0e000h		;457b
 	cp (hl)			;457e
 	jr nz,L_459A		;457f
 	ld a,b			;4581
-	cp 010h		;4582
-	jr c,L_459E		;4584
-	ld hl,045b4h		;4586
-	ld a,(0e042h)		;4589
+	cp 010h		;4582   ; de 0x10 para arriba son botones; por debajo, direcciones
+	jr c,mueve_el_cursor		;4584
+	ld hl,045b4h		;4586   ; los cuatro modos de juego
+	ld a,(0e042h)		;4589   ; indexados por la opcion elegida
 	call suma_a_a_hl		;458c
 	ld a,(hl)			;458f
-	ld (0e002h),a		;4590
-	ld hl,00008h		;4593
+	ld (0e002h),a		;4590   ; y el modo queda en (0xE002)
+	ld hl,00008h		;4593   ; a la escena 8, la que arranca sin remate apilado
 	ld (0e000h),hl		;4596
 	ret			;4599
 L_459A:
 	ld (hl),a			;459a
 	jp L_421E		;459b
-L_459E:
+
+; ----------------------------------------------------------------------
+; MOVER EL CURSOR DEL MENU: arriba resta y abajo suma, y el `and 003h` del final hace que las cuatro opciones den la vuelta sin un solo `cp`.
+; ----------------------------------------------------------------------
+mueve_el_cursor:
 	push bc			;459e
-	call L_4289		;459f
+	call L_4289		;459f   ; borra el cursor de donde estaba
 	pop af			;45a2
-	ld hl,0e042h		;45a3
+	ld hl,0e042h		;45a3   ; la opcion elegida
 	ld b,(hl)			;45a6
-	rra			;45a7
+	rra			;45a7   ; el bit 0: arriba
 	jr nc,L_45AB		;45a8
-	dec b			;45aa
+	dec b			;45aa   ; una menos
 L_45AB:
-	rra			;45ab
+	rra			;45ab   ; el bit 1: abajo
 	jr nc,L_45AF		;45ac
-	inc b			;45ae
+	inc b			;45ae   ; una mas
 L_45AF:
 	ld a,b			;45af
-	and 003h		;45b0
+	and 003h		;45b0   ; cuatro opciones, y da la vuelta sola
 	ld (hl),a			;45b2
 	ret			;45b3
 
 ; ----------------------------------------------------------------------
 ; DATOS sin identificar  0x45b4..0x4710  (348 bytes)
+
+; ----------------------------------------------------------------------
+; LOS CUATRO MODOS DE JUEGO que el menu deja en (0xE002). El bit 6 va puesto siempre -es lo que le dice a 0x40A7 que ya no estamos en el menu-, el bit 5 significa DOS JUGADORES y el bit 4, TECLADO en vez de mando.
+; ----------------------------------------------------------------------
 DATA_45B4:
 	defb 040h,060h,050h,070h,000h,01ch,022h,063h,063h,063h,022h,01ch,000h,018h,038h,018h	; 45b4  @`Pp.."ccc"...8.
 	defb 018h,018h,018h,07eh,000h,03eh,063h,003h,00eh,03ch,070h,07fh,000h,03eh,063h,003h	; 45c4  ...~.>c..<p..>c.
@@ -1627,7 +1651,7 @@ L_522F:
 	ld (0e001h),a		;523e
 	ret			;5241
 L_5242:
-	call L_61A3		;5242
+	call lee_las_dos_celdas_de_debajo		;5242
 	ld a,(0e1b2h)		;5245
 	cp 004h		;5248
 	ret z			;524a
@@ -2256,36 +2280,40 @@ DATA_tabla_617A:
 
 L_61A0:
 	jp L_6584		;61a0
-L_61A3:
-	ld hl,(0e1b3h)		;61a3
-	ld bc,00408h		;61a6
+
+; ----------------------------------------------------------------------
+; LEER DE LA VRAM LAS DOS CELDAS QUE HAY BAJO EL JUGADOR, para saber sobre que esta. En vez de llevar un mapa en RAM, el cartucho PREGUNTA A LA PANTALLA: convierte la posicion en celda y se trae los dos indices de patron a 0xE1BF.
+; ----------------------------------------------------------------------
+lee_las_dos_celdas_de_debajo:
+	ld hl,(0e1b3h)		;61a3   ; la posicion del jugador
+	ld bc,00408h		;61a6   ; desplazada a los pies
 	add hl,bc			;61a9
-	call L_4992		;61aa
-	ld hl,0e1bfh		;61ad
-	ld b,002h		;61b0
+	call L_4992		;61aa   ; convertida en celda de pantalla
+	ld hl,0e1bfh		;61ad   ; donde se guarda lo leido
+	ld b,002h		;61b0   ; dos celdas
 L_61B2:
-	call lee_de_vram		;61b2
+	call lee_de_vram		;61b2   ; y se leen de la propia VRAM
 	ld (hl),a			;61b5
 	inc hl			;61b6
-	ld a,020h		;61b7
+	ld a,020h		;61b7   ; la de abajo, 32 celdas mas alla
 	call suma_a_a_de		;61b9
 	djnz L_61B2		;61bc
 	ret			;61be
-L_61BF:
+mira_si_agarra:
 	call L_6490		;61bf
 	call L_64B7		;61c2
-	jp nz,L_62DB		;61c5
-	ld a,(0e009h)		;61c8
-	rra			;61cb
+	jp nz,estado_3		;61c5
+	ld a,(0e009h)		;61c8   ; lo que se esta pulsando
+	rra			;61cb   ; el bit 0
 	ret nc			;61cc
 	call L_6A03		;61cd
 	ret nc			;61d0
 	call L_69E7		;61d1
 	ret nc			;61d4
 	ld a,(0e1d1h)		;61d5
-	cp 00ah		;61d8
+	cp 00ah		;61d8   ; el valor 10 es el que cuenta
 	ret nz			;61da
-	jp L_62B0		;61db
+	jp pasa_al_estado_6		;61db
 
 ; ----------------------------------------------------------------------
 ; DATOS sin identificar  0x61de..0x61e4  (6 bytes)
@@ -2297,88 +2325,100 @@ DATA_61DE:
 ; ======================================================================
 
 
-L_61E4:
+mira_si_sube:
 	call L_66AF		;61e4
-	jp nc,L_62E6		;61e7
-	ld a,(0e009h)		;61ea
-	and 00ch		;61ed
-	jp z,L_6287		;61ef
+	jp nc,estado_4_con_sonido		;61e7
+	ld a,(0e009h)		;61ea   ; lo que se esta pulsando
+	and 00ch		;61ed   ; los dos bits de direccion
+	jp z,sigue_el_cuadro_del_jugador		;61ef
 	ld hl,0e134h		;61f2
-	ld b,028h		;61f5
-L_61F7:
+	ld b,028h		;61f5   ; cuarenta objetos
+
+; ----------------------------------------------------------------------
+; EL BARRIDO DE LOS CUARENTA OBJETOS, tres bytes cada uno desde 0xE134. Para que uno cuente tiene que cumplir TRES cosas: que su tipo este entre 0xC5 y 0xCA, que no este marcado como retirado (0xD0), y que caiga dentro de la caja -0x18 en una coordenada y 0x10 en la otra-. El primero que cumple corta el bucle.
+; ----------------------------------------------------------------------
+busca_a_que_se_agarra:
 	push bc			;61f7
 	push hl			;61f8
 	ld a,(hl)			;61f9
-	sub 0c5h		;61fa
-	cp 006h		;61fc
+	sub 0c5h		;61fa   ; el tipo, desde 0xC5
+	cp 006h		;61fc   ; seis tipos validos
 	jr nc,L_6219		;61fe
 	dec hl			;6200
 	dec hl			;6201
 	ld a,(hl)			;6202
-	cp 0d0h		;6203
+	cp 0d0h		;6203   ; 0xD0: retirado, no cuenta
 	jr z,L_6219		;6205
-	ld bc,(0e1b3h)		;6207
+	ld bc,(0e1b3h)		;6207   ; la posicion del jugador
 	sub c			;620b
-	cp 018h		;620c
+	cp 018h		;620c   ; veinticuatro pixeles
 	jr nc,L_6219		;620e
 	inc hl			;6210
 	ld a,(hl)			;6211
-	add a,008h		;6212
+	add a,008h		;6212   ; ocho de desplazamiento
 	sub b			;6214
-	cp 010h		;6215
-	jr c,L_6223		;6217
+	cp 010h		;6215   ; y dieciseis en la otra
+	jr c,agarra_el_objeto		;6217
 L_6219:
 	pop hl			;6219
 	pop bc			;621a
-	inc hl			;621b
+	inc hl			;621b   ; tres bytes por objeto
 	inc hl			;621c
 	inc hl			;621d
-	djnz L_61F7		;621e
-	jp L_6287		;6220
-L_6223:
+	djnz busca_a_que_se_agarra		;621e
+	jp sigue_el_cuadro_del_jugador		;6220
+
+; ----------------------------------------------------------------------
+; AGARRARSE A UN OBJETO. Lo marca como retirado poniendole 0xD0 y, si su tipo es de los tres primeros, descuenta uno de (0xE05F); si no, calcula su celda en pantalla para repintarlo.
+; ----------------------------------------------------------------------
+agarra_el_objeto:
 	pop hl			;6223
 	pop bc			;6224
 	dec hl			;6225
 	dec hl			;6226
 	push hl			;6227
-	call L_6FA2		;6228
+	call L_6FA2		;6228   ; lo apunta como agarrado
 	pop hl			;622b
 	ld c,(hl)			;622c
-	ld (hl),0d0h		;622d
+	ld (hl),0d0h		;622d   ; 0xD0: retirado
 	inc hl			;622f
 	ld b,(hl)			;6230
 	inc hl			;6231
 	ld a,(hl)			;6232
 	ld d,a			;6233
-	sub 0c5h		;6234
+	sub 0c5h		;6234   ; los tres primeros tipos
 	cp 003h		;6236
 	ld a,d			;6238
 	jr nc,L_6241		;6239
 	ld hl,0e05fh		;623b
-	dec (hl)			;623e
+	dec (hl)			;623e   ; uno menos en el contador
 	jr L_627B		;623f
 L_6241:
 	push af			;6241
 	push bc			;6242
 	ld b,a			;6243
-	ld de,(0e05ah)		;6244
+	ld de,(0e05ah)		;6244   ; la referencia del decorado
 	ld a,0b8h		;6248
-	sub c			;624a
-	and 0f8h		;624b
-	rrca			;624d
+	sub c			;624a   ; la distancia
+	and 0f8h		;624b   ; redondeada a ocho
+	rrca			;624d   ; tres giros: la celda
 	rrca			;624e
 	rrca			;624f
 	ld c,a			;6250
-	ld a,(0e059h)		;6251
+
+; ----------------------------------------------------------------------
+; BUSCAR EL OBJETO EN LA PANTALLA PARA BORRARLO. Recorre la VRAM de tres en tres celdas leyendo indices hasta dar con el que coincide, y entonces escribe el 0xCB encima. Otra vez la pantalla haciendo de mapa: el cartucho no lleva una copia en RAM.
+; ----------------------------------------------------------------------
+	ld a,(0e059h)		;6251   ; la referencia
 	add a,c			;6254
 L_6255:
 	ex af,af'			;6255
-	call lee_de_vram		;6256
+	call lee_de_vram		;6256   ; lee la celda de la VRAM
 	ld c,a			;6259
 	ex af,af'			;625a
-	sub c			;625b
+	sub c			;625b   ; la compara con lo que busca
 	jr z,L_6263		;625c
-	inc de			;625e
+	inc de			;625e   ; tres celdas mas alla
 	inc de			;625f
 	inc de			;6260
 	jr L_6255		;6261
@@ -2387,245 +2427,265 @@ L_6263:
 	call lee_de_vram		;6264
 	cp b			;6267
 	jr nz,L_6271		;6268
-	ld a,0cbh		;626a
+	ld a,0cbh		;626a   ; el patron que deja el hueco vacio
 	call escribe_en_vram		;626c
 	jr L_6279		;626f
 L_6271:
 	inc de			;6271
 	inc de			;6272
-	call lee_de_vram		;6273
+	call lee_de_vram		;6273   ; y si es cero, se sigue buscando
 	or a			;6276
 	jr z,L_6263		;6277
 L_6279:
 	pop bc			;6279
 	pop af			;627a
 L_627B:
-	sub 0c5h		;627b
-	ld hl,061deh		;627d
+	sub 0c5h		;627b   ; el tipo, desde 0xC5
+	ld hl,061deh		;627d   ; la lista de sonidos por tipo
 	call suma_a_a_hl		;6280
 	ld a,(hl)			;6283
-	call L_79A4		;6284
-L_6287:
+	call L_79A4		;6284   ; y suena el que toque
+sigue_el_cuadro_del_jugador:
 	call L_6490		;6287
-	call L_64B7		;628a
-	jr nz,L_62DB		;628d
-	call L_645B		;628f
+	call L_64B7		;628a   ; mira si se cae
+	jr nz,estado_3		;628d
+	call se_acaba_de_pulsar_boton		;628f   ; y si hay suelo debajo
 	ret z			;6292
 	push af			;6293
-	call L_6A03		;6294
-	jr nc,L_62CF		;6297
+	call L_6A03		;6294   ; mira si agarra
+	jr nc,estado_5_cayendo		;6297
 	call L_69E7		;6299
-	jr nc,L_62CF		;629c
+	jr nc,estado_5_cayendo		;629c
 	pop af			;629e
-	rra			;629f
-	jr c,L_62BA		;62a0
-	ld a,(0e1d9h)		;62a2
+	rra			;629f   ; el bit 0 de lo que se pulsa
+	jr c,mira_la_celda_de_al_lado		;62a0
+	ld a,(0e1d9h)		;62a2   ; la altura a la que se llego
 	ld hl,0e1b3h		;62a5
 	sub (hl)			;62a8
-	cp 024h		;62a9
+	cp 024h		;62a9   ; treinta y seis de margen
 	jr nc,L_62D3		;62ab
-	call L_62F6		;62ad
-L_62B0:
-	ld a,006h		;62b0
+	call rehace_la_pantalla		;62ad
+pasa_al_estado_6:
+	ld a,006h		;62b0   ; el paso, a seis
 	ld (0e1b5h),a		;62b2
-	ld a,006h		;62b5
-	jp L_6486		;62b7
-L_62BA:
-	ld hl,(0e1b3h)		;62ba
+	ld a,006h		;62b5   ; y estado 6
+	jp pasa_al_estado		;62b7
+mira_la_celda_de_al_lado:
+	ld hl,(0e1b3h)		;62ba   ; la posicion del jugador
 	ld a,l			;62bd
-	sub 008h		;62be
+	sub 008h		;62be   ; ocho a un lado
 	ld l,a			;62c0
 	ld a,h			;62c1
-	add a,004h		;62c2
+	add a,004h		;62c2   ; y cuatro al otro
 	ld h,a			;62c4
-	call L_498C		;62c5
-	sub 078h		;62c8
-	cp 003h		;62ca
-	jr c,L_62B0		;62cc
+	call L_498C		;62c5   ; que hay ahi
+	sub 078h		;62c8   ; el patron 0x78
+	cp 003h		;62ca   ; y los dos siguientes
+	jr c,pasa_al_estado_6		;62cc
 	ret			;62ce
-L_62CF:
+estado_5_cayendo:
 	pop af			;62cf
-	bit 1,a		;62d0
+	bit 1,a		;62d0   ; el bit 1
 	ret z			;62d2
 L_62D3:
-	call L_62F6		;62d3
-	ld a,005h		;62d6
-	jp L_6486		;62d8
-L_62DB:
-	ld hl,06572h		;62db
+	call rehace_la_pantalla		;62d3
+	ld a,005h		;62d6   ; estado 5
+	jp pasa_al_estado		;62d8
+estado_3:
+	ld hl,06572h		;62db   ; el guion del jugador
 L_62DE:
 	call L_654E		;62de
-	ld a,003h		;62e1
-	jp L_6486		;62e3
-L_62E6:
+	ld a,003h		;62e1   ; estado 3
+	jp pasa_al_estado		;62e3
+estado_4_con_sonido:
 	ld hl,06572h		;62e6
 	call L_6558		;62e9
-	ld a,005h		;62ec
+	ld a,005h		;62ec   ; el sonido de este estado
 	call L_7A13		;62ee
-	ld a,004h		;62f1
-	jp L_6486		;62f3
-L_62F6:
+	ld a,004h		;62f1   ; estado 4
+	jp pasa_al_estado		;62f3
+rehace_la_pantalla:
 	ld b,004h		;62f6
 L_62F8:
 	push bc			;62f8
-	ld a,008h		;62f9
+	ld a,008h		;62f9   ; el patron de partida
 	call L_670A		;62fb
-	call L_6584		;62fe
+	call L_6584		;62fe   ; monta el decorado
 	call L_52A2		;6301
-	call L_63AC		;6304
+	call mira_si_puede_subir		;6304
 	pop bc			;6307
 	djnz L_62F8		;6308
 	ret			;630a
-L_630B:
-	call L_64C1		;630b
-	call L_6465		;630e
-	jr z,L_6373		;6311
-	ld a,(0e1c7h)		;6313
+estado_1:
+	call L_64C1		;630b   ; mira el suelo
+	call hay_suelo_debajo		;630e
+	jr z,se_engancha		;6311
+	ld a,(0e1c7h)		;6313   ; la bandera de 0xE1C7
 	or a			;6316
-	jr z,L_638E		;6317
-	call L_63AC		;6319
-	ld hl,(0e1b3h)		;631c
-	ld bc,00018h		;631f
+	jr z,mira_si_puede_bajar		;6317
+	call mira_si_puede_subir		;6319
+	ld hl,(0e1b3h)		;631c   ; la posicion del jugador
+	ld bc,00018h		;631f   ; veinticuatro por debajo
 	add hl,bc			;6322
 	call L_6665		;6323
-	jr nc,L_6359		;6326
-	ld a,002h		;6328
+	jr nc,mira_si_llego_al_suelo		;6326
+	ld a,002h		;6328   ; el sonido de agarrarse
 	call L_7A13		;632a
-	ld a,(0e1c8h)		;632d
+	ld a,(0e1c8h)		;632d   ; el bit 7 de 0xE1C8
 	or a			;6330
-	jp m,L_6344		;6331
+	jp m,compara_con_la_altura		;6331
 L_6334:
 	ld a,(0e1cbh)		;6334
-	sub 020h		;6337
+	sub 020h		;6337   ; treinta y dos hacia arriba
 	call L_6706		;6339
-	call L_6368		;633c
-	ld a,002h		;633f
-	jp L_6486		;6341
-L_6344:
-	ld bc,(0e054h)		;6344
-	ld hl,(0e1bah)		;6348
+	call sube_hasta_la_fila_48		;633c
+	ld a,002h		;633f   ; estado 2
+	jp pasa_al_estado		;6341
+
+; ----------------------------------------------------------------------
+; COMPARAR CON LA ALTURA ALCANZADA, con dos restas encadenadas de 16 bits: la marca menos la altura del jugador menos 0x80. Si sale acarreo, todavia no ha llegado.
+; ----------------------------------------------------------------------
+compara_con_la_altura:
+	ld bc,(0e054h)		;6344   ; la marca
+	ld hl,(0e1bah)		;6348   ; la altura del jugador
 	sbc hl,bc		;634b
-	ld bc,00080h		;634d
+	ld bc,00080h		;634d   ; y ochenta mas de margen
 	sbc hl,bc		;6350
 	jr c,L_6334		;6352
-	ld a,004h		;6354
-	jp L_6486		;6356
-L_6359:
+	ld a,004h		;6354   ; estado 4
+	jp pasa_al_estado		;6356
+mira_si_llego_al_suelo:
 	ld hl,0e1b3h		;6359
-	ld a,098h		;635c
+	ld a,098h		;635c   ; el suelo esta en 0x98
 	sub (hl)			;635e
-	ret nc			;635f
+	ret nc			;635f   ; si aun no ha llegado, nada
 	call L_670A		;6360
-	ld a,000h		;6363
-	jp L_6486		;6365
-L_6368:
+	ld a,000h		;6363   ; estado 0
+	jp pasa_al_estado		;6365
+
+; ----------------------------------------------------------------------
+; SUBIR HASTA LA FILA 0x48, de ocho en ocho: es el tope por arriba de la pantalla de juego.
+; ----------------------------------------------------------------------
+sube_hasta_la_fila_48:
 	ld a,(0e1b3h)		;6368
-	cp 048h		;636b
+	cp 048h		;636b   ; el tope
 	ret nc			;636d
-	call L_6470		;636e
-	jr L_6368		;6371
-L_6373:
-	call L_6368		;6373
-	ld a,002h		;6376
+	call baja_un_tramo		;636e   ; un tramo mas
+	jr sube_hasta_la_fila_48		;6371
+se_engancha:
+	call sube_hasta_la_fila_48		;6373
+	ld a,002h		;6376   ; el sonido de engancharse
 	call L_7A13		;6378
 	ld hl,0e1b4h		;637b
 	ld a,(hl)			;637e
-	add a,004h		;637f
-	and 0f8h		;6381
-	sub 004h		;6383
+	add a,004h		;637f   ; la posicion, redondeada a ocho
+	and 0f8h		;6381   ; alineada
+	sub 004h		;6383   ; y descontando cuatro
 	ld (hl),a			;6385
 	inc hl			;6386
-	ld (hl),00ah		;6387
-	ld a,007h		;6389
-	jp L_6486		;638b
-L_638E:
+	ld (hl),00ah		;6387   ; el paso, a diez
+	ld a,007h		;6389   ; estado 7
+	jp pasa_al_estado		;638b
+
+; ----------------------------------------------------------------------
+; MIRAR SI PUEDE BAJAR. Tres condiciones: que el desfase de (0xE1BE) sea de al menos cinco, que la posicion este entre 0x48 y 0x50, y que el bit 0 de (0xE1AB) no este puesto.
+; ----------------------------------------------------------------------
+mira_si_puede_bajar:
 	ld a,(0e1beh)		;638e
-	neg		;6391
-	cp 005h		;6393
+	neg		;6391   ; el desfase, en positivo
+	cp 005h		;6393   ; al menos cinco
 	ret c			;6395
 L_6396:
 	ld hl,0e1b3h		;6396
-	ld a,048h		;6399
+	ld a,048h		;6399   ; el tope de arriba
 	sub (hl)			;639b
 	ret c			;639c
-	cp 008h		;639d
+	cp 008h		;639d   ; ocho de margen
 	ret c			;639f
 	ld a,(0e1abh)		;63a0
-	rra			;63a3
+	rra			;63a3   ; el bit 0 lo impide
 	ret c			;63a4
 	ld a,(hl)			;63a5
-	add a,008h		;63a6
+	add a,008h		;63a6   ; y baja ocho
 	ld (hl),a			;63a8
 	jp L_672E		;63a9
-L_63AC:
+
+; ----------------------------------------------------------------------
+; LO MISMO PARA SUBIR: entre 0x88 y 0x90, y con el bit 1 de (0xE1AB) a cero. Sube de ocho en ocho, que es la altura de una celda.
+; ----------------------------------------------------------------------
+mira_si_puede_subir:
 	ld hl,0e1b3h		;63ac
 	ld a,(hl)			;63af
-	sub 088h		;63b0
+	sub 088h		;63b0   ; el tope de abajo
 	ret c			;63b2
-	cp 008h		;63b3
+	cp 008h		;63b3   ; ocho de margen
 	ret c			;63b5
 	ld a,(0e1abh)		;63b6
-	bit 1,a		;63b9
+	bit 1,a		;63b9   ; el bit 1 lo impide
 	ret nz			;63bb
 	ld a,(hl)			;63bc
-	sub 008h		;63bd
+	sub 008h		;63bd   ; y sube ocho
 	ld (hl),a			;63bf
 	jp L_6732		;63c0
-L_63C3:
+estado_2_subiendo:
 	call L_64C5		;63c3
-	call L_63AC		;63c6
-	ld hl,(0e1b3h)		;63c9
-	call L_6665		;63cc
-	jr nc,L_6359		;63cf
+	call mira_si_puede_subir		;63c6
+	ld hl,(0e1b3h)		;63c9   ; la posicion del jugador
+	call L_6665		;63cc   ; mira si hay algo ahi
+	jr nc,mira_si_llego_al_suelo		;63cf
 	ld a,(0e1cbh)		;63d1
-	call L_6706		;63d4
-	ld a,006h		;63d7
+	call L_6706		;63d4   ; se coloca
+	ld a,006h		;63d7   ; el sonido
 	call L_7A13		;63d9
-	ld a,005h		;63dc
-	jp L_6486		;63de
-L_63E1:
-	ld a,(0e009h)		;63e1
-	ld (0e1b7h),a		;63e4
+	ld a,005h		;63dc   ; estado 5
+	jp pasa_al_estado		;63de
+
+; ----------------------------------------------------------------------
+; ESTADO 0: en el suelo. La lectura del mando se congela en (0xE1B7), el paso de la animacion sale del bit 2 de (0xE1B8) -8 o 9- y, si se pulsa algo, suena el 2. Cuando se pulsa un boton se dispara la subida en CUATRO tandas de 0xF8, o sea ocho pixeles hacia arriba cada una.
+; ----------------------------------------------------------------------
+estado_0_en_el_suelo:
+	ld a,(0e009h)		;63e1   ; lo que se pulsa
+	ld (0e1b7h),a		;63e4   ; congelado para el resto del cuadro
 	call L_66AF		;63e7
-	jp nc,L_62E6		;63ea
-	ld a,(0e003h)		;63ed
-	rra			;63f0
+	jp nc,estado_4_con_sonido		;63ea
+	ld a,(0e003h)		;63ed   ; el contador de cuadros
+	rra			;63f0   ; uno de cada dos
 	call c,L_6490		;63f1
 	ld a,(0e009h)		;63f4
-	and 00ch		;63f7
+	and 00ch		;63f7   ; los dos bits de direccion
 	jr z,L_6400		;63f9
-	ld a,002h		;63fb
+	ld a,002h		;63fb   ; el sonido de andar
 	call L_7A13		;63fd
 L_6400:
 	ld a,(0e1b8h)		;6400
-	bit 2,a		;6403
+	bit 2,a		;6403   ; el bit 2 elige el paso
 	ld b,008h		;6405
 	jr nz,L_6410		;6407
 	ld a,(0e009h)		;6409
 	or a			;640c
 	jr z,L_6410		;640d
-	inc b			;640f
+	inc b			;640f   ; uno mas si se esta pulsando algo
 L_6410:
 	ld a,b			;6410
-	ld (0e1b5h),a		;6411
-	call L_645B		;6414
+	ld (0e1b5h),a		;6411   ; y ese es el paso del dibujo
+	call se_acaba_de_pulsar_boton		;6414   ; se acaba de pulsar boton?
 	ret z			;6417
 	rra			;6418
 	jr nc,L_6434		;6419
-	ld b,004h		;641b
+	ld b,004h		;641b   ; cuatro tandas
 L_641D:
 	push bc			;641d
-	ld a,0f8h		;641e
+	ld a,0f8h		;641e   ; ocho pixeles hacia arriba cada una
 	call L_670A		;6420
 	call L_6584		;6423
 	call L_52A2		;6426
 	call L_6396		;6429
 	pop bc			;642c
 	djnz L_641D		;642d
-	ld a,002h		;642f
-	jp L_6486		;6431
+	ld a,002h		;642f   ; estado 2
+	jp pasa_al_estado		;6431
 L_6434:
-	call L_6A03		;6434
+	call L_6A03		;6434   ; mira si agarra
 	jr nc,L_644A		;6437
 	call L_69E7		;6439
 	jr nc,L_644A		;643c
@@ -2633,37 +2693,45 @@ L_6434:
 	ld hl,0e1b3h		;6441
 	cp (hl)			;6444
 	jr nz,L_644A		;6445
-	jp L_62B0		;6447
+	jp pasa_al_estado_6		;6447   ; estado 6
 L_644A:
-	call L_6465		;644a
-	jp z,L_6373		;644d
+	call hay_suelo_debajo		;644a
+	jp z,se_engancha		;644d   ; se engancha
 	ld hl,06572h		;6450
 	call L_6558		;6453
-	ld a,003h		;6456
-	jp L_6486		;6458
-L_645B:
+	ld a,003h		;6456   ; estado 3
+	jp pasa_al_estado		;6458
+
+; ----------------------------------------------------------------------
+; EL FLANCO DEL BOTON: invierte la lectura ANTERIOR y la cruza con la de ahora, de modo que solo queda a uno el boton que estaba suelto y ahora esta pulsado. Mantener apretado no cuenta dos veces.
+; ----------------------------------------------------------------------
+se_acaba_de_pulsar_boton:
 	ld hl,0e008h		;645b
-	ld a,(hl)			;645e
-	cpl			;645f
-	and 003h		;6460
+	ld a,(hl)			;645e   ; lo de antes
+	cpl			;645f   ; invertido
+	and 003h		;6460   ; los dos botones
 	inc hl			;6462
-	and (hl)			;6463
+	and (hl)			;6463   ; cruzado con lo de ahora: el flanco
 	ret			;6464
-L_6465:
-	call L_61A3		;6465
-	ld a,09bh		;6468
+
+; ----------------------------------------------------------------------
+; SI HAY SUELO DEBAJO, preguntandoselo a la PANTALLA: se leen de la VRAM las dos celdas de los pies y se comparan con el patron 0x9B.
+; ----------------------------------------------------------------------
+hay_suelo_debajo:
+	call lee_las_dos_celdas_de_debajo		;6465   ; las dos celdas de debajo
+	ld a,09bh		;6468   ; el patron del suelo
 	dec hl			;646a
-	cp (hl)			;646b
+	cp (hl)			;646b   ; una
 	ret z			;646c
 	dec hl			;646d
-	cp (hl)			;646e
+	cp (hl)			;646e   ; y la otra
 	ret			;646f
-L_6470:
+baja_un_tramo:
 	ld hl,0e1b3h		;6470
 	ld a,(hl)			;6473
-	add a,008h		;6474
+	add a,008h		;6474   ; ocho pixeles hacia abajo
 	ld (hl),a			;6476
-	call L_6584		;6477
+	call L_6584		;6477   ; y se repinta
 	call L_52A2		;647a
 	call L_672E		;647d
 	ld hl,0e1b3h		;6480
@@ -2680,8 +2748,8 @@ DATA_6485:
 ; ======================================================================
 
 
-L_6486:
-	ld hl,0e1b2h		;6486
+pasa_al_estado:
+	ld hl,0e1b2h		;6486   ; el estado del jugador
 	ld (hl),a			;6489
 	ret			;648a
 L_648B:
@@ -3508,13 +3576,13 @@ L_6962:
 L_699F:
 	call L_69BC		;699f
 	call L_6A03		;69a2
-	call L_63AC		;69a5
+	call mira_si_puede_subir		;69a5
 	ld hl,(0e1b3h)		;69a8
 	ld a,l			;69ab
 	add a,024h		;69ac
 	ld l,a			;69ae
 	call L_6665		;69af
-	jp nc,L_6359		;69b2
+	jp nc,mira_si_llego_al_suelo		;69b2
 	jp L_6334		;69b5
 L_69B8:
 	ld a,00ah		;69b8
@@ -3648,14 +3716,14 @@ L_6A5C:
 	jp L_6334		;6a79
 L_6A7C:
 	call L_69B8		;6a7c
-	call L_63AC		;6a7f
-	call L_61A3		;6a82
+	call mira_si_puede_subir		;6a7f
+	call lee_las_dos_celdas_de_debajo		;6a82
 	ld a,(0e1bfh)		;6a85
 	cp 003h		;6a88
 	ret nz			;6a8a
 	ld a,008h		;6a8b
 	call L_670A		;6a8d
-	jp L_62E6		;6a90
+	jp estado_4_con_sonido		;6a90
 L_6A93:
 	ld hl,(0e1b3h)		;6a93
 	ld a,(0e009h)		;6a96
@@ -5169,7 +5237,7 @@ L_734B:
 	ret nc			;734f
 	push af			;7350
 	call L_64C5		;7351
-	call L_63AC		;7354
+	call mira_si_puede_subir		;7354
 	pop af			;7357
 	bit 2,a		;7358
 	ld a,00ch		;735a
@@ -5200,9 +5268,9 @@ L_737B:
 	ld (0e1b5h),a		;738a
 	ld (0e001h),a		;738d
 	ld a,00ch		;7390
-	jp L_6486		;7392
+	jp pasa_al_estado		;7392
 L_7395:
-	call L_6470		;7395
+	call baja_un_tramo		;7395
 	cp 098h		;7398
 	jr nz,L_7395		;739a
 	ld hl,0e1f9h		;739c
@@ -5263,7 +5331,7 @@ L_7400:
 	call L_52BB		;7411
 	call pinta_el_marcador		;7414
 	ld a,00eh		;7417
-	jp L_6486		;7419
+	jp pasa_al_estado		;7419
 L_741C:
 	jp L_648B		;741c
 
@@ -5293,7 +5361,7 @@ L_743D:
 	xor a			;743d
 	ld (0e001h),a		;743e
 	ld a,000h		;7441
-	jp L_6486		;7443
+	jp pasa_al_estado		;7443
 L_7446:
 	call L_7612		;7446
 	ld a,(0e1b4h)		;7449
