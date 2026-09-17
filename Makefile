@@ -76,10 +76,12 @@ test:
 	@echo "=================================================================="
 	@python3 -m unittest discover -s tests -v
 
-# Dibuja los bloques de datos graficos declarados en el .notes, para MIRARLOS.
+# Rehace la VRAM del cartucho ejecutando sus propios pasos y la DIBUJA. Aqui no
+# entra ni una captura del emulador: si un dibujo sale mal, lo que esta mal es
+# la lectura de la ROM, y por eso vale como comprobacion y no como adorno.
 imagenes: $(ROM)
-	@mkdir -p work/gfx
-	python3 tools/dibuja.py $(ROM) $(ORG) $(SRC)/magicaltree.notes work/gfx
+	@mkdir -p docs/imagenes
+	python3 tools/graficos.py $(ROM) $(ORG) docs/imagenes
 
 # LA WEB
 #

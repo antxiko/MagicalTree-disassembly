@@ -837,30 +837,34 @@ copia_vram_a_vram:
 	or b			;445e
 	jr nz,copia_vram_a_vram		;445f
 	ret			;4461
-duplica_los_tercios_de_color:
-	ld de,02000h		;4462   ; el primer tercio de la tabla de color
+
+; ----------------------------------------------------------------------
+; EL REPARTO DE LA VRAM, QUE HAY QUE LEER EN LOS REGISTROS Y NO EN LAS DIRECCIONES. Los ocho valores de 0x44FF son `02 E2 0E 7F 07 76 03 E1`, y en SCREEN 2 el R3 y el R4 no son direcciones sino base y mascara: del R3=0x7F solo cuenta el bit 7, que esta a CERO, o sea que la tabla de COLOR va en 0x0000; del R4=0x07 solo cuenta el bit 2, que esta puesto, o sea que la de PATRONES va en 0x2000. Por eso estas dos rutinas son al reves de lo que parecen a simple vista: la de aqui duplica los PATRONES y la de 0x4476 el COLOR. Se comprueba solo con la fuente: 0x447E rellena 384 bytes de 0x0180 con 0xF0 -tinta 15 sobre fondo transparente, o sea un byte de color- y suelta los dibujos de la fuente 0x2000 mas alla, en 0x2180.
+; ----------------------------------------------------------------------
+duplica_los_tercios_de_patrones:
+	ld de,02000h		;4462   ; el primer tercio de la tabla de PATRONES: R4=0x07 la pone en 0x2000
 	ld hl,02800h		;4465   ; al segundo
 L_4468:
 	ld bc,00800h		;4468   ; dos kilobytes
 	call copia_vram_a_vram		;446b
 	ld bc,00800h		;446e   ; y los otros dos
 	jr copia_vram_a_vram		;4471
-duplica_los_tercios_de_patrones:
-	call duplica_los_tercios_de_color		;4473   ; primero el color
-duplica_los_tres_tercios:
-	ld de,00000h		;4476   ; y luego los patrones, del primer tercio a los otros dos
+duplica_las_dos_tablas:
+	call duplica_los_tercios_de_patrones		;4473   ; primero los patrones
+duplica_los_tercios_de_color:
+	ld de,00000h		;4476   ; y luego el color, que R3=0x7F deja en 0x0000
 	ld hl,00800h		;4479
 	jr L_4468		;447c
 rellena_y_vuelca:
-	ld a,0f0h		;447e   ; el patron de relleno
-	ld de,00180h		;4480   ; 384 celdas
+	ld a,0f0h		;447e   ; el COLOR de relleno: tinta 15 sobre fondo transparente
+	ld de,00180h		;4480   ; 384 celdas: las 48 de la fuente por ocho filas
 	call rellena_una_franja		;4483
-	jr duplica_los_tercios_de_patrones		;4486
+	jr duplica_las_dos_tablas		;4486
 rellena_una_franja:
 	ld bc,00180h		;4488   ; 384 celdas
 	call rellena_vram		;448b
-	ld hl,045b8h		;448e   ; la tira de indices
-	ld a,020h		;4491   ; y la franja de al lado, 0x20 mas alla
+	ld hl,045b8h		;448e   ; la fuente
+	ld a,020h		;4491   ; 0x2000 mas alla: de la tabla de color a la de patrones. 0x0180 es la celda 48, o sea que el primer dibujo cae en el patron 0x30
 	add a,d			;4493
 	ld d,a			;4494
 	ld bc,00180h		;4495
@@ -1109,12 +1113,18 @@ DATA_modos_de_juego:
 	defb 040h,060h,050h,070h	; 45b4
 
 ; ----------------------------------------------------------------------
-; DATOS fuente: 43 dibujos de 8x8 que 0x448E vuelca a la tabla de patrones. El
-;   reparto sale de la propia ROM: si el primero es el tile 0x30, los diez
-;   digitos ocupan 0x30..0x39, la (c) el 0x3A, cinco dibujos sueltos el
-;   0x3B..0x3F, una raya el 0x40 y las 26 letras el 0x41..0x5A, o sea que cada
-;   letra cae en SU codigo ASCII. Por eso los rotulos guardan el texto en
-;   claro: "CASTLE" esta escrito tal cual en 0x75B0
+; DATOS fuente: 43 dibujos de 8x8 que 0x448E vuelca a la tabla de patrones, y
+;   el reparto no hay que suponerlo: 0x447E los suelta en 0x2180, que es la
+;   celda 48, o sea el patron 0x30. De ahi sale todo lo demas y cuadra
+;   DIBUJANDOLO: 0x30..0x39 los diez digitos, 0x3A la (c), 0x3B dos rayitas,
+;   0x3C y 0x3D la palabra "with" partida en dos celdas, 0x3E y 0x3F el cursor
+;   del menu -0x4282 los nombra con `ld bc,03e3fh`-, 0x40 una raya larga y
+;   0x41..0x5A las veintiseis letras. O sea que cada letra cae en SU codigo
+;   ASCII, y por eso los rotulos guardan el texto en claro: en 0x75B0 pone
+;   "CASTLE" tal cual. La palabra "with" es la de los cuatro renglones del
+;   menu, "1PLAYER with JOYSTICK" y sus tres hermanos, que 0x472B escribe con
+;   esta misma fuente recolocada en el tile 0xC0 del tercer tercio por el
+;   `rellena_una_franja` de 0x425D
 ;   0x45b8..0x4710  (344 bytes)
 DATA_fuente:
 	defb 000h,01ch,022h,063h,063h,063h,022h,01ch,000h,018h,038h,018h,018h,018h,018h,07eh	; 45b8  .."ccc"...8....~
@@ -1437,11 +1447,14 @@ hueco_de_sprite_por_indice:
 	jp suma_a_a_hl		;4a4d
 
 ; ----------------------------------------------------------------------
-; DATOS trozos_del_decorado: los 25 trozos que la tabla de 0x4D30 apunta, cada
-;   uno una tira de parejas de patrones. No hay que estimar donde acaba
-;   ninguno: el principio de cada trozo mas dos veces su cuenta cae CLAVADO en
-;   el principio de otro, y entre todos cubren el bloque hasta 0x4D2E; los dos
-;   ultimos bytes (0xFF 0x00) cierran la tira
+; DATOS trozos_del_decorado: los 25 trozos que la tabla de 0x4D30 apunta. Cada
+;   trozo son N tiras de TRES celdas, y una tira no siempre ocupa lo mismo: si
+;   el primer byte no es 0xFF, son dos bytes de los que 0x52FB saca tres
+;   celdas (los tres bits de abajo, el byte siguiente entero, y los cinco de
+;   arriba); si es 0xFF, son cuatro bytes y las tres celdas van en crudo.
+;   Donde acaba cada trozo no se estima: se saca ejecutando ese mismo
+;   interprete sobre las 25 entradas, y las 25 recorridas cubren
+;   0x4A50..0x4D30 sin dejar un hueco ni pisarse
 ;   0x4a50..0x4d30  (736 bytes)
 DATA_trozos_del_decorado:
 	defb 006h,000h,070h,093h,0d8h,005h,04ch,005h,090h,000h,004h,001h,088h,081h,0d8h,005h	; 4a50  ..p...L.........
@@ -1492,9 +1505,14 @@ DATA_trozos_del_decorado:
 	defb 05bh,0c4h,098h,0c4h,001h,092h,001h,091h,004h,092h,001h,091h,0ffh,020h,0ffh,000h	; 4d20  [............ ..
 
 ; ----------------------------------------------------------------------
-; DATOS tabla_de_trozos: 25 entradas de tres bytes -puntero y numero de
-;   parejas- que 0x52E9 indexa con `add a,a / add a,l` (por tres). Son 25 y no
-;   mas porque la entrada 26 daria el puntero 0x0617, que no es ROM
+; DATOS tabla_de_trozos: 25 entradas de tres bytes -puntero y numero de TIRAS-
+;   que 0x52E9 indexa con `add a,a / add a,l` (por tres). Son 25 y no mas
+;   porque la entrada 26 daria el puntero 0x0617, que no es ROM. Y esta tabla
+;   se lee a si misma sin querer: el trozo 22 (0x4D0E) declara dieciseis
+;   tiras, pero con quince ya ha llegado a 0x4D30, asi que la decimosexta coge
+;   0x50 0x4A, que son los dos primeros bytes de la propia tabla. No es un
+;   caso raro: 22 es 0x16, el numero que cierra TODOS los guiones de fase, o
+;   sea que pasa en las diez
 ;   0x4d30..0x4d7b  (75 bytes)
 DATA_tabla_de_trozos:
 	defb 050h,04ah,014h,078h,04ah,000h,078h,04ah,015h,0a2h,04ah,012h,0c6h,04ah,013h,0ech	; 4d30  PJ.xJ.xJ..J..J..
@@ -2280,14 +2298,14 @@ DATA_bloque_0x5D0D:
 
 
 ; ----------------------------------------------------------------------
-; EL MONTAJE GRAFICO DE LA FASE, y lo interesante es el bucle de 0x60F0: **coge los patrones de 0x5BCD y los TRANSPONE** -diez tandas de dieciseis bytes-, escribiendo el resultado en dos sitios a la vez separados dieciseis posiciones. De ahi salen el arbol y sus ramas sin guardar cada orientacion.
+; EL MONTAJE GRAFICO DE LA FASE: cuatro bloques comprimidos y, en medio, el bucle de 0x60F0, que coge los 320 bytes de patrones de sprite de 0x5BCD y los DA LA VUELTA como en un espejo, dejando el resultado en 0x1940. Son diez tandas de 0x20 bytes -diez sprites de 16x16-, y el cartucho se ahorra asi guardar cada figura mirando a los dos lados.
 ; ----------------------------------------------------------------------
 monta_los_graficos:
 	ld hl,05445h		;60c9   ; el primer bloque comprimido
 	call descomprime		;60cc
 	ld hl,05937h		;60cf   ; el segundo
 	call descomprime_con_mascara_de_color		;60d2
-	call duplica_los_tercios_de_patrones		;60d5   ; repartido a los tres tercios
+	call duplica_las_dos_tablas		;60d5   ; repartido a los tres tercios
 	ld de,01800h		;60d8
 	ld hl,05bcdh		;60db
 	ld bc,00140h		;60de   ; 320 bytes sin comprimir
@@ -2298,8 +2316,8 @@ monta_los_graficos:
 	ld ix,0e0b0h		;60ec   ; el bufer de salida
 L_60F0:
 	push bc			;60f0
-	ld b,010h		;60f1   ; dieciseis bytes por tanda
-saca_un_byte_a_transponer:
+	ld b,010h		;60f1   ; dieciseis filas por sprite
+saca_una_fila_a_dar_la_vuelta:
 	ld a,(de)			;60f3   ; el byte de origen
 	exx			;60f4
 	ld h,a			;60f5
@@ -2308,21 +2326,17 @@ saca_un_byte_a_transponer:
 	exx			;60f8
 	ld l,a			;60f9
 	ld b,010h		;60fa
-
-; ----------------------------------------------------------------------
-; LA TRANSPOSICION DE LOS PATRONES, que es lo mas llamativo del montaje: `add hl,hl` saca el bit de mas peso al acarreo y dos `rr (ix+d)` lo meten por la derecha en DOS bytes separados dieciseis posiciones. Ocho vueltas por byte, ocho bytes por patron: el dibujo sale volcado sobre su diagonal, y por eso los graficos del arbol pueden guardarse en una sola orientacion.
-; ----------------------------------------------------------------------
-transpone_los_patrones:
-	add hl,hl			;60fc   ; el bit de mas peso, al acarreo
-	rr (ix+000h)		;60fd   ; y entra por la derecha en un byte
-	rr (ix+010h)		;6101   ; y en el de dieciseis mas alla
-	djnz transpone_los_patrones		;6105   ; ocho bits
+da_la_vuelta_a_una_fila:
+	add hl,hl			;60fc   ; el bit de mas peso de la fila, al acarreo
+	rr (ix+000h)		;60fd   ; y entra por la izquierda de los dos bytes de salida
+	rr (ix+010h)		;6101   ; que juntos son un registro de dieciseis bits
+	djnz da_la_vuelta_a_una_fila		;6105   ; dieciseis vueltas: la fila entera
 	exx			;6107
 	inc hl			;6108
 	inc de			;6109
 	inc ix		;610a
-	djnz saca_un_byte_a_transponer		;610c
-	ld c,010h		;610e   ; dieciseis bytes por tanda
+	djnz saca_una_fila_a_dar_la_vuelta		;610c
+	ld c,010h		;610e   ; y dieciseis mas, que con los que ya avanzo el bucle son 0x20 por tanda
 	add hl,bc			;6110   ; y de tanda en tanda
 	ex de,hl			;6111
 	add hl,bc			;6112
@@ -2330,7 +2344,7 @@ transpone_los_patrones:
 	add ix,bc		;6114
 	pop bc			;6116
 	djnz L_60F0		;6117
-	ld de,01940h		;6119   ; el destino en la VRAM
+	ld de,01940h		;6119   ; el destino: 0x1940, cuarenta patrones despues de 0x1800
 	ld hl,0e0b0h		;611c
 	ld bc,00140h		;611f   ; 320 bytes
 	call vuelca_bloque		;6122   ; el resultado, a la VRAM
@@ -5783,7 +5797,7 @@ L_7400:
 	call pide_un_sonido		;7405
 	ld hl,05937h		;7408   ; el decorado de la fase
 	call descomprime_con_mascara_de_color		;740b
-	call duplica_los_tres_tercios		;740e
+	call duplica_los_tercios_de_color		;740e
 	call monta_el_decorado_de_la_fase		;7411
 	call pinta_el_marcador		;7414
 	ld a,00eh		;7417   ; y estado 14
@@ -5792,10 +5806,14 @@ L_741C:
 	jp pasa_al_estado_siguiente		;741c
 
 ; ----------------------------------------------------------------------
-; DATOS ocho_variantes_de_tanda: ocho bytes que 0x73F9 indexa con tres bits
-;   del contador de tandas y deja en (0xE05D)
+; DATOS mascaras_de_color_por_tanda: ocho bytes (0x11 0x33 0xBB 0xEE 0x11 0xBB
+;   0xEE 0x11) que 0x73F9 indexa con tres bits del contador de tandas y deja
+;   en (0xE05D). De ahi los coge el descompresor de 0x612C, que al sacar cada
+;   byte de color mira los nibbles: donde valga 3 pone el de la mascara. O sea
+;   que el decorado es SIEMPRE el mismo y lo que cambia de una tanda a otra es
+;   el color, sin guardar una segunda copia
 ;   0x741f..0x7427  (8 bytes)
-DATA_ocho_variantes_de_tanda:
+DATA_mascaras_de_color_por_tanda:
 	defb 011h,033h,0bbh,0eeh,011h,0bbh,0eeh,011h	; 741f  .3......
 
 ; ======================================================================
@@ -6094,9 +6112,11 @@ L_7657:
 	ret			;7660
 
 ; ----------------------------------------------------------------------
-; DATOS columnas_del_decorado_A: quince columnas distintas, cada una una tira
-;   comprimida que acaba en 0x80. Las quince cierran clavadas: el interprete
-;   de 0x7629 saca de cada una VEINTE celdas, ni una mas ni una menos
+; DATOS columnas_del_decorado_A: dibujado desde la ROM sale EL ARBOL: el
+;   tronco en las cuatro primeras columnas y cuatro ramas horizontales. Quince
+;   columnas distintas, cada una una tira comprimida que acaba en 0x80. Las
+;   quince cierran clavadas: el interprete de 0x7629 saca de cada una VEINTE
+;   celdas, ni una mas ni una menos
 ;   0x7661..0x76ce  (109 bytes)
 DATA_columnas_del_decorado_A:
 	defb 014h,088h,080h,014h,089h,080h,014h,006h,080h,014h,08ah,080h,004h,003h,001h,0ceh	; 7661  ................
@@ -6119,7 +6139,9 @@ DATA_tabla_de_columnas_A:
 
 ; ----------------------------------------------------------------------
 ; DATOS columnas_del_decorado_B: doce columnas, mismo lenguaje y las doce de
-;   veinte celdas
+;   veinte celdas. Dibujado desde la ROM, este segundo decorado es EL
+;   CASTILLO: muro de ladrillo con ventanas arriba y columnas abajo. Cuadra
+;   con el rotulo de 0x75A7, que pone "CASTLE"
 ;   0x770e..0x778a  (124 bytes)
 DATA_columnas_del_decorado_B:
 	defb 002h,003h,004h,0e1h,00dh,0dch,001h,0dah,080h,002h,003h,004h,0e0h,00dh,0dbh,001h	; 770e  ................
