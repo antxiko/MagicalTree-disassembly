@@ -1509,3 +1509,272 @@ C 0x7328 y la ficha, borrada
 L 0x732a el_jugador_alcanzado
 C 0x732d el paso del dibujo
 C 0x7332 uno de cada treinta y dos cuadros
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x7339 el guion de la caida
+C 0x7340 se apaga el sonido en curso
+C 0x7343 y suena el 0x0B
+L 0x734b estado_12_cayendo
+B 0x734b ESTADO 12: la caida final, uno de cada dos cuadros. Al llegar al suelo (0x98) suena el 0x9F y se marca con 0xC3 tanto la posicion como (0xE00C), que es la senal de fin de vida.
+C 0x734b el contador de cuadros
+C 0x734e uno de cada dos
+C 0x7358 el bit 2 elige el dibujo
+C 0x7365 el suelo
+C 0x7368 si aun no ha llegado, se sigue cayendo
+C 0x736c el sonido del golpe
+C 0x7371 la marca de fin
+C 0x7376 y la senal de fin de vida
+L 0x737b llega_arriba_del_todo
+C 0x737b el sonido de llegar
+C 0x7383 treinta y dos hacia arriba
+C 0x738a el paso, a uno
+C 0x7390 y estado 12
+L 0x7395 termina_la_fase
+B 0x7395 EL CAMBIO DE FASE. Baja al jugador hasta el suelo de tramo en tramo, limpia 92 bytes de estado propagando un cero con `ldir`, saca los dieciseis sprites de la pantalla y ALTERNA los dos topes laterales segun el bit 0 de (0xE05E): 0x03F0 en una fase y 0x18DF en la siguiente. O sea que el arbol se recorre en un sentido y en el otro.
+C 0x7395 un tramo hacia abajo
+C 0x7398 hasta el suelo
+C 0x739f un cero
+C 0x73a4 y el ldir lo arrastra por 92 bytes
+C 0x73ac 0xC3: fuera de la pantalla
+C 0x73b1 los dieciseis sprites
+C 0x73b9 el contador de fases
+C 0x73bb su bit 0
+C 0x73bc unos topes
+C 0x73c1 o los otros
+C 0x73c4 y quedan puestos
+C 0x73ca el bit 1: tope por arriba
+C 0x73d1 lee de la pantalla
+C 0x73db el numero de fase, en BCD
+C 0x73e2 y el contador de tandas
+C 0x73e5 a las nueve
+C 0x73ec el otro decorado
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x73f7 tres bits de la tanda
+C 0x73f9 la tabla de ocho variantes
+C 0x7403 el sonido de la fase nueva
+C 0x7408 el decorado de la fase
+C 0x7417 y estado 14
+L 0x7427 arranca_la_fase
+C 0x7428 el contador de cuadros, a cero
+C 0x742d cuatro objetos por recoger
+C 0x7430 el contador de fases
+C 0x7433 su bit 0
+C 0x7434 un sonido
+C 0x7438 o el otro, segun el sentido de la fase
+C 0x7441 y estado 0
+L 0x7446 estado_13_subiendo_al_final
+C 0x7449 la posicion del jugador
+C 0x744c el suelo
+C 0x744e cuatro
+C 0x7452 u ocho
+C 0x745a cuando llega a 0x98
+L 0x7466 estado_14_el_remate
+B 0x7466 ESTADO 14: el remate de la fase. En la novena fase y con poco plazo saca su rotulo; el paso del dibujo alterna con el bit 4 del contador de cuadros -uno de cada dieciseis-, y al acabar reparte DOS MIL puntos y pinta la altura.
+C 0x746a el contador de fases
+C 0x746d la novena
+C 0x7474 y con menos de 21 de plazo
+C 0x7481 el bit 4 del contador de cuadros
+C 0x7488 y ese es el paso
+C 0x748d espera a que pare el sonido
+C 0x7499 el rotulo "STAGE  CLEAR"
+C 0x749f dos mil puntos
+C 0x74af y la altura
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+B 0x74c6 LA ALTURA QUE FALTA, restada en BCD con `sbc a,(hl) / daa` sobre los dos bytes: es lo que se pinta al acabar la fase.
+C 0x74c9 la altura alcanzada
+C 0x74ca en BCD
+C 0x74cf el byte alto, con acarreo
+C 0x74d9 el sonido del recuento
+L 0x74ea remate_de_la_novena
+C 0x74f0 el rotulo "CONGRATULATIONS"
+L 0x74f8 estado_15_espera_larga
+B 0x74f8 ESTADO 15: la espera larga, una vez de cada 128 cuadros. Monta el decorado de la fase siguiente, pone el tope de arriba y levanta la senal de (0xE00D).
+C 0x74f8 el contador de cuadros
+C 0x74fb uno de cada 128
+C 0x74fe el contador de fases
+C 0x7501 la novena va aparte
+C 0x7505 el bloque comprimido
+C 0x7517 el tope de arriba
+C 0x752e y la senal
+L 0x7534 estado_16_plazo_de_32
+C 0x7534 el contador de cuadros
+C 0x7539 32 cuadros de plazo
+L 0x7541 estado_17_reinicia
+C 0x7545 los trece valores iniciales
+C 0x754b trece bytes
+L 0x7553 pinta_dos_bloques_de_3x3
+C 0x7556 tres por tres
+C 0x755f y el segundo, ocho celdas mas alla
+L 0x7612 baja_el_plazo_cada_ocho
+B 0x7612 BAJAR EL PLAZO UNA VEZ DE CADA OCHO CUADROS, y devolver su bit 0 con el mismo truco del vaiven: `srl a / jr c` hace que el valor suba y baje en vez de solo bajar.
+C 0x7612 el contador de cuadros
+C 0x7615 uno de cada ocho
+C 0x761b el plazo, uno menos
+C 0x761c si se paso de cero, se sale con el signo
+C 0x761e el bit de abajo al acarreo
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x498c lee_la_celda_de_ahi
+C 0x498f y se trae su indice de la VRAM
+L 0x4992 posicion_a_celda
+B 0x4992 DE POSICION A CELDA DE PANTALLA. Divide las dos coordenadas entre ocho de una vez, encadenando los `rra` de una con los `rr e` de la otra, y le pega el 0x38 de la tabla de nombres. Tres bits de cada una, que es justo el tamano de un patron.
+C 0x4994 cuatro giros
+C 0x4998 arrastrando el acarreo a la otra coordenada
+C 0x49a0 lo que queda de la fila
+C 0x49a2 mas la pagina de la tabla de nombres
+L 0x49a6 vuelca_b_filas
+C 0x49a9 una fila
+C 0x49ad y la siguiente, 32 celdas mas alla
+L 0x49b8 pinta_bloque_en_su_sitio
+B 0x49b8 PINTAR UN BLOQUE EN SU SITIO, fila a fila, SALTANDOSE las que caen fuera de la banda util (0x18..0xC0). Si C es menor de 7 la fila va tal cual; si no, se descomprime. Y cuando la fila esta fuera, 0x49ED avanza por los datos SIN pintar, interpretando el mismo lenguaje: un byte con el bit 7 puesto es un salto de n bytes. Asi se recorta por arriba y por abajo sin dibujar de mas.
+C 0x49bd la banda util empieza en 0x18
+C 0x49bf y mide 0xA8
+C 0x49c5 de posicion a celda
+C 0x49cb por debajo de siete va tal cual
+C 0x49d6 y si no, se descomprime
+C 0x49dd ocho pixeles: la fila de abajo
+L 0x49e3 salta_la_fila_que_no_se_ve
+C 0x49e4 por debajo de siete, un ancho fijo
+C 0x49e8 que se salta
+C 0x49ed el byte de control
+C 0x49f0 un cero cierra
+C 0x49f2 bit 7 a cero: una sola celda
+C 0x49f5 y con el bit 7, siete bits de salto
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x7a03 la ficha, borrada
+C 0x7a0b 0xC3: fuera de la pantalla
+L 0x7a13 pide_un_sonido
+C 0x7a14 D a cero: no se fuerza
+L 0x7a1b reparte_el_sonido
+B 0x7a1b REPARTIR UN SONIDO ENTRE LAS VOCES. El numero decide a que grupo va -por debajo de 0x8C, de 0x8C a 0x8F, o de 0x90 en adelante-, y dentro de los efectos los numeros 9 y 10 tienen su propio hueco. Cada grupo lleva PRIORIDAD: si lo que suena tiene el numero mas alto, el nuevo no entra.
+C 0x7a1b el numero de sonido
+C 0x7a1c dos voces
+C 0x7a1e la voz de los efectos
+C 0x7a21 por debajo de 0x8C: efecto
+C 0x7a25 de 0x8C a 0x8F
+C 0x7a29 y de 0x90 en adelante, una voz mas
+C 0x7a2d seis bits
+C 0x7a2f los sonidos 9 y 10 tienen su hueco
+L 0x7a44 compara_prioridades
+C 0x7a44 D dice si se fuerza
+C 0x7a47 la prioridad de lo que esta sonando
+C 0x7a4f contra la del que llega
+C 0x7a51 si empatan o pierde, no entra
+C 0x7a53 por debajo de 0x19 va directo
+L 0x7a5a arranca_la_voz
+B 0x7a5a ARRANCAR UNA VOZ: la cuenta a uno para que suene en el cuadro siguiente, el numero de sonido y los dos bytes de la partitura, sacados de la tabla de 0x7C58. Los cinco bytes que se salta con `ld a,005h / add a,l` son el resto del estado.
+C 0x7a5a el numero por dos
+C 0x7a5b la tabla de sonidos
+C 0x7a63 la cuenta, a uno: suena ya
+C 0x7a69 el numero de sonido
+C 0x7a6b y su partitura, dos bytes
+C 0x7a71 cinco bytes mas alla del estado
+C 0x7a75 las vueltas, a cero
+L 0x7a7d repite_o_encadena
+C 0x7a7e las vueltas dadas
+C 0x7a81 una mas
+C 0x7a82 contra las que pide la partitura
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x7ab7 escribe_el_volumen_general
+C 0x7ab7 la copia en RAM
+C 0x7abb registro 7 del PSG
+L 0x7ac0 suena_un_cuadro
+B 0x7ac0 EL REPRODUCTOR, una vez por cuadro y lo primero que hace la interrupcion. TRES voces de once bytes desde 0xE010, recorridas con IX saltando de once en once mientras C va 1, 3, 5: los registros de periodo del PSG. La voz cuyo sonido sea el 0x0B lleva ademas un tratamiento aparte.
+C 0x7ac0 el volumen general
+C 0x7ac6 el primer canal del PSG
+C 0x7ac8 el estado de la primera voz
+C 0x7acd tres voces
+C 0x7acf once bytes cada una
+C 0x7ad3 el sonido de esta voz
+C 0x7ad7 el 0x0B va aparte
+C 0x7add callada: no se toca
+C 0x7ae1 dos registros por canal
+C 0x7ae4 y once bytes hasta la voz siguiente
+L 0x7aea barrido_del_sonido_0B
+B 0x7aea EL SONIDO 0x0B, que no lee partitura: le SUMA DOS al periodo en cada cuadro -con acarreo al byte alto- de modo que el tono sube solo. Y cuando (0xE032) vale cero, en vez de eso copia cuatro bytes hacia atras con `lddr`. Es el unico sonido con logica propia.
+C 0x7aea su bloque de estado
+C 0x7af0 la bandera que elige el modo
+C 0x7af7 dos al periodo
+C 0x7afe con acarreo al byte alto
+C 0x7b00 y queda apuntado
+C 0x7b09 cuatro bytes
+C 0x7b0c copiados hacia atras
+L 0x7b18 avanza_una_voz
+B 0x7b18 AVANZAR UNA VOZ. (ix+0) es lo que le queda a la nota; mientras no llegue a cero no se lee nada. El valor 0xFE de la partitura es la marca de repeticion, y los nibbles altos son modificadores: 0x2n cambia el instrumento y 0x1n toca el envolvente.
+C 0x7b18 el bit 6 del estado
+C 0x7b26 lo que le queda a la nota
+C 0x7b29 todavia suena
+C 0x7b2a por donde va la partitura
+C 0x7b31 0xFE: volver al principio
+C 0x7b3f el nibble alto manda
+C 0x7b41 0x2n cambia el instrumento
+C 0x7b48 el nibble bajo es el numero
+C 0x7b4f 0x1n toca el envolvente
+C 0x7b54 y los cinco bits de abajo, su forma
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x78e7 apunta_al_perseguidor
+C 0x78ea vacio: al siguiente
+C 0x78f2 el numero por tres
+C 0x78f7 se marca el bit 7
+C 0x78fd el contador, uno mas
+C 0x78fe el tope son tres
+L 0x60fc transpone_los_patrones
+B 0x60fc LA TRANSPOSICION DE LOS PATRONES, que es lo mas llamativo del montaje: `add hl,hl` saca el bit de mas peso al acarreo y dos `rr (ix+d)` lo meten por la derecha en DOS bytes separados dieciseis posiciones. Ocho vueltas por byte, ocho bytes por patron: el dibujo sale volcado sobre su diagonal, y por eso los graficos del arbol pueden guardarse en una sola orientacion.
+C 0x60fc el bit de mas peso, al acarreo
+C 0x60fd y entra por la derecha en un byte
+C 0x6101 y en el de dieciseis mas alla
+C 0x6105 ocho bits
+C 0x610e dieciseis bytes por tanda
+C 0x6119 el destino en la VRAM
+C 0x611f 320 bytes
+L 0x790f mueve_el_perseguidor
+B 0x790f EL PERSEGUIDOR EN MARCHA. Con el bit 7 puesto solo se atiende uno de cada ocho cuadros; el bit 3 le anade 0x40 al estado.
+C 0x790f la ficha del perseguidor
+C 0x7913 vacia
+C 0x7919 el objeto al que sigue
+C 0x7929 el contador de cuadros
+C 0x792c uno de cada ocho
+C 0x7932 el bit 3
+L 0x79b8 cobra_el_objeto
+B 0x79b8 COBRAR UN OBJETO: saca de la tabla de 0x79DE los puntos que vale -indexada por su tipo, por dos- y los suma con el byte alto, o sea en centenas. Ademas deja el sprite del premio con el color 0x0F.
+C 0x79b8 el hueco del sprite
+C 0x79c1 el tipo por dos
+C 0x79c2 la tabla de valores
+C 0x79d2 el color del premio
+C 0x79d6 y se suman los puntos
+C 0x79d9 y suena el aviso
+L 0x48be baja_la_cortinilla
+B 0x48be UN PASO DE CORTINILLA. Avanza 32 celdas -una fila- y pinta la franja en DOS sitios a la vez: en la posicion que toca y en su reflejo respecto de 0x3AAA, con `sbc hl,de`. Por eso la cortina se cierra desde arriba y desde abajo al mismo tiempo.
+C 0x48be por donde va
+C 0x48c1 una fila, 32 celdas
+C 0x48ca el punto de reflejo
+C 0x48cd restando sale la franja de abajo
+C 0x48d0 el primer patron
+C 0x48d2 tres celdas
+C 0x48d7 once celdas empezando por la 12

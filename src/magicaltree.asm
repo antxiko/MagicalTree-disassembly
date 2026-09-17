@@ -62,7 +62,7 @@ suma_a_a_de:
 gancho_de_interrupcion:
 	di			;402c
 	call 0013eh		;402d   ; BIOS RDVDP - Reads VDP status register | lee el estado del VDP para que baje su bandera
-	call L_7AC0		;4030   ; el sonido, lo primero
+	call suena_un_cuadro		;4030   ; el sonido, lo primero
 	ld hl,0e005h		;4033   ; el cerrojo de reentrada
 	bit 0,(hl)		;4036   ; si ya hay una dentro, no se entra otra vez
 	jr nz,L_4047		;4038
@@ -214,7 +214,7 @@ L_40F0:
 	ld a,(0e003h)		;40f0   ; el contador de cuadros
 	rra			;40f3   ; su bit 0 al acarreo
 	ret nc			;40f4
-	call L_48BE		;40f5
+	call baja_la_cortinilla		;40f5
 	ret nz			;40f8
 	ld hl,047bch		;40f9   ; el rotulo
 	call pinta_rotulo		;40fc   ; con la mascara a 0xFF: pintandolo
@@ -310,7 +310,7 @@ espera_a_que_pare_el_sonido:
 	jr c,L_416D		;4169
 	ld a,08ch		;416b   ; o el otro
 L_416D:
-	call L_7A13		;416d
+	call pide_un_sonido		;416d
 	xor a			;4170
 	ld (0e001h),a		;4171
 	ld hl,00000h		;4174
@@ -350,7 +350,7 @@ L_4195:
 	or a			;419e
 	ret nz			;419f
 	ld a,093h		;41a0   ; el sonido del final
-	call L_7A13		;41a2
+	call pide_un_sonido		;41a2
 	ld hl,047a4h		;41a5   ; los rotulos
 	call pinta_rotulo_con_marca		;41a8
 	ld hl,04247h		;41ab
@@ -427,7 +427,7 @@ fin_de_partida:
 	or a			;4211
 	jr nz,L_422C		;4212
 	ld a,096h		;4214   ; el sonido del fin de partida
-	call L_7A13		;4216
+	call pide_un_sonido		;4216
 	ld a,050h		;4219   ; 80 cuadros
 	ld (0e004h),a		;421b
 L_421E:
@@ -608,7 +608,7 @@ L_4318:
 	inc (hl)			;431e   ; una vida mas
 	call pinta_las_vidas		;431f   ; repinta el contador
 	ld a,008h		;4322   ; y suena el aviso
-	call L_7A13		;4324
+	call pide_un_sonido		;4324
 	pop hl			;4327
 	pop de			;4328
 
@@ -937,9 +937,9 @@ prepara_lectura_vram:
 ; ----------------------------------------------------------------------
 arranca_el_hardware:
 	ld a,0b8h		;44da
-	call L_7AB7		;44dc
+	call escribe_el_volumen_general		;44dc
 	ld a,09fh		;44df   ; el sonido de arranque
-	call L_7A13		;44e1
+	call pide_un_sonido		;44e1
 	ld de,00000h		;44e4   ; la VRAM entera
 	ld bc,04000h		;44e7   ; los dieciseis kilobytes
 	xor a			;44ea
@@ -1213,20 +1213,24 @@ L_489F:
 	ld bc,000d0h		;48b6
 	ld a,0f0h		;48b9
 	jp rellena_vram		;48bb
-L_48BE:
-	ld hl,(0e00eh)		;48be
-	ld de,00020h		;48c1
+
+; ----------------------------------------------------------------------
+; UN PASO DE CORTINILLA. Avanza 32 celdas -una fila- y pinta la franja en DOS sitios a la vez: en la posicion que toca y en su reflejo respecto de 0x3AAA, con `sbc hl,de`. Por eso la cortina se cierra desde arriba y desde abajo al mismo tiempo.
+; ----------------------------------------------------------------------
+baja_la_cortinilla:
+	ld hl,(0e00eh)		;48be   ; por donde va
+	ld de,00020h		;48c1   ; una fila, 32 celdas
 	add hl,de			;48c4
 	ld (0e00eh),hl		;48c5
 	ex de,hl			;48c8
 	or a			;48c9
-	ld hl,03aaah		;48ca
-	sbc hl,de		;48cd
+	ld hl,03aaah		;48ca   ; el punto de reflejo
+	sbc hl,de		;48cd   ; restando sale la franja de abajo
 	ex de,hl			;48cf
-	ld a,060h		;48d0
-	ld b,003h		;48d2
+	ld a,060h		;48d0   ; el primer patron
+	ld b,003h		;48d2   ; tres celdas
 	call L_48EA		;48d4
-	ld bc,00b0ch		;48d7
+	ld bc,00b0ch		;48d7   ; once celdas empezando por la 12
 	call L_48EA		;48da
 	ld b,c			;48dd
 	call L_48EA		;48de
@@ -1269,82 +1273,90 @@ DATA_bloque_0x48F9:
 ; ======================================================================
 
 
-L_498C:
-	call L_4992		;498c
-	jp lee_de_vram		;498f
-L_4992:
+lee_la_celda_de_ahi:
+	call posicion_a_celda		;498c
+	jp lee_de_vram		;498f   ; y se trae su indice de la VRAM
+
+; ----------------------------------------------------------------------
+; DE POSICION A CELDA DE PANTALLA. Divide las dos coordenadas entre ocho de una vez, encadenando los `rra` de una con los `rr e` de la otra, y le pega el 0x38 de la tabla de nombres. Tres bits de cada una, que es justo el tamano de un patron.
+; ----------------------------------------------------------------------
+posicion_a_celda:
 	ld a,l			;4992
 	ld e,h			;4993
-	rra			;4994
+	rra			;4994   ; cuatro giros
 	rra			;4995
 	rra			;4996
 	rra			;4997
-	rr e		;4998
+	rr e		;4998   ; arrastrando el acarreo a la otra coordenada
 	rra			;499a
 	rr e		;499b
 	rra			;499d
 	rr e		;499e
-	and 003h		;49a0
-	add a,038h		;49a2
+	and 003h		;49a0   ; lo que queda de la fila
+	add a,038h		;49a2   ; mas la pagina de la tabla de nombres
 	ld d,a			;49a4
 	ret			;49a5
-L_49A6:
+vuelca_b_filas:
 	push bc			;49a6
 	ld b,000h		;49a7
-	call vuelca_bloque		;49a9
+	call vuelca_bloque		;49a9   ; una fila
 	pop bc			;49ac
-	ld a,020h		;49ad
+	ld a,020h		;49ad   ; y la siguiente, 32 celdas mas alla
 	call suma_a_a_de		;49af
-	djnz L_49A6		;49b2
+	djnz vuelca_b_filas		;49b2
 	ret			;49b4
 L_49B5:
 	call L_4A0E		;49b5
-L_49B8:
+
+; ----------------------------------------------------------------------
+; PINTAR UN BLOQUE EN SU SITIO, fila a fila, SALTANDOSE las que caen fuera de la banda util (0x18..0xC0). Si C es menor de 7 la fila va tal cual; si no, se descomprime. Y cuando la fila esta fuera, 0x49ED avanza por los datos SIN pintar, interpretando el mismo lenguaje: un byte con el bit 7 puesto es un salto de n bytes. Asi se recorta por arriba y por abajo sin dibujar de mas.
+; ----------------------------------------------------------------------
+pinta_bloque_en_su_sitio:
 	ld a,(hl)			;49b8
 	inc hl			;49b9
 	ld h,(hl)			;49ba
 	ld l,a			;49bb
 L_49BC:
 	ld a,l			;49bc
-	sub 018h		;49bd
-	cp 0a8h		;49bf
-	jr nc,L_49E3		;49c1
+	sub 018h		;49bd   ; la banda util empieza en 0x18
+	cp 0a8h		;49bf   ; y mide 0xA8
+	jr nc,salta_la_fila_que_no_se_ve		;49c1
 	push hl			;49c3
 	push de			;49c4
-	call L_4992		;49c5
+	call posicion_a_celda		;49c5   ; de posicion a celda
 	pop hl			;49c8
 	push bc			;49c9
 	ld a,c			;49ca
-	cp 007h		;49cb
+	cp 007h		;49cb   ; por debajo de siete va tal cual
 	jr nc,L_49D6		;49cd
 	ld b,000h		;49cf
 	call vuelca_bloque		;49d1
 	jr L_49D9		;49d4
 L_49D6:
-	call L_449F		;49d6
+	call L_449F		;49d6   ; y si no, se descomprime
 L_49D9:
 	ex de,hl			;49d9
 	pop bc			;49da
 	pop hl			;49db
 L_49DC:
 	ld a,l			;49dc
-	add a,008h		;49dd
+	add a,008h		;49dd   ; ocho pixeles: la fila de abajo
 	ld l,a			;49df
 	djnz L_49BC		;49e0
 	ret			;49e2
-L_49E3:
+salta_la_fila_que_no_se_ve:
 	ld a,c			;49e3
-	cp 007h		;49e4
+	cp 007h		;49e4   ; por debajo de siete, un ancho fijo
 	jr nc,L_49ED		;49e6
-	call suma_a_a_de		;49e8
+	call suma_a_a_de		;49e8   ; que se salta
 	jr L_49DC		;49eb
 L_49ED:
-	ld a,(de)			;49ed
+	ld a,(de)			;49ed   ; el byte de control
 	inc de			;49ee
 	or a			;49ef
-	jr z,L_49DC		;49f0
-	jp p,L_49FC		;49f2
-	and 07fh		;49f5
+	jr z,L_49DC		;49f0   ; un cero cierra
+	jp p,L_49FC		;49f2   ; bit 7 a cero: una sola celda
+	and 07fh		;49f5   ; y con el bit 7, siete bits de salto
 L_49F7:
 	call suma_a_a_de		;49f7
 	jr L_49ED		;49fa
@@ -1356,7 +1368,7 @@ L_4A00:
 	sub 018h		;4a01
 	cp 0a8h		;4a03
 	ret nc			;4a05
-	call L_4992		;4a06
+	call posicion_a_celda		;4a06
 	ld a,003h		;4a09
 	jp rellena_vram		;4a0b
 L_4A0E:
@@ -1629,7 +1641,7 @@ L_51F5:
 	call mueve_los_dos_bichos_sueltos		;5210
 	call mueve_los_tres_proyectiles		;5213
 	call L_7836		;5216
-	call L_790F		;5219
+	call mueve_el_perseguidor		;5219
 	call L_79EE		;521c
 L_521F:
 	call L_66C2		;521f
@@ -1642,7 +1654,7 @@ L_5227:
 	jr L_521F		;522d
 L_522F:
 	ld a,09ch		;522f
-	call L_7A13		;5231
+	call pide_un_sonido		;5231
 	ld a,008h		;5234
 	ld (0e1b2h),a		;5236
 	xor a			;5239
@@ -2177,17 +2189,21 @@ L_60F3:
 	exx			;60f8
 	ld l,a			;60f9
 	ld b,010h		;60fa
-L_60FC:
-	add hl,hl			;60fc
-	rr (ix+000h)		;60fd
-	rr (ix+010h)		;6101
-	djnz L_60FC		;6105
+
+; ----------------------------------------------------------------------
+; LA TRANSPOSICION DE LOS PATRONES, que es lo mas llamativo del montaje: `add hl,hl` saca el bit de mas peso al acarreo y dos `rr (ix+d)` lo meten por la derecha en DOS bytes separados dieciseis posiciones. Ocho vueltas por byte, ocho bytes por patron: el dibujo sale volcado sobre su diagonal, y por eso los graficos del arbol pueden guardarse en una sola orientacion.
+; ----------------------------------------------------------------------
+transpone_los_patrones:
+	add hl,hl			;60fc   ; el bit de mas peso, al acarreo
+	rr (ix+000h)		;60fd   ; y entra por la derecha en un byte
+	rr (ix+010h)		;6101   ; y en el de dieciseis mas alla
+	djnz transpone_los_patrones		;6105   ; ocho bits
 	exx			;6107
 	inc hl			;6108
 	inc de			;6109
 	inc ix		;610a
 	djnz L_60F3		;610c
-	ld c,010h		;610e
+	ld c,010h		;610e   ; dieciseis bytes por tanda
 	add hl,bc			;6110
 	ex de,hl			;6111
 	add hl,bc			;6112
@@ -2195,9 +2211,9 @@ L_60FC:
 	add ix,bc		;6114
 	pop bc			;6116
 	djnz L_60F0		;6117
-	ld de,01940h		;6119
+	ld de,01940h		;6119   ; el destino en la VRAM
 	ld hl,0e0b0h		;611c
-	ld bc,00140h		;611f
+	ld bc,00140h		;611f   ; 320 bytes
 	call vuelca_bloque		;6122
 	ld hl,05d0dh		;6125
 	call descomprime		;6128
@@ -2271,7 +2287,7 @@ L_6170:
 DATA_tabla_617A:
 	defw 061bfh,0630bh,061e4h,0630bh,063c3h,063e1h,06957h,06a4fh	; 617a
 	defw 0732ah,0734bh,0737ah,0737ah,07395h,07427h,07446h,07466h	; 618a
-	defw 074f8h,07534h,07541h	; 619a  -> L_74F8 L_7534 L_7541
+	defw 074f8h,07534h,07541h	; 619a  -> estado_15_espera_larga estado_16_plazo_de_32 estado_17_reinicia
 
 ; ======================================================================
 ; CODIGO 0x61a0..0x61de  (62 bytes)
@@ -2288,7 +2304,7 @@ lee_las_dos_celdas_de_debajo:
 	ld hl,(0e1b3h)		;61a3   ; la posicion del jugador
 	ld bc,00408h		;61a6   ; desplazada a los pies
 	add hl,bc			;61a9
-	call L_4992		;61aa   ; convertida en celda de pantalla
+	call posicion_a_celda		;61aa   ; convertida en celda de pantalla
 	ld hl,0e1bfh		;61ad   ; donde se guarda lo leido
 	ld b,002h		;61b0   ; dos celdas
 L_61B2:
@@ -2478,7 +2494,7 @@ mira_la_celda_de_al_lado:
 	ld a,h			;62c1
 	add a,004h		;62c2   ; y cuatro al otro
 	ld h,a			;62c4
-	call L_498C		;62c5   ; que hay ahi
+	call lee_la_celda_de_ahi		;62c5   ; que hay ahi
 	sub 078h		;62c8   ; el patron 0x78
 	cp 003h		;62ca   ; y los dos siguientes
 	jr c,pasa_al_estado_6		;62cc
@@ -2501,7 +2517,7 @@ estado_4_con_sonido:
 	ld hl,06572h		;62e6
 	call arranca_gesto		;62e9
 	ld a,005h		;62ec   ; el sonido de este estado
-	call L_7A13		;62ee
+	call pide_un_sonido		;62ee
 	ld a,004h		;62f1   ; estado 4
 	jp pasa_al_estado		;62f3
 rehace_la_pantalla:
@@ -2530,7 +2546,7 @@ estado_1:
 	call mira_los_cuarenta_objetos		;6323
 	jr nc,mira_si_llego_al_suelo		;6326
 	ld a,002h		;6328   ; el sonido de agarrarse
-	call L_7A13		;632a
+	call pide_un_sonido		;632a
 	ld a,(0e1c8h)		;632d   ; el bit 7 de 0xE1C8
 	or a			;6330
 	jp m,compara_con_la_altura		;6331
@@ -2575,7 +2591,7 @@ sube_hasta_la_fila_48:
 se_engancha:
 	call sube_hasta_la_fila_48		;6373
 	ld a,002h		;6376   ; el sonido de engancharse
-	call L_7A13		;6378
+	call pide_un_sonido		;6378
 	ld hl,0e1b4h		;637b
 	ld a,(hl)			;637e
 	add a,004h		;637f   ; la posicion, redondeada a ocho
@@ -2636,7 +2652,7 @@ estado_2_subiendo:
 	ld a,(0e1cbh)		;63d1
 	call sube_al_jugador		;63d4   ; se coloca
 	ld a,006h		;63d7   ; el sonido
-	call L_7A13		;63d9
+	call pide_un_sonido		;63d9
 	ld a,005h		;63dc   ; estado 5
 	jp pasa_al_estado		;63de
 
@@ -2655,7 +2671,7 @@ estado_0_en_el_suelo:
 	and 00ch		;63f7   ; los dos bits de direccion
 	jr z,L_6400		;63f9
 	ld a,002h		;63fb   ; el sonido de andar
-	call L_7A13		;63fd
+	call pide_un_sonido		;63fd
 L_6400:
 	ld a,(0e1b8h)		;6400
 	bit 2,a		;6403   ; el bit 2 elige el paso
@@ -2904,7 +2920,7 @@ L_654B:
 arranca_gesto_con_sonido:
 	push hl			;654e
 	ld a,003h		;654f   ; el sonido del gesto
-	call L_7A13		;6551
+	call pide_un_sonido		;6551
 	pop hl			;6554
 	xor a			;6555
 	jr L_655A		;6556
@@ -3525,7 +3541,7 @@ L_68D5:
 	ld a,(0e1abh)		;68e3
 	add a,a			;68e6   ; los topes
 	jr c,L_68EC		;68e7
-	call L_49B8		;68e9
+	call pinta_bloque_en_su_sitio		;68e9
 L_68EC:
 	pop bc			;68ec
 	pop hl			;68ed
@@ -3646,7 +3662,7 @@ L_6962:
 	cp 00ah		;6994   ; el valor 10, aparte
 	jp z,L_6334		;6996
 	ld (0e056h),a		;6999   ; y si no, ese es el numero de fase
-	jp L_737B		;699c
+	jp llega_arriba_del_todo		;699c
 estado_alterno_trepando:
 	call paso_de_trepar_6		;699f
 	call mira_los_objetos_de_cerca		;69a2
@@ -3692,7 +3708,7 @@ avanza_trepando:
 L_69DF:
 	call mueve_al_jugador		;69df
 	ld a,002h		;69e2   ; y el sonido de trepar
-	jp L_7A13		;69e4
+	jp pide_un_sonido		;69e4
 
 ; ----------------------------------------------------------------------
 ; BUSCAR UN AGARRE en la lista de 0xE1D2, con ocho pixeles de margen. Si lo encuentra, guarda su valor con `ldd` -hacia atras- y devuelve acarreo.
@@ -4300,7 +4316,7 @@ L_6D0E:
 	ld b,002h		;6d21   ; dos si va al otro lado
 L_6D23:
 	push bc			;6d23
-	call L_498C		;6d24   ; que hay en esa celda
+	call lee_la_celda_de_ahi		;6d24   ; que hay en esa celda
 	pop bc			;6d27
 	cp 003h		;6d28   ; el indice 3 es por donde puede pasar
 	jr nz,L_6D3A		;6d2a
@@ -4587,7 +4603,7 @@ L_6ED2:
 	sub 028h		;6ed8   ; la banda util
 	cp 078h		;6eda
 	jr nc,L_6EF5		;6edc
-	call L_498C		;6ede   ; que hay en esa celda
+	call lee_la_celda_de_ahi		;6ede   ; que hay en esa celda
 	cp 003h		;6ee1   ; el indice 3 es por donde se puede pasar
 	jr nz,el_movil_se_agota		;6ee3
 	ld b,004h		;6ee5   ; cuatro celdas
@@ -4641,7 +4657,7 @@ L_6F2C:
 	dec hl			;6f2d
 	call L_49B5		;6f2e
 	ld a,001h		;6f31   ; y el sonido del movil
-	jp L_7A13		;6f33
+	jp pide_un_sonido		;6f33
 
 ; ----------------------------------------------------------------------
 ; EL MOVIL QUE SE AGOTA. Los tipos 0x86 y 0x8A tienen cuenta atras: cuando su nibble bajo llega a 15, se borra la ficha y el objeto queda retirado. Y con el indice 0x9B delante se le quita el bit 6, o sea que cambia de modo.
@@ -4698,7 +4714,7 @@ L_6F6F:
 	ex de,hl			;6f74
 	ld b,002h		;6f75   ; dos celdas
 L_6F77:
-	call L_498C		;6f77   ; que hay ahi
+	call lee_la_celda_de_ahi		;6f77   ; que hay ahi
 	cp 003h		;6f7a   ; el indice 3 es por donde se puede pasar
 	jr nz,L_6F9D		;6f7c
 	ld a,h			;6f7e
@@ -4732,7 +4748,7 @@ repinta_el_movil:
 L_6FA2:
 	call L_4A0E		;6fa2
 	ld de,06fabh		;6fa5   ; su tabla de patrones
-	jp L_49B8		;6fa8
+	jp pinta_bloque_en_su_sitio		;6fa8
 
 ; ----------------------------------------------------------------------
 ; DATOS sin identificar  0x6fab..0x6fb7  (12 bytes)
@@ -5081,7 +5097,7 @@ mira_si_hay_hueco_delante:
 L_7178:
 	ld h,c			;7178
 	ld l,b			;7179
-	call L_498C		;717a   ; que hay en esa celda
+	call lee_la_celda_de_ahi		;717a   ; que hay en esa celda
 	pop de			;717d
 	pop hl			;717e
 	sub 0cdh		;717f   ; los indices desde 0xCD
@@ -5361,7 +5377,7 @@ lanza_el_proyectil:
 	inc hl			;72d9
 	ld (hl),0f4h		;72da   ; el patron de la segunda mitad
 	ld a,04ah		;72dc   ; y el sonido del lanzamiento
-	jp L_7A13		;72de
+	jp pide_un_sonido		;72de
 
 ; ----------------------------------------------------------------------
 ; LOS TRES PROYECTILES. Los dos bits de abajo de su tipo son la velocidad y el bit 6 el sentido, asi que un proyectil rapido y otro lento salen del mismo codigo cambiando dos bits. Cada cuadro avanza esa cantidad y sube el patron.
@@ -5432,113 +5448,121 @@ el_jugador_alcanzado:
 	ret nz			;7334
 	inc (hl)			;7335
 	ld (0e1b6h),a		;7336
-	ld hl,06572h		;7339
+	ld hl,06572h		;7339   ; el guion de la caida
 	call arranca_gesto		;733c
 	xor a			;733f
-	ld (0e032h),a		;7340
-	ld a,00bh		;7343
-	call L_7A13		;7345
+	ld (0e032h),a		;7340   ; se apaga el sonido en curso
+	ld a,00bh		;7343   ; y suena el 0x0B
+	call pide_un_sonido		;7345
 	jp pasa_al_estado_siguiente		;7348
-L_734B:
-	ld a,(0e003h)		;734b
-	rra			;734e
+
+; ----------------------------------------------------------------------
+; ESTADO 12: la caida final, uno de cada dos cuadros. Al llegar al suelo (0x98) suena el 0x9F y se marca con 0xC3 tanto la posicion como (0xE00C), que es la senal de fin de vida.
+; ----------------------------------------------------------------------
+estado_12_cayendo:
+	ld a,(0e003h)		;734b   ; el contador de cuadros
+	rra			;734e   ; uno de cada dos
 	ret nc			;734f
 	push af			;7350
 	call avanza_el_gesto		;7351
 	call mira_si_puede_subir		;7354
 	pop af			;7357
-	bit 2,a		;7358
+	bit 2,a		;7358   ; el bit 2 elige el dibujo
 	ld a,00ch		;735a
 	jr nz,L_735F		;735c
 	inc a			;735e
 L_735F:
 	ld (0e1b5h),a		;735f
 	ld hl,0e1b3h		;7362
-	ld a,098h		;7365
+	ld a,098h		;7365   ; el suelo
 	sub (hl)			;7367
-	ret nc			;7368
+	ret nc			;7368   ; si aun no ha llegado, se sigue cayendo
 	call mueve_al_jugador		;7369
-	ld a,09fh		;736c
-	call L_7A13		;736e
-	ld a,0c3h		;7371
+	ld a,09fh		;736c   ; el sonido del golpe
+	call pide_un_sonido		;736e
+	ld a,0c3h		;7371   ; la marca de fin
 	ld (0e1b3h),a		;7373
-	ld (0e00ch),a		;7376
+	ld (0e00ch),a		;7376   ; y la senal de fin de vida
 	ret			;7379
 L_737A:
 	ret			;737a
-L_737B:
-	ld a,09fh		;737b
-	call L_7A13		;737d
+llega_arriba_del_todo:
+	ld a,09fh		;737b   ; el sonido de llegar
+	call pide_un_sonido		;737d
 	ld a,(0e1cbh)		;7380
-	sub 020h		;7383
+	sub 020h		;7383   ; treinta y dos hacia arriba
 	call sube_al_jugador		;7385
 	ld a,001h		;7388
-	ld (0e1b5h),a		;738a
+	ld (0e1b5h),a		;738a   ; el paso, a uno
 	ld (0e001h),a		;738d
-	ld a,00ch		;7390
+	ld a,00ch		;7390   ; y estado 12
 	jp pasa_al_estado		;7392
-L_7395:
-	call baja_un_tramo		;7395
-	cp 098h		;7398
-	jr nz,L_7395		;739a
+
+; ----------------------------------------------------------------------
+; EL CAMBIO DE FASE. Baja al jugador hasta el suelo de tramo en tramo, limpia 92 bytes de estado propagando un cero con `ldir`, saca los dieciseis sprites de la pantalla y ALTERNA los dos topes laterales segun el bit 0 de (0xE05E): 0x03F0 en una fase y 0x18DF en la siguiente. O sea que el arbol se recorre en un sentido y en el otro.
+; ----------------------------------------------------------------------
+termina_la_fase:
+	call baja_un_tramo		;7395   ; un tramo hacia abajo
+	cp 098h		;7398   ; hasta el suelo
+	jr nz,termina_la_fase		;739a
 	ld hl,0e1f9h		;739c
-	ld (hl),000h		;739f
+	ld (hl),000h		;739f   ; un cero
 	ld de,0e1fah		;73a1
-	ld bc,0005ch		;73a4
+	ld bc,0005ch		;73a4   ; y el ldir lo arrastra por 92 bytes
 	ldir		;73a7
 	ld hl,0e0c0h		;73a9
-	ld (hl),0c3h		;73ac
+	ld (hl),0c3h		;73ac   ; 0xC3: fuera de la pantalla
 	ld de,0e0c1h		;73ae
-	ld bc,0000fh		;73b1
+	ld bc,0000fh		;73b1   ; los dieciseis sprites
 	ldir		;73b4
 	ld hl,0e05eh		;73b6
-	inc (hl)			;73b9
+	inc (hl)			;73b9   ; el contador de fases
 	ld a,(hl)			;73ba
-	rra			;73bb
-	ld hl,003f0h		;73bc
+	rra			;73bb   ; su bit 0
+	ld hl,003f0h		;73bc   ; unos topes
 	jr nc,L_73C4		;73bf
-	ld hl,018dfh		;73c1
+	ld hl,018dfh		;73c1   ; o los otros
 L_73C4:
-	ld (0e057h),hl		;73c4
+	ld (0e057h),hl		;73c4   ; y quedan puestos
 	ld hl,0e1abh		;73c7
-	set 1,(hl)		;73ca
+	set 1,(hl)		;73ca   ; el bit 1: tope por arriba
 	ld de,(0e1c5h)		;73cc
 	inc de			;73d0
-	call lee_de_vram		;73d1
+	call lee_de_vram		;73d1   ; lee de la pantalla
 	inc a			;73d4
 	jr nz,L_741C		;73d5
 	ld hl,0e051h		;73d7
 	ld a,(hl)			;73da
-	add a,001h		;73db
+	add a,001h		;73db   ; el numero de fase, en BCD
 	daa			;73dd
 	ld (hl),a			;73de
 	ld hl,0e05ch		;73df
-	inc (hl)			;73e2
+	inc (hl)			;73e2   ; y el contador de tandas
 	ld a,(hl)			;73e3
 	ld b,a			;73e4
-	cp 009h		;73e5
+	cp 009h		;73e5   ; a las nueve
 	ld hl,076ceh		;73e7
 	jr nz,L_73EF		;73ea
-	ld hl,0778ah		;73ec
+	ld hl,0778ah		;73ec   ; el otro decorado
 L_73EF:
 	ld (0e250h),hl		;73ef
 	ld a,077h		;73f2
 	jr nc,L_7400		;73f4
 	ld a,b			;73f6
-	and 007h		;73f7
-	ld hl,0741fh		;73f9
+	and 007h		;73f7   ; tres bits de la tanda
+	ld hl,0741fh		;73f9   ; la tabla de ocho variantes
 	call suma_a_a_hl		;73fc
 	ld a,(hl)			;73ff
 L_7400:
 	ld (0e05dh),a		;7400
-	ld a,090h		;7403
-	call L_7A13		;7405
-	ld hl,05937h		;7408
+	ld a,090h		;7403   ; el sonido de la fase nueva
+	call pide_un_sonido		;7405
+	ld hl,05937h		;7408   ; el decorado de la fase
 	call L_612C		;740b
 	call L_4476		;740e
 	call L_52BB		;7411
 	call pinta_el_marcador		;7414
-	ld a,00eh		;7417
+	ld a,00eh		;7417   ; y estado 14
 	jp pasa_al_estado		;7419
 L_741C:
 	jp pasa_al_estado_siguiente		;741c
@@ -5553,75 +5577,79 @@ DATA_741F:
 ; ======================================================================
 
 
-L_7427:
+arranca_la_fase:
 	xor a			;7427
-	ld (0e003h),a		;7428
+	ld (0e003h),a		;7428   ; el contador de cuadros, a cero
 	ld a,004h		;742b
-	ld (0e05fh),a		;742d
-	ld a,(0e05eh)		;7430
-	rra			;7433
-	ld a,08ch		;7434
+	ld (0e05fh),a		;742d   ; cuatro objetos por recoger
+	ld a,(0e05eh)		;7430   ; el contador de fases
+	rra			;7433   ; su bit 0
+	ld a,08ch		;7434   ; un sonido
 	jr nc,L_743A		;7436
-	ld a,009h		;7438
+	ld a,009h		;7438   ; o el otro, segun el sentido de la fase
 L_743A:
-	call L_7A13		;743a
+	call pide_un_sonido		;743a
 L_743D:
 	xor a			;743d
 	ld (0e001h),a		;743e
-	ld a,000h		;7441
+	ld a,000h		;7441   ; y estado 0
 	jp pasa_al_estado		;7443
-L_7446:
-	call L_7612		;7446
-	ld a,(0e1b4h)		;7449
-	cp 098h		;744c
-	ld a,004h		;744e
+estado_13_subiendo_al_final:
+	call baja_el_plazo_cada_ocho		;7446
+	ld a,(0e1b4h)		;7449   ; la posicion del jugador
+	cp 098h		;744c   ; el suelo
+	ld a,004h		;744e   ; cuatro
 	jr nc,L_7453		;7450
-	add a,a			;7452
+	add a,a			;7452   ; u ocho
 L_7453:
 	ld (0e009h),a		;7453
 	call elige_el_paso_del_dibujo		;7456
 	dec hl			;7459
-	ld a,098h		;745a
+	ld a,098h		;745a   ; cuando llega a 0x98
 	cp (hl)			;745c
 	ret nz			;745d
 	ld a,008h		;745e
 	ld (0e1b7h),a		;7460
 	jp pasa_al_estado_siguiente		;7463
-L_7466:
-	call L_7612		;7466
+
+; ----------------------------------------------------------------------
+; ESTADO 14: el remate de la fase. En la novena fase y con poco plazo saca su rotulo; el paso del dibujo alterna con el bit 4 del contador de cuadros -uno de cada dieciseis-, y al acabar reparte DOS MIL puntos y pinta la altura.
+; ----------------------------------------------------------------------
+estado_14_el_remate:
+	call baja_el_plazo_cada_ocho		;7466
 	push af			;7469
-	ld a,(0e05ch)		;746a
-	cp 009h		;746d
+	ld a,(0e05ch)		;746a   ; el contador de fases
+	cp 009h		;746d   ; la novena
 	jr nz,L_747E		;746f
 	ld a,(0e004h)		;7471
-	cp 015h		;7474
+	cp 015h		;7474   ; y con menos de 21 de plazo
 	jr nc,L_747E		;7476
 	ld hl,075eeh		;7478
-	call L_7553		;747b
+	call pinta_dos_bloques_de_3x3		;747b
 L_747E:
 	ld a,(0e003h)		;747e
-	bit 4,a		;7481
+	bit 4,a		;7481   ; el bit 4 del contador de cuadros
 	ld a,001h		;7483
 	jr nz,L_7488		;7485
 	inc a			;7487
 L_7488:
-	ld (0e1b5h),a		;7488
+	ld (0e1b5h),a		;7488   ; y ese es el paso
 	pop af			;748b
 	ret p			;748c
-	ld a,(0e012h)		;748d
+	ld a,(0e012h)		;748d   ; espera a que pare el sonido
 	or a			;7490
 	ret nz			;7491
 	ld a,(0e05ch)		;7492
 	cp 009h		;7495
-	jr z,L_74EA		;7497
-	ld hl,07565h		;7499
+	jr z,remate_de_la_novena		;7497
+	ld hl,07565h		;7499   ; el rotulo "STAGE  CLEAR"
 	call pinta_rotulo		;749c
-	ld de,02000h		;749f
+	ld de,02000h		;749f   ; dos mil puntos
 	ld (0e241h),de		;74a2
 	call suma_puntos		;74a6
 	ld hl,0e242h		;74a9
 	ld de,03991h		;74ac
-	call L_66E2		;74af
+	call L_66E2		;74af   ; y la altura
 	ld hl,0b888h		;74b2
 	ld de,075a7h		;74b5
 	ld bc,00608h		;74b8
@@ -5629,48 +5657,56 @@ L_7488:
 	ld bc,(075ech)		;74be
 	ld a,c			;74c2
 	ld de,0e241h		;74c3
+
+; ----------------------------------------------------------------------
+; LA ALTURA QUE FALTA, restada en BCD con `sbc a,(hl) / daa` sobre los dos bytes: es lo que se pinta al acabar la fase.
+; ----------------------------------------------------------------------
 	ld hl,0e1bch		;74c6
-	sub (hl)			;74c9
-	daa			;74ca
+	sub (hl)			;74c9   ; la altura alcanzada
+	daa			;74ca   ; en BCD
 	ld (de),a			;74cb
 	inc hl			;74cc
 	inc de			;74cd
 	ld a,b			;74ce
-	sbc a,(hl)			;74cf
+	sbc a,(hl)			;74cf   ; el byte alto, con acarreo
 	daa			;74d0
 	ld (de),a			;74d1
 	ex de,hl			;74d2
 	ld de,03a79h		;74d3
 	call L_66E2		;74d6
 L_74D9:
-	ld a,008h		;74d9
-	call L_7A13		;74db
+	ld a,008h		;74d9   ; el sonido del recuento
+	call pide_un_sonido		;74db
 	ld a,000h		;74de
 	ld (0e1b5h),a		;74e0
 L_74E3:
 	xor a			;74e3
 	ld (0e003h),a		;74e4
 	jp pasa_al_estado_siguiente		;74e7
-L_74EA:
+remate_de_la_novena:
 	ld hl,07600h		;74ea
-	call L_7553		;74ed
-	ld hl,07595h		;74f0
+	call pinta_dos_bloques_de_3x3		;74ed
+	ld hl,07595h		;74f0   ; el rotulo "CONGRATULATIONS"
 	call pinta_rotulo		;74f3
 	jr L_74D9		;74f6
-L_74F8:
-	ld a,(0e003h)		;74f8
-	and 07fh		;74fb
+
+; ----------------------------------------------------------------------
+; ESTADO 15: la espera larga, una vez de cada 128 cuadros. Monta el decorado de la fase siguiente, pone el tope de arriba y levanta la senal de (0xE00D).
+; ----------------------------------------------------------------------
+estado_15_espera_larga:
+	ld a,(0e003h)		;74f8   ; el contador de cuadros
+	and 07fh		;74fb   ; uno de cada 128
 	ret nz			;74fd
-	ld a,(0e05ch)		;74fe
-	cp 009h		;7501
+	ld a,(0e05ch)		;74fe   ; el contador de fases
+	cp 009h		;7501   ; la novena va aparte
 	jr z,L_74E3		;7503
-	ld hl,0757dh		;7505
+	ld hl,0757dh		;7505   ; el bloque comprimido
 	call descomprime		;7508
 	ld hl,0b888h		;750b
 	ld de,075dah		;750e
 	ld bc,00608h		;7511
 	call L_49BC		;7514
-	ld a,080h		;7517
+	ld a,080h		;7517   ; el tope de arriba
 L_7519:
 	ld (0e1abh),a		;7519
 	call pinta_el_marcador		;751c
@@ -5680,31 +5716,31 @@ L_7519:
 	ld (0e05ah),hl		;7526
 	call L_5363		;7529
 	ld a,001h		;752c
-	ld (0e00dh),a		;752e
+	ld (0e00dh),a		;752e   ; y la senal
 	jp L_743D		;7531
-L_7534:
-	ld a,(0e003h)		;7534
+estado_16_plazo_de_32:
+	ld a,(0e003h)		;7534   ; el contador de cuadros
 	or a			;7537
 	ret nz			;7538
-	ld a,020h		;7539
+	ld a,020h		;7539   ; 32 cuadros de plazo
 	ld (0e004h),a		;753b
 	jp pasa_al_estado_siguiente		;753e
-L_7541:
+estado_17_reinicia:
 	call baja_los_contadores_y_barre		;7541
 	ret p			;7544
-	ld hl,051c5h		;7545
+	ld hl,051c5h		;7545   ; los trece valores iniciales
 	ld de,0e054h		;7548
-	ld bc,0000dh		;754b
+	ld bc,0000dh		;754b   ; trece bytes
 	ldir		;754e
 	xor a			;7550
 	jr L_7519		;7551
-L_7553:
+pinta_dos_bloques_de_3x3:
 	ld de,0390ah		;7553
-	ld bc,00303h		;7556
-	call L_49A6		;7559
+	ld bc,00303h		;7556   ; tres por tres
+	call vuelca_b_filas		;7559
 	ld de,03912h		;755c
-	ld bc,00303h		;755f
-	jp L_49A6		;7562
+	ld bc,00303h		;755f   ; y el segundo, ocho celdas mas alla
+	jp vuelca_b_filas		;7562
 
 ; ----------------------------------------------------------------------
 ; DATOS guion_0x7565: 24 bytes, 2 tramos, 18 bytes a la VRAM; lo pinta 0x7499
@@ -5744,15 +5780,19 @@ DATA_75A7:
 ; ======================================================================
 
 
-L_7612:
-	ld a,(0e003h)		;7612
-	and 007h		;7615
+
+; ----------------------------------------------------------------------
+; BAJAR EL PLAZO UNA VEZ DE CADA OCHO CUADROS, y devolver su bit 0 con el mismo truco del vaiven: `srl a / jr c` hace que el valor suba y baje en vez de solo bajar.
+; ----------------------------------------------------------------------
+baja_el_plazo_cada_ocho:
+	ld a,(0e003h)		;7612   ; el contador de cuadros
+	and 007h		;7615   ; uno de cada ocho
 	ret nz			;7617
 	ld hl,0e004h		;7618
-	dec (hl)			;761b
-	ret m			;761c
+	dec (hl)			;761b   ; el plazo, uno menos
+	ret m			;761c   ; si se paso de cero, se sale con el signo
 	ld a,(hl)			;761d
-	srl a		;761e
+	srl a		;761e   ; el bit de abajo al acarreo
 	jr c,L_7624		;7620
 	xor 01fh		;7622
 L_7624:
@@ -5955,7 +5995,7 @@ L_786E:
 	ld a,b			;7871
 	add a,010h		;7872
 	ld l,a			;7874
-	call L_498C		;7875
+	call lee_la_celda_de_ahi		;7875
 	pop de			;7878
 	pop hl			;7879
 	cp 003h		;787a
@@ -5995,7 +6035,7 @@ L_7897:
 	add a,010h		;78a5
 	ld h,a			;78a7
 L_78A8:
-	call L_498C		;78a8
+	call lee_la_celda_de_ahi		;78a8
 	pop de			;78ab
 	sub 0cdh		;78ac
 	cp 004h		;78ae
@@ -6004,7 +6044,7 @@ L_78A8:
 	ld a,l			;78b2
 	sub 008h		;78b3
 	ld l,a			;78b5
-	call L_498C		;78b6
+	call lee_la_celda_de_ahi		;78b6
 	pop de			;78b9
 	sub 08ch		;78ba
 	cp 003h		;78bc
@@ -6028,7 +6068,7 @@ L_78D1:
 	ld a,d			;78d8
 	sub (hl)			;78d9
 	cp 010h		;78da
-	jr c,L_78E7		;78dc
+	jr c,apunta_al_perseguidor		;78dc
 L_78DE:
 	inc hl			;78de
 	inc hl			;78df
@@ -6037,23 +6077,23 @@ L_78DE:
 	djnz L_78D1		;78e2
 L_78E4:
 	jp L_6FC7		;78e4
-L_78E7:
+apunta_al_perseguidor:
 	inc hl			;78e7
 	inc hl			;78e8
 	ld a,(hl)			;78e9
-	or a			;78ea
+	or a			;78ea   ; vacio: al siguiente
 	jr z,L_78E4		;78eb
 	ex de,hl			;78ed
 	ld hl,0e21ch		;78ee
 	ld a,c			;78f1
-	add a,a			;78f2
+	add a,a			;78f2   ; el numero por tres
 	add a,c			;78f3
 	call suma_a_a_hl		;78f4
-	ld (hl),080h		;78f7
+	ld (hl),080h		;78f7   ; se marca el bit 7
 	ld hl,0e239h		;78f9
 	ld a,(hl)			;78fc
-	inc a			;78fd
-	cp 003h		;78fe
+	inc a			;78fd   ; el contador, uno mas
+	cp 003h		;78fe   ; el tope son tres
 	ret nc			;7900
 	ld (hl),a			;7901
 	cp 002h		;7902
@@ -6066,27 +6106,31 @@ L_78E7:
 	ld a,090h		;790b
 	ld (de),a			;790d
 	ret			;790e
-L_790F:
-	ld hl,0e23ah		;790f
+
+; ----------------------------------------------------------------------
+; EL PERSEGUIDOR EN MARCHA. Con el bit 7 puesto solo se atiende uno de cada ocho cuadros; el bit 3 le anade 0x40 al estado.
+; ----------------------------------------------------------------------
+mueve_el_perseguidor:
+	ld hl,0e23ah		;790f   ; la ficha del perseguidor
 	ld a,(hl)			;7912
-	or a			;7913
+	or a			;7913   ; vacia
 	ret z			;7914
 	ld b,a			;7915
 	ld d,h			;7916
 	ld e,l			;7917
 	inc hl			;7918
-	ld c,(hl)			;7919
+	ld c,(hl)			;7919   ; el objeto al que sigue
 	ld hl,0e104h		;791a
 	call L_4A3B		;791d
 	call L_708D		;7920
 	jr nc,L_7939		;7923
 	bit 7,b		;7925
 	jr z,L_793C		;7927
-	ld a,(0e003h)		;7929
-	and 007h		;792c
+	ld a,(0e003h)		;7929   ; el contador de cuadros
+	and 007h		;792c   ; uno de cada ocho
 	ret nz			;792e
 	call alterna_el_dibujo_del_bicho		;792f
-	bit 3,b		;7932
+	bit 3,b		;7932   ; el bit 3
 	ret z			;7934
 	ld a,040h		;7935
 	ld (de),a			;7937
@@ -6164,7 +6208,7 @@ L_7992:
 	xor a			;799d
 	ld (de),a			;799e
 	ld a,007h		;799f
-	jp L_7A13		;79a1
+	jp pide_un_sonido		;79a1
 L_79A4:
 	ex af,af'			;79a4
 	push bc			;79a5
@@ -6177,17 +6221,21 @@ L_79AC:
 	inc hl			;79b0
 	inc c			;79b1
 	djnz L_79AC		;79b2
-	jr L_79B8		;79b4
+	jr cobra_el_objeto		;79b4
 L_79B6:
 	set 7,(hl)		;79b6
-L_79B8:
-	ld hl,0e120h		;79b8
+
+; ----------------------------------------------------------------------
+; COBRAR UN OBJETO: saca de la tabla de 0x79DE los puntos que vale -indexada por su tipo, por dos- y los suma con el byte alto, o sea en centenas. Ademas deja el sprite del premio con el color 0x0F.
+; ----------------------------------------------------------------------
+cobra_el_objeto:
+	ld hl,0e120h		;79b8   ; el hueco del sprite
 	call L_4A3B		;79bb
 	pop bc			;79be
 	ex af,af'			;79bf
 	ex de,hl			;79c0
-	add a,a			;79c1
-	ld hl,079deh		;79c2
+	add a,a			;79c1   ; el tipo por dos
+	ld hl,079deh		;79c2   ; la tabla de valores
 	call suma_a_a_hl		;79c5
 	ld a,(hl)			;79c8
 	inc hl			;79c9
@@ -6199,11 +6247,11 @@ L_79B8:
 	inc hl			;79cf
 	ld (hl),a			;79d0
 	inc hl			;79d1
-	ld (hl),00fh		;79d2
+	ld (hl),00fh		;79d2   ; el color del premio
 	ld e,000h		;79d4
-	call suma_puntos		;79d6
-	ld a,004h		;79d9
-	jp L_7A13		;79db
+	call suma_puntos		;79d6   ; y se suman los puntos
+	ld a,004h		;79d9   ; y suena el aviso
+	jp pide_un_sonido		;79db
 
 ; ----------------------------------------------------------------------
 ; DATOS sin identificar  0x79de..0x79ee  (16 bytes)
@@ -6227,36 +6275,40 @@ L_79FA:
 	inc (hl)			;79fe
 	bit 2,(hl)		;79ff
 	jr z,L_7A0E		;7a01
-	ld (hl),000h		;7a03
+	ld (hl),000h		;7a03   ; la ficha, borrada
 	ld de,0e120h		;7a05
 	call L_4A41		;7a08
-	ld a,0c3h		;7a0b
+	ld a,0c3h		;7a0b   ; 0xC3: fuera de la pantalla
 	ld (de),a			;7a0d
 L_7A0E:
 	inc hl			;7a0e
 	inc c			;7a0f
 	djnz L_79FA		;7a10
 	ret			;7a12
-L_7A13:
+pide_un_sonido:
 	di			;7a13
-	ld d,000h		;7a14
-	call L_7A1B		;7a16
+	ld d,000h		;7a14   ; D a cero: no se fuerza
+	call reparte_el_sonido		;7a16
 	ei			;7a19
 	ret			;7a1a
-L_7A1B:
-	ld c,a			;7a1b
-	ld b,002h		;7a1c
-	ld hl,0e012h		;7a1e
-	cp 08ch		;7a21
+
+; ----------------------------------------------------------------------
+; REPARTIR UN SONIDO ENTRE LAS VOCES. El numero decide a que grupo va -por debajo de 0x8C, de 0x8C a 0x8F, o de 0x90 en adelante-, y dentro de los efectos los numeros 9 y 10 tienen su propio hueco. Cada grupo lleva PRIORIDAD: si lo que suena tiene el numero mas alto, el nuevo no entra.
+; ----------------------------------------------------------------------
+reparte_el_sonido:
+	ld c,a			;7a1b   ; el numero de sonido
+	ld b,002h		;7a1c   ; dos voces
+	ld hl,0e012h		;7a1e   ; la voz de los efectos
+	cp 08ch		;7a21   ; por debajo de 0x8C: efecto
 	jr c,L_7A2C		;7a23
-	cp 090h		;7a25
+	cp 090h		;7a25   ; de 0x8C a 0x8F
 	jr c,$+29		;7a27
-	inc b			;7a29
+	inc b			;7a29   ; y de 0x90 en adelante, una voz mas
 	jr $+26		;7a2a
 L_7A2C:
 	dec b			;7a2c
-	and 03fh		;7a2d
-	cp 009h		;7a2f
+	and 03fh		;7a2d   ; seis bits
+	cp 009h		;7a2f   ; los sonidos 9 y 10 tienen su hueco
 	jr z,$+19		;7a31
 	cp 00ah		;7a33
 	jr z,$+12		;7a35
@@ -6275,56 +6327,60 @@ DATA_7A3C:
 
 L_7A41:
 	ld hl,0e01dh		;7a41
-L_7A44:
-	dec d			;7a44
-	jr z,L_7A5A		;7a45
-	ld e,(hl)			;7a47
+compara_prioridades:
+	dec d			;7a44   ; D dice si se fuerza
+	jr z,arranca_la_voz		;7a45
+	ld e,(hl)			;7a47   ; la prioridad de lo que esta sonando
 	ld a,e			;7a48
 	and 03fh		;7a49
 	ld (hl),a			;7a4b
 	ld a,c			;7a4c
 	and 03fh		;7a4d
-	cp (hl)			;7a4f
+	cp (hl)			;7a4f   ; contra la del que llega
 	ld (hl),e			;7a50
-	ret z			;7a51
+	ret z			;7a51   ; si empatan o pierde, no entra
 	ret c			;7a52
-	cp 019h		;7a53
-	jr c,L_7A5A		;7a55
+	cp 019h		;7a53   ; por debajo de 0x19 va directo
+	jr c,arranca_la_voz		;7a55
 	and 03fh		;7a57
 	ld c,a			;7a59
-L_7A5A:
-	add a,a			;7a5a
-	ld de,07c58h		;7a5b
+
+; ----------------------------------------------------------------------
+; ARRANCAR UNA VOZ: la cuenta a uno para que suene en el cuadro siguiente, el numero de sonido y los dos bytes de la partitura, sacados de la tabla de 0x7C58. Los cinco bytes que se salta con `ld a,005h / add a,l` son el resto del estado.
+; ----------------------------------------------------------------------
+arranca_la_voz:
+	add a,a			;7a5a   ; el numero por dos
+	ld de,07c58h		;7a5b   ; la tabla de sonidos
 	call suma_a_a_de		;7a5e
 	dec hl			;7a61
 	dec hl			;7a62
 L_7A63:
-	ld (hl),001h		;7a63
+	ld (hl),001h		;7a63   ; la cuenta, a uno: suena ya
 	inc hl			;7a65
 	ld (hl),001h		;7a66
 	inc hl			;7a68
-	ld (hl),c			;7a69
+	ld (hl),c			;7a69   ; el numero de sonido
 	inc hl			;7a6a
-	ld a,(de)			;7a6b
+	ld a,(de)			;7a6b   ; y su partitura, dos bytes
 	ld (hl),a			;7a6c
 	inc hl			;7a6d
 	inc de			;7a6e
 	ld a,(de)			;7a6f
 	ld (hl),a			;7a70
-	ld a,005h		;7a71
+	ld a,005h		;7a71   ; cinco bytes mas alla del estado
 	add a,l			;7a73
 	ld l,a			;7a74
-	ld (hl),000h		;7a75
+	ld (hl),000h		;7a75   ; las vueltas, a cero
 	inc hl			;7a77
 	inc hl			;7a78
 	inc de			;7a79
 	djnz L_7A63		;7a7a
 	ret			;7a7c
-L_7A7D:
+repite_o_encadena:
 	inc hl			;7a7d
-	ld a,(ix+009h)		;7a7e
-	inc a			;7a81
-	cp (hl)			;7a82
+	ld a,(ix+009h)		;7a7e   ; las vueltas dadas
+	inc a			;7a81   ; una mas
+	cp (hl)			;7a82   ; contra las que pide la partitura
 	jp z,L_7BA0		;7a83
 	jp m,L_7A8A		;7a86
 	dec a			;7a89
@@ -6333,7 +6389,7 @@ L_7A8A:
 	ld a,(ix+002h)		;7a8b
 	push bc			;7a8e
 	ld d,001h		;7a8f
-	call L_7A1B		;7a91
+	call reparte_el_sonido		;7a91
 	pop bc			;7a94
 	ex af,af'			;7a95
 	ld (ix+009h),a		;7a96
@@ -6359,59 +6415,67 @@ L_7AAE:
 L_7AAF:
 	set 1,a		;7aaf
 	bit 4,a		;7ab1
-	jr z,L_7AB7		;7ab3
+	jr z,escribe_el_volumen_general		;7ab3
 	res 1,a		;7ab5
-L_7AB7:
-	ld (0e031h),a		;7ab7
+escribe_el_volumen_general:
+	ld (0e031h),a		;7ab7   ; la copia en RAM
 	ld e,a			;7aba
-	ld a,007h		;7abb
+	ld a,007h		;7abb   ; registro 7 del PSG
 	jp 00093h		;7abd   ; BIOS WRTPSG - Writes data to PSG-register
-L_7AC0:
-	ld a,(0e031h)		;7ac0
-	call L_7AB7		;7ac3
-	ld c,001h		;7ac6
-	ld ix,0e010h		;7ac8
+
+; ----------------------------------------------------------------------
+; EL REPRODUCTOR, una vez por cuadro y lo primero que hace la interrupcion. TRES voces de once bytes desde 0xE010, recorridas con IX saltando de once en once mientras C va 1, 3, 5: los registros de periodo del PSG. La voz cuyo sonido sea el 0x0B lleva ademas un tratamiento aparte.
+; ----------------------------------------------------------------------
+suena_un_cuadro:
+	ld a,(0e031h)		;7ac0   ; el volumen general
+	call escribe_el_volumen_general		;7ac3
+	ld c,001h		;7ac6   ; el primer canal del PSG
+	ld ix,0e010h		;7ac8   ; el estado de la primera voz
 	exx			;7acc
-	ld b,003h		;7acd
-	ld de,0000bh		;7acf
+	ld b,003h		;7acd   ; tres voces
+	ld de,0000bh		;7acf   ; once bytes cada una
 L_7AD2:
 	exx			;7ad2
-	ld a,(ix+002h)		;7ad3
+	ld a,(ix+002h)		;7ad3   ; el sonido de esta voz
 	push af			;7ad6
-	cp 00bh		;7ad7
-	call z,L_7AEA		;7ad9
+	cp 00bh		;7ad7   ; el 0x0B va aparte
+	call z,barrido_del_sonido_0B		;7ad9
 	pop af			;7adc
-	or a			;7add
-	call nz,L_7B18		;7ade
-	inc c			;7ae1
+	or a			;7add   ; callada: no se toca
+	call nz,avanza_una_voz		;7ade
+	inc c			;7ae1   ; dos registros por canal
 	inc c			;7ae2
 	exx			;7ae3
-	add ix,de		;7ae4
+	add ix,de		;7ae4   ; y once bytes hasta la voz siguiente
 	djnz L_7AD2		;7ae6
 	exx			;7ae8
 	ret			;7ae9
-L_7AEA:
-	ld hl,0e035h		;7aea
+
+; ----------------------------------------------------------------------
+; EL SONIDO 0x0B, que no lee partitura: le SUMA DOS al periodo en cada cuadro -con acarreo al byte alto- de modo que el tono sube solo. Y cuando (0xE032) vale cero, en vez de eso copia cuatro bytes hacia atras con `lddr`. Es el unico sonido con logica propia.
+; ----------------------------------------------------------------------
+barrido_del_sonido_0B:
+	ld hl,0e035h		;7aea   ; su bloque de estado
 	ld de,07b17h		;7aed
-	ld a,(0e032h)		;7af0
+	ld a,(0e032h)		;7af0   ; la bandera que elige el modo
 	cp 000h		;7af3
 	jr z,L_7B07		;7af5
-	ld a,002h		;7af7
+	ld a,002h		;7af7   ; dos al periodo
 	add a,(hl)			;7af9
 	ld (hl),a			;7afa
 	dec hl			;7afb
 	jr nc,L_7AFF		;7afc
-	inc (hl)			;7afe
+	inc (hl)			;7afe   ; con acarreo al byte alto
 L_7AFF:
 	dec hl			;7aff
-	ld (ix+003h),l		;7b00
+	ld (ix+003h),l		;7b00   ; y queda apuntado
 	ld (ix+004h),h		;7b03
 	ret			;7b06
 L_7B07:
 	push bc			;7b07
 	ex de,hl			;7b08
-	ld bc,00004h		;7b09
-	lddr		;7b0c
+	ld bc,00004h		;7b09   ; cuatro bytes
+	lddr		;7b0c   ; copiados hacia atras
 	ex de,hl			;7b0e
 	pop bc			;7b0f
 	inc hl			;7b10
@@ -6428,38 +6492,42 @@ DATA_7B14:
 ; ======================================================================
 
 
-L_7B18:
-	bit 6,a		;7b18
+
+; ----------------------------------------------------------------------
+; AVANZAR UNA VOZ. (ix+0) es lo que le queda a la nota; mientras no llegue a cero no se lee nada. El valor 0xFE de la partitura es la marca de repeticion, y los nibbles altos son modificadores: 0x2n cambia el instrumento y 0x1n toca el envolvente.
+; ----------------------------------------------------------------------
+avanza_una_voz:
+	bit 6,a		;7b18   ; el bit 6 del estado
 	ld d,001h		;7b1a
 	call z,L_7A9A		;7b1c
 	ld a,(ix+002h)		;7b1f
 	or a			;7b22
 	jp m,L_7BB0		;7b23
-	dec (ix+000h)		;7b26
-	ret nz			;7b29
+	dec (ix+000h)		;7b26   ; lo que le queda a la nota
+	ret nz			;7b29   ; todavia suena
 L_7B2A:
-	ld l,(ix+003h)		;7b2a
+	ld l,(ix+003h)		;7b2a   ; por donde va la partitura
 	ld h,(ix+004h)		;7b2d
 	ld a,(hl)			;7b30
-	cp 0feh		;7b31
-	jp z,L_7A7D		;7b33
+	cp 0feh		;7b31   ; 0xFE: volver al principio
+	jp z,repite_o_encadena		;7b33
 	jr nc,L_7BA0		;7b36
 	bit 7,(ix+002h)		;7b38
 	jp nz,L_7BDB		;7b3c
-	and 0f0h		;7b3f
-	cp 020h		;7b41
+	and 0f0h		;7b3f   ; el nibble alto manda
+	cp 020h		;7b41   ; 0x2n cambia el instrumento
 	jr nz,L_7B4C		;7b43
 	ld a,(hl)			;7b45
 	and 00fh		;7b46
-	ld (ix+001h),a		;7b48
+	ld (ix+001h),a		;7b48   ; el nibble bajo es el numero
 	inc hl			;7b4b
 L_7B4C:
 	ld a,(hl)			;7b4c
 	and 0f0h		;7b4d
-	cp 010h		;7b4f
+	cp 010h		;7b4f   ; 0x1n toca el envolvente
 	jr nz,L_7B63		;7b51
 	ld a,(hl)			;7b53
-	and 01fh		;7b54
+	and 01fh		;7b54   ; y los cinco bits de abajo, su forma
 	ld e,a			;7b56
 	ld a,006h		;7b57
 	call 00093h		;7b59   ; BIOS WRTPSG - Writes data to PSG-register
