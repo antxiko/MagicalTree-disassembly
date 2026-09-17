@@ -260,7 +260,7 @@ L_411D:
 L_4126:
 	call baja_los_contadores_y_barre		;4126
 	ret p			;4129
-	call L_53C2		;412a
+	call arranca_la_vida		;412a
 	jr plazo_de_32_y_siguiente_escena		;412d
 
 ; ----------------------------------------------------------------------
@@ -1579,26 +1579,30 @@ L_518E:
 	ld a,(0e002h)		;5194
 	and 020h		;5197
 	push af			;5199
-	jr z,L_51A1		;519a
+	jr z,reinicia_el_estado_del_jugador		;519a
 	ld l,046h		;519c
 	inc bc			;519e
 	inc bc			;519f
 	inc bc			;51a0
-L_51A1:
+
+; ----------------------------------------------------------------------
+; REINICIAR AL JUGADOR: propaga un cero con `ldir` desde la propia celda, copia los diecisiete valores iniciales y, si hay dos jugadores, duplica el bloque entero en el hueco del segundo.
+; ----------------------------------------------------------------------
+reinicia_el_estado_del_jugador:
 	ld d,h			;51a1
 	ld e,l			;51a2
 	inc e			;51a3
-	ld (hl),000h		;51a4
-	ldir		;51a6
-	ld hl,051c1h		;51a8
+	ld (hl),000h		;51a4   ; un cero
+	ldir		;51a6   ; y el ldir lo arrastra
+	ld hl,051c1h		;51a8   ; los diecisiete valores iniciales
 	ld de,0e050h		;51ab
 	ld bc,00011h		;51ae
 	ldir		;51b1
 	pop af			;51b3
-	ret z			;51b4
-	ld hl,0e050h		;51b5
+	ret z			;51b4   ; con un jugador, aqui se acaba
+	ld hl,0e050h		;51b5   ; y con dos, el estado se duplica
 	ld de,0e080h		;51b8
-	ld bc,00020h		;51bb
+	ld bc,00020h		;51bb   ; los treinta y dos bytes
 	ldir		;51be
 	ret			;51c0
 
@@ -1614,20 +1618,20 @@ DATA_valores_iniciales:
 
 
 L_51D2:
-	call L_60C9		;51d2
-	call L_52AE		;51d5
-	call L_5321		;51d8
-	jp L_52A2		;51db
+	call monta_los_graficos		;51d2
+	call limpia_los_objetos		;51d5
+	call pone_en_pie_la_partida		;51d8
+	jp vuelca_los_sprites		;51db
 L_51DE:
 	ld a,(0e001h)		;51de
 	or a			;51e1
 	jp nz,L_5227		;51e2
-	call L_52A2		;51e5
+	call vuelca_los_sprites		;51e5
 	call L_5242		;51e8
 	jr c,L_522F		;51eb
 	call L_77CA		;51ed
 	jr nc,L_51F5		;51f0
-	call L_77E7		;51f2
+	call suelta_el_premio		;51f2
 L_51F5:
 	call L_6170		;51f5
 	call mueve_los_tres_perseguidores		;51f8
@@ -1649,7 +1653,7 @@ L_521F:
 	ld (0e1aah),a		;5223
 	ret			;5226
 L_5227:
-	call L_52A2		;5227
+	call vuelca_los_sprites		;5227
 	call L_6170		;522a
 	jr L_521F		;522d
 L_522F:
@@ -1675,81 +1679,97 @@ L_5242:
 L_5254:
 	ld hl,0e1bfh		;5254
 	ld b,002h		;5257
-L_5259:
-	ld a,(hl)			;5259
+busca_un_patron_del_arbol:
+	ld a,(hl)			;5259   ; el patron
 	ld c,a			;525a
-	sub 020h		;525b
-	cp 00eh		;525d
+	sub 020h		;525b   ; los indices desde 0x20
+	cp 00eh		;525d   ; catorce seguidos
 	ret c			;525f
 	inc hl			;5260
-	djnz L_5259		;5261
-	ld hl,0e0e4h		;5263
-	ld de,01010h		;5266
-	ld b,008h		;5269
-L_526B:
+	djnz busca_un_patron_del_arbol		;5261
+	ld hl,0e0e4h		;5263   ; los huecos de sprite
+	ld de,01010h		;5266   ; dieciseis por dieciseis
+	ld b,008h		;5269   ; ocho
+
+; ----------------------------------------------------------------------
+; LA CAJA CONTRA LOS OCHO HUECOS de sprite de 0xE0E4, de 0x10 por 0x10. Los patrones 0x90 y 0x94 se saltan: son los que no hacen dano.
+; ----------------------------------------------------------------------
+mira_los_ocho_huecos:
 	push bc			;526b
-	call L_5284		;526c
+	call caja_alrededor_del_jugador		;526c
 	pop bc			;526f
 	inc hl			;5270
 	jr nc,L_527E		;5271
 	ld a,(hl)			;5273
-	cp 090h		;5274
+	cp 090h		;5274   ; estos dos patrones no cuentan
 	jr z,L_527E		;5276
 	cp 094h		;5278
 	jr z,L_527E		;527a
-	scf			;527c
+	scf			;527c   ; acarreo: hay contacto
 	ret			;527d
 L_527E:
 	inc hl			;527e
-	inc hl			;527f
-	djnz L_526B		;5280
+	inc hl			;527f   ; tres bytes por hueco
+	djnz mira_los_ocho_huecos		;5280
 	xor a			;5282
 	ret			;5283
-L_5284:
-	ld bc,(0e1b3h)		;5284
-	ld a,008h		;5288
+
+; ----------------------------------------------------------------------
+; LA CAJA ALREDEDOR DEL JUGADOR, y no es simetrica: de 8 a 0x18 en una coordenada y de 6 a 0x0A en la otra. Es la manera de que rozar por arriba no cuente igual que chocar de frente.
+; ----------------------------------------------------------------------
+caja_alrededor_del_jugador:
+	ld bc,(0e1b3h)		;5284   ; la posicion del jugador
+	ld a,008h		;5288   ; ocho por delante
 	add a,c			;528a
 	sub (hl)			;528b
-	cp e			;528c
+	cp e			;528c   ; contra el ancho
 	jr c,L_5294		;528d
-	ld a,018h		;528f
+	ld a,018h		;528f   ; y veinticuatro
 	add a,c			;5291
 	sub (hl)			;5292
 	cp e			;5293
 L_5294:
 	inc hl			;5294
 	ret nc			;5295
-	ld a,006h		;5296
+	ld a,006h		;5296   ; seis por arriba
 	add a,b			;5298
 	sub (hl)			;5299
 	cp d			;529a
 	ret c			;529b
-	ld a,00ah		;529c
+	ld a,00ah		;529c   ; y diez
 	add a,b			;529e
 	sub (hl)			;529f
 	cp d			;52a0
 	ret			;52a1
-L_52A2:
-	ld hl,0e0b0h		;52a2
-	ld de,03b00h		;52a5
-	ld bc,00080h		;52a8
+vuelca_los_sprites:
+	ld hl,0e0b0h		;52a2   ; el bufer de sprites en RAM
+	ld de,03b00h		;52a5   ; la tabla de atributos de la VRAM
+	ld bc,00080h		;52a8   ; 128 bytes, los 32 sprites
 	jp vuelca_bloque		;52ab
-L_52AE:
+
+; ----------------------------------------------------------------------
+; LIMPIAR LAS DOS LISTAS con la propagacion del `ldir`: 292 bytes a cero desde 0xE131 y luego 119 bytes a 0xD0 desde 0xE132, que es el valor de "retirado". Dos instrucciones por lista.
+; ----------------------------------------------------------------------
+limpia_los_objetos:
 	ld hl,0e131h		;52ae
 	ld de,0e132h		;52b1
-	ld (hl),000h		;52b4
-	ld bc,00124h		;52b6
+	ld (hl),000h		;52b4   ; un cero
+	ld bc,00124h		;52b6   ; 292 bytes
 	ldir		;52b9
-L_52BB:
+
+; ----------------------------------------------------------------------
+; EL MONTAJE DEL DECORADO. La fase indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -tres bytes por entrada- que da su tira de patrones. El guion acaba en el valor 0x16.
+; ----------------------------------------------------------------------
+monta_el_decorado_de_la_fase:
 	ld hl,0e132h		;52bb
 	ld de,0e133h		;52be
-	ld (hl),0d0h		;52c1
-	ld bc,00077h		;52c3
+	ld (hl),0d0h		;52c1   ; y 0xD0: retirado
+	ld bc,00077h		;52c3   ; 119 bytes
 	ldir		;52c6
-	ld de,03b80h		;52c8
-	ld a,(0e05ch)		;52cb
-	add a,a			;52ce
-	ld hl,04e1bh		;52cf
+	ld de,03b80h		;52c8   ; el destino en la VRAM
+	ld a,(0e05ch)		;52cb   ; el numero de fase
+	add a,a			;52ce   ; por dos: son punteros
+	ld hl,04e1bh		;52cf   ; la tabla de decorados
 	call suma_a_a_hl		;52d2
 	ld a,(hl)			;52d5
 	inc hl			;52d6
@@ -1758,80 +1778,92 @@ L_52BB:
 L_52D9:
 	push hl			;52d9
 	ld a,(hl)			;52da
-	call L_52E6		;52db
+	call pinta_un_trozo_del_decorado		;52db
 	pop hl			;52de
 	ld a,(hl)			;52df
 	inc hl			;52e0
-	cp 016h		;52e1
+	cp 016h		;52e1   ; el valor 0x16 cierra el guion
 	jr nz,L_52D9		;52e3
 	ret			;52e5
-L_52E6:
+pinta_un_trozo_del_decorado:
 	ld l,a			;52e6
-	add a,a			;52e7
+	add a,a			;52e7   ; el numero de trozo por tres
 	add a,l			;52e8
-	ld hl,04d30h		;52e9
+	ld hl,04d30h		;52e9   ; la tabla de trozos
 	call suma_a_a_hl		;52ec
-	ld a,(hl)			;52ef
+	ld a,(hl)			;52ef   ; su tira de patrones
 	inc hl			;52f0
 	ld c,(hl)			;52f1
 	inc hl			;52f2
 	ld b,(hl)			;52f3
 	ld l,a			;52f4
 	ld h,c			;52f5
-L_52F6:
+
+; ----------------------------------------------------------------------
+; PINTAR UNA TIRA DE TRES CELDAS. El byte trae DOS cosas: los cinco bits de arriba son el tercer patron y los tres de abajo el primero, de modo que dos celdas caben en un byte. Un 0xFF cierra la tira.
+; ----------------------------------------------------------------------
+pinta_la_tira_de_tres:
 	ld a,(hl)			;52f6
-	cp 0ffh		;52f7
+	cp 0ffh		;52f7   ; 0xFF: fin de la tira
 	jr z,L_5312		;52f9
-	and 0f8h		;52fb
+	and 0f8h		;52fb   ; los cinco bits de arriba
 	ld c,a			;52fd
 	ld a,(hl)			;52fe
-	and 007h		;52ff
+	and 007h		;52ff   ; y los tres de abajo, el primer patron
 	call escribe_en_vram		;5301
 	inc de			;5304
 	inc hl			;5305
-	ld a,(hl)			;5306
+	ld a,(hl)			;5306   ; el segundo va entero
 	inc hl			;5307
 	call escribe_en_vram		;5308
 	inc de			;530b
-	ld a,c			;530c
+	ld a,c			;530c   ; y el tercero, el que se guardo
 	call escribe_en_vram		;530d
 	jr L_531D		;5310
 L_5312:
 	inc hl			;5312
 	push bc			;5313
-	ld bc,00003h		;5314
+	ld bc,00003h		;5314   ; tres celdas
 	call vuelca_bloque		;5317
 	pop bc			;531a
-	inc de			;531b
+	inc de			;531b   ; y la tira siguiente
 	inc de			;531c
 L_531D:
 	inc de			;531d
-	djnz L_52F6		;531e
+	djnz pinta_la_tira_de_tres		;531e
 	ret			;5320
-L_5321:
-	call L_5363		;5321
-	call L_5346		;5324
-	ld hl,0e0d3h		;5327
-	ld de,0539dh		;532a
-	ld b,005h		;532d
+
+; ----------------------------------------------------------------------
+; PONER EN PIE LA PARTIDA: monta el decorado, prepara los sprites, reparte los cinco bytes de 0x539D uno de cada cuatro -o sea, solo los colores- y copia los cinco valores iniciales del jugador.
+; ----------------------------------------------------------------------
+pone_en_pie_la_partida:
+	call recorre_el_decorado_entero		;5321
+	call prepara_los_sprites		;5324
+	ld hl,0e0d3h		;5327   ; el bufer de sprites
+	ld de,0539dh		;532a   ; los cinco valores
+	ld b,005h		;532d   ; cinco
 L_532F:
 	ld a,(de)			;532f
 	ld (hl),a			;5330
 	inc de			;5331
-	inc hl			;5332
+	inc hl			;5332   ; cuatro bytes por sprite: solo se toca uno
 	inc hl			;5333
 	inc hl			;5334
 	inc hl			;5335
 	djnz L_532F		;5336
-	ld hl,05398h		;5338
+	ld hl,05398h		;5338   ; los cinco valores del jugador
 	ld de,0e1b3h		;533b
-	ld bc,00005h		;533e
+	ld bc,00005h		;533e   ; cinco bytes
 	ldir		;5341
 	jp mete_al_jugador_en_los_sprites		;5343
-L_5346:
+
+; ----------------------------------------------------------------------
+; PREPARAR EL BUFER DE SPRITES: cuatro copias del mismo grupo de cuatro bytes y, detras, 111 bytes de 0xC3 propagados con un `ldir` desde la propia celda. Todo lo que no se use queda fuera de la pantalla.
+; ----------------------------------------------------------------------
+prepara_los_sprites:
 	ld de,0e0b0h		;5346
 	ld hl,05394h		;5349
-	ld bc,00404h		;534c
+	ld bc,00404h		;534c   ; cuatro por cuatro
 L_534F:
 	push hl			;534f
 	push bc			;5350
@@ -1842,17 +1874,21 @@ L_534F:
 	djnz L_534F		;5357
 	ld h,d			;5359
 	ld l,e			;535a
-	ld (hl),0c3h		;535b
+	ld (hl),0c3h		;535b   ; 0xC3: fuera de la pantalla
 	inc de			;535d
-	ld c,06fh		;535e
+	ld c,06fh		;535e   ; y el ldir lo arrastra por el resto
 	ldir		;5360
 	ret			;5362
-L_5363:
-	ld a,(0e059h)		;5363
+
+; ----------------------------------------------------------------------
+; RECORRER EL DECORADO ENTERO DE UNA VEZ: guarda por donde iba, retrocede tres celdas y da VEINTISEIS pasadas seguidas de la rutina de movimiento, para dejar el arbol montado desde el principio. Al acabar, restaura el puntero.
+; ----------------------------------------------------------------------
+recorre_el_decorado_entero:
+	ld a,(0e059h)		;5363   ; por donde iba
 	ld hl,(0e05ah)		;5366
 	push af			;5369
 	push hl			;536a
-	dec hl			;536b
+	dec hl			;536b   ; tres celdas atras
 	dec hl			;536c
 	dec hl			;536d
 	ld (0e1c5h),hl		;536e
@@ -1860,8 +1896,8 @@ L_5363:
 	dec a			;5374
 	ld (0e1c4h),a		;5375
 	ld a,001h		;5378
-	ld (0e1aah),a		;537a
-	ld b,01ah		;537d
+	ld (0e1aah),a		;537a   ; la direccion del movimiento
+	ld b,01ah		;537d   ; veintiseis pasadas
 L_537F:
 	push bc			;537f
 	call L_6749		;5380
@@ -1869,10 +1905,10 @@ L_537F:
 	djnz L_537F		;5384
 	pop hl			;5386
 	pop af			;5387
-	ld (0e059h),a		;5388
+	ld (0e059h),a		;5388   ; el puntero, restaurado
 	ld (0e05ah),hl		;538b
 	ld hl,0e1abh		;538e
-	set 1,(hl)		;5391
+	set 1,(hl)		;5391   ; y el tope de arriba
 	ret			;5393
 
 ; ----------------------------------------------------------------------
@@ -1885,40 +1921,48 @@ DATA_5394:
 ; ======================================================================
 
 
-L_53A2:
+
+; ----------------------------------------------------------------------
+; EL GUION DE LA FASE, con su propio plazo en (0xE24D): cuando se agota, lee dos bytes mas adelante y, si es 0xFF, levanta la senal de fin de vida.
+; ----------------------------------------------------------------------
+avanza_el_guion_de_la_fase:
 	ld hl,0e24dh		;53a2
-	ld de,(0e24eh)		;53a5
-	dec (hl)			;53a9
+	ld de,(0e24eh)		;53a5   ; por donde va el guion
+	dec (hl)			;53a9   ; el plazo
 	jr nz,L_53BC		;53aa
 	inc de			;53ac
 	inc de			;53ad
 	ld a,(de)			;53ae
-	cp 0ffh		;53af
+	cp 0ffh		;53af   ; 0xFF cierra el guion
 	jr nz,L_53B7		;53b1
-	ld (0e00ch),a		;53b3
+	ld (0e00ch),a		;53b3   ; y es la senal de fin
 	ret			;53b6
 L_53B7:
 	ld (hl),a			;53b7
-	ld (0e24eh),de		;53b8
+	ld (0e24eh),de		;53b8   ; el guion queda apuntado
 L_53BC:
 	inc de			;53bc
-	ld a,(de)			;53bd
+	ld a,(de)			;53bd   ; y el paso siguiente pasa por (0xE009)
 	ld (0e009h),a		;53be
 	ret			;53c1
-L_53C2:
+
+; ----------------------------------------------------------------------
+; ARRANCAR UNA VIDA: reinicia al jugador, pinta el marcador, baja las dos senales de fin y le da al guion de la fase un plazo de 150 cuadros con su puntero en 0x53E4.
+; ----------------------------------------------------------------------
+arranca_la_vida:
 	call L_518E		;53c2
 	call pinta_el_marcador		;53c5
 	call L_51D2		;53c8
 	xor a			;53cb
-	ld (0e00ch),a		;53cc
-	ld (0e001h),a		;53cf
-	ld a,096h		;53d2
+	ld (0e00ch),a		;53cc   ; la senal de fin de vida
+	ld (0e001h),a		;53cf   ; y la de partida en marcha
+	ld a,096h		;53d2   ; ciento cincuenta cuadros
 	ld (0e24dh),a		;53d4
-	ld hl,053e4h		;53d7
+	ld hl,053e4h		;53d7   ; el guion de la fase
 	ld (0e24eh),hl		;53da
 	ret			;53dd
 L_53DE:
-	call L_53A2		;53de
+	call avanza_el_guion_de_la_fase		;53de
 	jp L_51DE		;53e1
 
 ; ----------------------------------------------------------------------
@@ -2163,23 +2207,27 @@ DATA_bloque_0x5D0D:
 ; ======================================================================
 
 
-L_60C9:
-	ld hl,05445h		;60c9
+
+; ----------------------------------------------------------------------
+; EL MONTAJE GRAFICO DE LA FASE, y lo interesante es el bucle de 0x60F0: **coge los patrones de 0x5BCD y los TRANSPONE** -diez tandas de dieciseis bytes-, escribiendo el resultado en dos sitios a la vez separados dieciseis posiciones. De ahi salen el arbol y sus ramas sin guardar cada orientacion.
+; ----------------------------------------------------------------------
+monta_los_graficos:
+	ld hl,05445h		;60c9   ; el primer bloque comprimido
 	call descomprime		;60cc
-	ld hl,05937h		;60cf
+	ld hl,05937h		;60cf   ; el segundo
 	call L_612C		;60d2
-	call duplica_los_tercios_de_patrones		;60d5
+	call duplica_los_tercios_de_patrones		;60d5   ; repartido a los tres tercios
 	ld de,01800h		;60d8
 	ld hl,05bcdh		;60db
-	ld bc,00140h		;60de
+	ld bc,00140h		;60de   ; 320 bytes sin comprimir
 	call vuelca_bloque		;60e1
-	ld de,05bcdh		;60e4
+	ld de,05bcdh		;60e4   ; los patrones que hay que girar
 	ld hl,05bddh		;60e7
-	ld b,00ah		;60ea
-	ld ix,0e0b0h		;60ec
+	ld b,00ah		;60ea   ; diez tandas
+	ld ix,0e0b0h		;60ec   ; el bufer de salida
 L_60F0:
 	push bc			;60f0
-	ld b,010h		;60f1
+	ld b,010h		;60f1   ; dieciseis bytes por tanda
 L_60F3:
 	ld a,(de)			;60f3
 	exx			;60f4
@@ -2204,7 +2252,7 @@ transpone_los_patrones:
 	inc ix		;610a
 	djnz L_60F3		;610c
 	ld c,010h		;610e   ; dieciseis bytes por tanda
-	add hl,bc			;6110
+	add hl,bc			;6110   ; y de tanda en tanda
 	ex de,hl			;6111
 	add hl,bc			;6112
 	ex de,hl			;6113
@@ -2214,8 +2262,8 @@ transpone_los_patrones:
 	ld de,01940h		;6119   ; el destino en la VRAM
 	ld hl,0e0b0h		;611c
 	ld bc,00140h		;611f   ; 320 bytes
-	call vuelca_bloque		;6122
-	ld hl,05d0dh		;6125
+	call vuelca_bloque		;6122   ; el resultado, a la VRAM
+	ld hl,05d0dh		;6125   ; y el ultimo bloque
 	call descomprime		;6128
 	ret			;612b
 L_612C:
@@ -2527,7 +2575,7 @@ L_62F8:
 	ld a,008h		;62f9   ; el patron de partida
 	call mueve_al_jugador		;62fb
 	call mete_al_jugador_en_los_sprites		;62fe   ; monta el decorado
-	call L_52A2		;6301
+	call vuelca_los_sprites		;6301
 	call mira_si_puede_subir		;6304
 	pop bc			;6307
 	djnz L_62F8		;6308
@@ -2694,7 +2742,7 @@ L_641D:
 	ld a,0f8h		;641e   ; ocho pixeles hacia arriba cada una
 	call mueve_al_jugador		;6420
 	call mete_al_jugador_en_los_sprites		;6423
-	call L_52A2		;6426
+	call vuelca_los_sprites		;6426
 	call L_6396		;6429
 	pop bc			;642c
 	djnz L_641D		;642d
@@ -2748,7 +2796,7 @@ baja_un_tramo:
 	add a,008h		;6474   ; ocho pixeles hacia abajo
 	ld (hl),a			;6476
 	call mete_al_jugador_en_los_sprites		;6477   ; y se repinta
-	call L_52A2		;647a
+	call vuelca_los_sprites		;647a
 	call marca_movimiento_abajo		;647d
 	ld hl,0e1b3h		;6480
 	ld a,(hl)			;6483
@@ -4798,7 +4846,7 @@ L_6FE4:
 L_6FEC:
 	ld a,(hl)			;6fec
 	or a			;6fed
-	jr z,L_6FF9		;6fee
+	jr z,coloca_el_premio		;6fee
 	inc hl			;6ff0
 	inc hl			;6ff1
 	inc hl			;6ff2
@@ -4807,24 +4855,28 @@ L_6FEC:
 	inc c			;6ff5
 	djnz L_6FEC		;6ff6
 	ret			;6ff8
-L_6FF9:
+
+; ----------------------------------------------------------------------
+; COLOCAR EL PREMIO, y aqui el azar vuelve a aparecer: `ld a,r / and 007h` -una entre ocho- decide si el color es 5 o el que hubiera. Se copian dos bytes de la ficha y se le ponen los patrones 0x90 y 0x88.
+; ----------------------------------------------------------------------
+coloca_el_premio:
 	push hl			;6ff9
 	ex de,hl			;6ffa
-	ld de,0e0e4h		;6ffb
+	ld de,0e0e4h		;6ffb   ; su hueco de sprite
 	call L_4A41		;6ffe
-	ld bc,00002h		;7001
+	ld bc,00002h		;7001   ; dos bytes
 	ldir		;7004
 	ex de,hl			;7006
-	ld (hl),090h		;7007
+	ld (hl),090h		;7007   ; el patron
 	inc hl			;7009
-	ld (hl),00fh		;700a
+	ld (hl),00fh		;700a   ; y su color
 	pop hl			;700c
-	ld (hl),088h		;700d
+	ld (hl),088h		;700d   ; el otro patron
 	inc hl			;700f
-	ld a,r		;7010
-	and 007h		;7012
+	ld a,r		;7010   ; el contador de refresco: el azar
+	and 007h		;7012   ; una entre ocho
 	jr nz,L_7018		;7014
-	ld a,005h		;7016
+	ld a,005h		;7016   ; y entonces el color 5
 L_7018:
 	ld (hl),a			;7018
 	inc hl			;7019
@@ -4835,45 +4887,49 @@ L_7018:
 L_701F:
 	ld de,0e208h		;701f
 	ld bc,00300h		;7022
-L_7025:
+
+; ----------------------------------------------------------------------
+; EL REPARTO POR TIPO DE BICHO: los bits 7, 6 y 5 de su estado eligen entre cuatro maneras de moverse. IX apunta a su ficha e IY a su hueco de sprite, de modo que las rutinas de abajo no vuelven a buscarlos.
+; ----------------------------------------------------------------------
+mueve_un_bicho_por_su_tipo:
 	push de			;7025
 	push bc			;7026
-	ld a,(de)			;7027
-	or a			;7028
+	ld a,(de)			;7027   ; el estado del bicho
+	or a			;7028   ; parado
 	jr z,L_706E		;7029
 	ld b,a			;702b
-	push de			;702c
+	push de			;702c   ; su ficha
 	pop ix		;702d
-	ld hl,0e0e4h		;702f
+	ld hl,0e0e4h		;702f   ; su hueco de sprite
 	call L_4A3B		;7032
 	push hl			;7035
 	pop iy		;7036
-	call L_7098		;7038
+	call L_7098		;7038   ; esta en pantalla?
 	jr nc,L_706E		;703b
-	bit 7,b		;703d
+	bit 7,b		;703d   ; el bit 7
 	jr z,L_7046		;703f
 	call avanza_el_bicho_del_guion		;7041
 	jr L_706E		;7044
 L_7046:
-	bit 6,b		;7046
+	bit 6,b		;7046   ; el bit 6
 	jr z,L_704F		;7048
 	call avanza_el_bicho_que_cambia		;704a
-	jr L_7052		;704d
+	jr mira_el_premio_de_cerca		;704d
 L_704F:
 	call avanza_el_bicho_lento		;704f
-L_7052:
-	bit 4,(ix+000h)		;7052
+mira_el_premio_de_cerca:
+	bit 4,(ix+000h)		;7052   ; el bit 4
 	jr nz,L_706E		;7056
 	push iy		;7058
 	pop hl			;705a
 	ld a,(hl)			;705b
-	sub 008h		;705c
+	sub 008h		;705c   ; ocho pixeles
 	ld b,a			;705e
 	inc hl			;705f
 	ld a,(hl)			;7060
-	sub 004h		;7061
+	sub 004h		;7061   ; y cuatro en la otra
 	ld c,a			;7063
-	ld de,00c0ch		;7064
+	ld de,00c0ch		;7064   ; doce por doce de caja
 	push bc			;7067
 	call mira_tres_cajas		;7068
 	pop bc			;706b
@@ -4884,7 +4940,7 @@ L_706E:
 	ld a,005h		;7070
 	call suma_a_a_de		;7072
 	inc c			;7075
-	djnz L_7025		;7076
+	djnz mueve_un_bicho_por_su_tipo		;7076
 	ret			;7078
 L_7079:
 	ld a,c			;7079
@@ -5560,7 +5616,7 @@ L_7400:
 	ld hl,05937h		;7408   ; el decorado de la fase
 	call L_612C		;740b
 	call L_4476		;740e
-	call L_52BB		;7411
+	call monta_el_decorado_de_la_fase		;7411
 	call pinta_el_marcador		;7414
 	ld a,00eh		;7417   ; y estado 14
 	jp pasa_al_estado		;7419
@@ -5714,7 +5770,7 @@ L_7519:
 	ld (0e059h),a		;7520
 	ld hl,03b83h		;7523
 	ld (0e05ah),hl		;7526
-	call L_5363		;7529
+	call recorre_el_decorado_entero		;7529
 	ld a,001h		;752c
 	ld (0e00dh),a		;752e   ; y la senal
 	jp L_743D		;7531
@@ -5884,7 +5940,7 @@ L_77CF:
 	dec hl			;77d5
 	ld de,00810h		;77d6
 	push bc			;77d9
-	call L_5284		;77da
+	call caja_alrededor_del_jugador		;77da
 	pop bc			;77dd
 	ret c			;77de
 	inc hl			;77df
@@ -5895,8 +5951,8 @@ L_77E0:
 	djnz L_77CF		;77e3
 	and a			;77e5
 	ret			;77e6
-L_77E7:
-	ld b,(hl)			;77e7
+suelta_el_premio:
+	ld b,(hl)			;77e7   ; la posicion
 	dec hl			;77e8
 	ld c,(hl)			;77e9
 	push hl			;77ea
@@ -5904,16 +5960,16 @@ L_77E7:
 	call L_6FA2		;77ec
 	pop bc			;77ef
 	ld a,b			;77f0
-	sub 010h		;77f1
+	sub 010h		;77f1   ; dieciseis hacia un lado
 	ld b,a			;77f3
 	ld a,c			;77f4
-	sub 008h		;77f5
+	sub 008h		;77f5   ; y ocho hacia el otro
 	ld c,a			;77f7
 	xor a			;77f8
-	call L_79A4		;77f9
+	call L_79A4		;77f9   ; el sonido
 	pop hl			;77fc
 	ld de,0e225h		;77fd
-	ld bc,00300h		;7800
+	ld bc,00300h		;7800   ; tres huecos
 L_7803:
 	ld a,(de)			;7803
 	or a			;7804
@@ -5927,28 +5983,32 @@ L_780D:
 	ld a,(0e1b2h)		;780e
 	cp 005h		;7811
 	ld hl,0e1b6h		;7813
-	jr z,L_7819		;7816
+	jr z,convierte_el_bicho_en_premio		;7816
 	inc hl			;7818
-L_7819:
+
+; ----------------------------------------------------------------------
+; CONVERTIR UN BICHO EN PREMIO: le pone los dos bits de arriba, le copia la posicion al hueco de sprite con un `ldi`, le resta cuatro a la otra coordenada y le clava el patron 0xAC con color 6. El bicho original queda retirado con 0xD0.
+; ----------------------------------------------------------------------
+convierte_el_bicho_en_premio:
 	ld a,(hl)			;7819
 	pop hl			;781a
-	or 0c0h		;781b
+	or 0c0h		;781b   ; los dos bits de arriba
 	ld (de),a			;781d
 	ld de,0e114h		;781e
 	call L_4A41		;7821
-	ldi		;7824
+	ldi		;7824   ; un byte de posicion
 	ld a,(hl)			;7826
-	sub 004h		;7827
+	sub 004h		;7827   ; cuatro menos
 	ld (de),a			;7829
 	inc de			;782a
-	ld a,0ach		;782b
+	ld a,0ach		;782b   ; el patron del premio
 	ld (de),a			;782d
 	inc de			;782e
-	ld a,006h		;782f
+	ld a,006h		;782f   ; y su color
 	ld (de),a			;7831
 	dec hl			;7832
 L_7833:
-	ld (hl),0d0h		;7833
+	ld (hl),0d0h		;7833   ; el bicho, retirado
 	ret			;7835
 L_7836:
 	ld de,0e225h		;7836
@@ -6030,27 +6090,31 @@ L_7897:
 	ld h,(hl)			;789e
 	ld l,a			;789f
 	bit 3,b		;78a0
-	jr nz,L_78A8		;78a2
+	jr nz,mira_dos_celdas_por_delante		;78a2
 	ld a,h			;78a4
 	add a,010h		;78a5
 	ld h,a			;78a7
-L_78A8:
+
+; ----------------------------------------------------------------------
+; MIRAR DOS CELDAS, una debajo de otra: la primera tiene que estar entre 0xCD y 0xD0 -por donde se puede pasar- y la de ocho pixeles mas arriba entre 0x8C y 0x8E. Si no, se marca el bit 6.
+; ----------------------------------------------------------------------
+mira_dos_celdas_por_delante:
 	call lee_la_celda_de_ahi		;78a8
 	pop de			;78ab
-	sub 0cdh		;78ac
-	cp 004h		;78ae
+	sub 0cdh		;78ac   ; los indices desde 0xCD
+	cp 004h		;78ae   ; cuatro seguidos
 	ret c			;78b0
 	push de			;78b1
 	ld a,l			;78b2
-	sub 008h		;78b3
+	sub 008h		;78b3   ; ocho pixeles mas arriba
 	ld l,a			;78b5
 	call lee_la_celda_de_ahi		;78b6
 	pop de			;78b9
-	sub 08ch		;78ba
-	cp 003h		;78bc
+	sub 08ch		;78ba   ; y ahi, los indices desde 0x8C
+	cp 003h		;78bc   ; tres seguidos
 	jr c,L_78C4		;78be
 	ex de,hl			;78c0
-	set 6,(hl)		;78c1
+	set 6,(hl)		;78c1   ; y si no, el bit 6
 	ret			;78c3
 L_78C4:
 	xor a			;78c4
@@ -6357,7 +6421,7 @@ arranca_la_voz:
 L_7A63:
 	ld (hl),001h		;7a63   ; la cuenta, a uno: suena ya
 	inc hl			;7a65
-	ld (hl),001h		;7a66
+	ld (hl),001h		;7a66   ; la prioridad
 	inc hl			;7a68
 	ld (hl),c			;7a69   ; el numero de sonido
 	inc hl			;7a6a
@@ -6374,7 +6438,7 @@ L_7A63:
 	inc hl			;7a77
 	inc hl			;7a78
 	inc de			;7a79
-	djnz L_7A63		;7a7a
+	djnz L_7A63		;7a7a   ; y la otra voz
 	ret			;7a7c
 repite_o_encadena:
 	inc hl			;7a7d
@@ -6538,30 +6602,30 @@ L_7B4C:
 L_7B63:
 	ld b,(ix+002h)		;7b63
 	bit 6,b		;7b66
-	jr z,L_7B7B		;7b68
+	jr z,lee_la_nota_de_la_partitura		;7b68
 	ld a,c			;7b6a
 	cp 003h		;7b6b
 	ld a,(hl)			;7b6d
-	jr nz,L_7B7B		;7b6e
+	jr nz,lee_la_nota_de_la_partitura		;7b6e
 	inc hl			;7b70
 	ld (ix+003h),l		;7b71
 	ld (ix+004h),h		;7b74
 	call L_7B92		;7b77
 	ret			;7b7a
-L_7B7B:
-	and 0f0h		;7b7b
+lee_la_nota_de_la_partitura:
+	and 0f0h		;7b7b   ; el nibble alto es la DURACION
 	ld b,a			;7b7d
-	xor (hl)			;7b7e
+	xor (hl)			;7b7e   ; y el bajo, cruzado, la nota
 	ld d,a			;7b7f
 	inc hl			;7b80
-	ld e,(hl)			;7b81
+	ld e,(hl)			;7b81   ; el byte siguiente completa
 	inc hl			;7b82
-	ld (ix+003h),l		;7b83
+	ld (ix+003h),l		;7b83   ; la partitura queda apuntada
 	ld (ix+004h),h		;7b86
 	ex de,hl			;7b89
-	call L_7C42		;7b8a
+	call L_7C42		;7b8a   ; y se convierte en periodo
 	ld a,b			;7b8d
-	rrca			;7b8e
+	rrca			;7b8e   ; cuatro giros: la duracion a su sitio
 	rrca			;7b8f
 	rrca			;7b90
 	rrca			;7b91
@@ -6643,15 +6707,15 @@ L_7BFF:
 	and 00fh		;7bff
 	ld b,a			;7c01
 	ld a,(ix+00ah)		;7c02
-	jr z,L_7C0C		;7c05
+	jr z,fija_la_duracion		;7c05
 L_7C07:
 	add a,(ix+00ah)		;7c07
 	djnz L_7C07		;7c0a
-L_7C0C:
-	ld (ix+001h),a		;7c0c
+fija_la_duracion:
+	ld (ix+001h),a		;7c0c   ; la duracion de la nota
 	ld a,(hl)			;7c0f
 	inc hl			;7c10
-	ld (ix+003h),l		;7c11
+	ld (ix+003h),l		;7c11   ; y por donde se queda la partitura
 	ld (ix+004h),h		;7c14
 	and 0f0h		;7c17
 	rrca			;7c19

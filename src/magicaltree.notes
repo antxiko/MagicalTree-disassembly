@@ -1778,3 +1778,192 @@ C 0x48cd restando sale la franja de abajo
 C 0x48d0 el primer patron
 C 0x48d2 tres celdas
 C 0x48d7 once celdas empezando por la 12
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x7a66 la prioridad
+C 0x7a7a y la otra voz
+L 0x7025 mueve_un_bicho_por_su_tipo
+B 0x7025 EL REPARTO POR TIPO DE BICHO: los bits 7, 6 y 5 de su estado eligen entre cuatro maneras de moverse. IX apunta a su ficha e IY a su hueco de sprite, de modo que las rutinas de abajo no vuelven a buscarlos.
+C 0x7027 el estado del bicho
+C 0x7028 parado
+C 0x702c su ficha
+C 0x702f su hueco de sprite
+C 0x7038 esta en pantalla?
+C 0x703d el bit 7
+C 0x7046 el bit 6
+L 0x77e7 suelta_el_premio
+C 0x77e7 la posicion
+C 0x77f1 dieciseis hacia un lado
+C 0x77f5 y ocho hacia el otro
+C 0x77f9 el sonido
+C 0x7800 tres huecos
+L 0x52f6 pinta_la_tira_de_tres
+B 0x52f6 PINTAR UNA TIRA DE TRES CELDAS. El byte trae DOS cosas: los cinco bits de arriba son el tercer patron y los tres de abajo el primero, de modo que dos celdas caben en un byte. Un 0xFF cierra la tira.
+C 0x52f7 0xFF: fin de la tira
+C 0x52fb los cinco bits de arriba
+C 0x52ff y los tres de abajo, el primer patron
+C 0x5306 el segundo va entero
+C 0x530c y el tercero, el que se guardo
+L 0x6ff9 coloca_el_premio
+B 0x6ff9 COLOCAR EL PREMIO, y aqui el azar vuelve a aparecer: `ld a,r / and 007h` -una entre ocho- decide si el color es 5 o el que hubiera. Se copian dos bytes de la ficha y se le ponen los patrones 0x90 y 0x88.
+C 0x6ffb su hueco de sprite
+C 0x7001 dos bytes
+C 0x7007 el patron
+C 0x700a y su color
+C 0x700d el otro patron
+C 0x7010 el contador de refresco: el azar
+C 0x7012 una entre ocho
+C 0x7016 y entonces el color 5
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x7819 convierte_el_bicho_en_premio
+B 0x7819 CONVERTIR UN BICHO EN PREMIO: le pone los dos bits de arriba, le copia la posicion al hueco de sprite con un `ldi`, le resta cuatro a la otra coordenada y le clava el patron 0xAC con color 6. El bicho original queda retirado con 0xD0.
+C 0x781b los dos bits de arriba
+C 0x7824 un byte de posicion
+C 0x7827 cuatro menos
+C 0x782b el patron del premio
+C 0x782f y su color
+C 0x7833 el bicho, retirado
+L 0x78a8 mira_dos_celdas_por_delante
+B 0x78a8 MIRAR DOS CELDAS, una debajo de otra: la primera tiene que estar entre 0xCD y 0xD0 -por donde se puede pasar- y la de ocho pixeles mas arriba entre 0x8C y 0x8E. Si no, se marca el bit 6.
+C 0x78ac los indices desde 0xCD
+C 0x78ae cuatro seguidos
+C 0x78b3 ocho pixeles mas arriba
+C 0x78ba y ahi, los indices desde 0x8C
+C 0x78bc tres seguidos
+C 0x78c1 y si no, el bit 6
+L 0x51a1 reinicia_el_estado_del_jugador
+B 0x51a1 REINICIAR AL JUGADOR: propaga un cero con `ldir` desde la propia celda, copia los diecisiete valores iniciales y, si hay dos jugadores, duplica el bloque entero en el hueco del segundo.
+C 0x51a4 un cero
+C 0x51a6 y el ldir lo arrastra
+C 0x51a8 los diecisiete valores iniciales
+C 0x51b4 con un jugador, aqui se acaba
+C 0x51b5 y con dos, el estado se duplica
+C 0x51bb los treinta y dos bytes
+L 0x7052 mira_el_premio_de_cerca
+C 0x7052 el bit 4
+C 0x705c ocho pixeles
+C 0x7061 y cuatro en la otra
+C 0x7064 doce por doce de caja
+L 0x7b7b lee_la_nota_de_la_partitura
+C 0x7b7b el nibble alto es la DURACION
+C 0x7b7e y el bajo, cruzado, la nota
+C 0x7b81 el byte siguiente completa
+C 0x7b83 la partitura queda apuntada
+C 0x7b8a y se convierte en periodo
+C 0x7b8e cuatro giros: la duracion a su sitio
+L 0x7c0c fija_la_duracion
+C 0x7c0c la duracion de la nota
+C 0x7c11 y por donde se queda la partitura
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+L 0x5259 busca_un_patron_del_arbol
+C 0x5259 el patron
+C 0x525b los indices desde 0x20
+C 0x525d catorce seguidos
+L 0x526b mira_los_ocho_huecos
+B 0x526b LA CAJA CONTRA LOS OCHO HUECOS de sprite de 0xE0E4, de 0x10 por 0x10. Los patrones 0x90 y 0x94 se saltan: son los que no hacen dano.
+C 0x5263 los huecos de sprite
+C 0x5266 dieciseis por dieciseis
+C 0x5269 ocho
+C 0x5274 estos dos patrones no cuentan
+C 0x527c acarreo: hay contacto
+C 0x527f tres bytes por hueco
+L 0x5284 caja_alrededor_del_jugador
+B 0x5284 LA CAJA ALREDEDOR DEL JUGADOR, y no es simetrica: de 8 a 0x18 en una coordenada y de 6 a 0x0A en la otra. Es la manera de que rozar por arriba no cuente igual que chocar de frente.
+C 0x5284 la posicion del jugador
+C 0x5288 ocho por delante
+C 0x528c contra el ancho
+C 0x528f y veinticuatro
+C 0x5296 seis por arriba
+C 0x529c y diez
+L 0x52a2 vuelca_los_sprites
+C 0x52a2 el bufer de sprites en RAM
+C 0x52a5 la tabla de atributos de la VRAM
+C 0x52a8 128 bytes, los 32 sprites
+L 0x52ae limpia_los_objetos
+B 0x52ae LIMPIAR LAS DOS LISTAS con la propagacion del `ldir`: 292 bytes a cero desde 0xE131 y luego 119 bytes a 0xD0 desde 0xE132, que es el valor de "retirado". Dos instrucciones por lista.
+C 0x52b4 un cero
+C 0x52b6 292 bytes
+C 0x52c1 y 0xD0: retirado
+C 0x52c3 119 bytes
+L 0x52bb monta_el_decorado_de_la_fase
+B 0x52bb EL MONTAJE DEL DECORADO. La fase indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -tres bytes por entrada- que da su tira de patrones. El guion acaba en el valor 0x16.
+C 0x52c8 el destino en la VRAM
+C 0x52cb el numero de fase
+C 0x52ce por dos: son punteros
+C 0x52cf la tabla de decorados
+C 0x52e1 el valor 0x16 cierra el guion
+L 0x52e6 pinta_un_trozo_del_decorado
+C 0x52e7 el numero de trozo por tres
+C 0x52e9 la tabla de trozos
+C 0x52ef su tira de patrones
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x5314 tres celdas
+C 0x531b y la tira siguiente
+L 0x5321 pone_en_pie_la_partida
+B 0x5321 PONER EN PIE LA PARTIDA: monta el decorado, prepara los sprites, reparte los cinco bytes de 0x539D uno de cada cuatro -o sea, solo los colores- y copia los cinco valores iniciales del jugador.
+C 0x5327 el bufer de sprites
+C 0x532a los cinco valores
+C 0x532d cinco
+C 0x5332 cuatro bytes por sprite: solo se toca uno
+C 0x5338 los cinco valores del jugador
+C 0x533e cinco bytes
+L 0x5346 prepara_los_sprites
+B 0x5346 PREPARAR EL BUFER DE SPRITES: cuatro copias del mismo grupo de cuatro bytes y, detras, 111 bytes de 0xC3 propagados con un `ldir` desde la propia celda. Todo lo que no se use queda fuera de la pantalla.
+C 0x534c cuatro por cuatro
+C 0x535b 0xC3: fuera de la pantalla
+C 0x535e y el ldir lo arrastra por el resto
+L 0x5363 recorre_el_decorado_entero
+B 0x5363 RECORRER EL DECORADO ENTERO DE UNA VEZ: guarda por donde iba, retrocede tres celdas y da VEINTISEIS pasadas seguidas de la rutina de movimiento, para dejar el arbol montado desde el principio. Al acabar, restaura el puntero.
+C 0x5363 por donde iba
+C 0x536b tres celdas atras
+C 0x537a la direccion del movimiento
+C 0x537d veintiseis pasadas
+C 0x5388 el puntero, restaurado
+C 0x5391 y el tope de arriba
+L 0x53a2 avanza_el_guion_de_la_fase
+B 0x53a2 EL GUION DE LA FASE, con su propio plazo en (0xE24D): cuando se agota, lee dos bytes mas adelante y, si es 0xFF, levanta la senal de fin de vida.
+C 0x53a5 por donde va el guion
+C 0x53a9 el plazo
+C 0x53af 0xFF cierra el guion
+C 0x53b3 y es la senal de fin
+
+
+# ======================================================================
+# COMENTARIOS DE LINEA
+# ======================================================================
+C 0x53b8 el guion queda apuntado
+C 0x53bd y el paso siguiente pasa por (0xE009)
+L 0x53c2 arranca_la_vida
+B 0x53c2 ARRANCAR UNA VIDA: reinicia al jugador, pinta el marcador, baja las dos senales de fin y le da al guion de la fase un plazo de 150 cuadros con su puntero en 0x53E4.
+C 0x53cc la senal de fin de vida
+C 0x53cf y la de partida en marcha
+C 0x53d2 ciento cincuenta cuadros
+C 0x53d7 el guion de la fase
+L 0x60c9 monta_los_graficos
+B 0x60c9 EL MONTAJE GRAFICO DE LA FASE, y lo interesante es el bucle de 0x60F0: **coge los patrones de 0x5BCD y los TRANSPONE** -diez tandas de dieciseis bytes-, escribiendo el resultado en dos sitios a la vez separados dieciseis posiciones. De ahi salen el arbol y sus ramas sin guardar cada orientacion.
+C 0x60c9 el primer bloque comprimido
+C 0x60cf el segundo
+C 0x60d5 repartido a los tres tercios
+C 0x60de 320 bytes sin comprimir
+C 0x60e4 los patrones que hay que girar
+C 0x60ea diez tandas
+C 0x60ec el bufer de salida
+C 0x60f1 dieciseis bytes por tanda
+C 0x6110 y de tanda en tanda
+C 0x6122 el resultado, a la VRAM
+C 0x6125 y el ultimo bloque
