@@ -29,6 +29,8 @@ rotulos de este cartucho guardan el texto en claro.
 
 LO QUE SALE
 -----------
+    logotipo.png      el KONAMI que sale antes del titulo, montado como lo
+                      monta 0x48D0: tres celdas, once y doce
     fuente.png        los 43 dibujos de 0x45B8, con su reparto ASCII
     titulo-tiles.png  los 32 patrones del rotulo grande (0x47D2), ya coloreados
     tiles-fase.png    la hoja de patrones de la fase, tal como queda en la VRAM
@@ -316,6 +318,28 @@ def sprites(v, base, fn, n=32, cols=8, esc=3):
     png(w, h, px, fn)
 
 
+def logotipo(rom, fn, esc=6):
+    """El logotipo de KONAMI, montado como lo monta 0x48D0.
+
+    0x48AA suelta los veintiseis dibujos en 0x2300 -el patron 0x60- y 0x48B3
+    les pone el color. Luego se pintan CORRELATIVOS (el `inc a` de 0x48EF) en
+    tres filas seguidas: tres celdas, once y doce. Puesto asi se lee.
+    """
+    v = bytearray(0x4000)
+    descomprime_en(v, rom, 0x48F9, destino=0x2300)   # 0x48AA
+    rellena(v, 0x0300, 0xD0, 0xF0)                   # 0x48B3
+    filas = [(0x60, 3), (0x63, 11), (0x6E, 12)]
+    w, h = 12 * 8 * esc, 3 * 8 * esc
+    px = lienzo(w, h)
+    for r, (t0, n) in enumerate(filas):
+        for i in range(n):
+            tl = t0 + i
+            pinta_celda(px, w, i * 8 * esc, r * 8 * esc,
+                        v[PATRONES + tl * 8:PATRONES + tl * 8 + 8],
+                        v[COLOR + tl * 8:COLOR + tl * 8 + 8], esc)
+    png(w, h, px, fn)
+
+
 def main():
     rom = open(sys.argv[1], "rb").read()
     global ORG
@@ -334,6 +358,8 @@ def main():
     decorado(rom, v, 0x778A, os.path.join(sal, "decorado-B.png"))
     sprites(v, 0x1800, os.path.join(sal, "sprites.png"), n=10)
     sprites(v, 0x1940, os.path.join(sal, "sprites-espejo.png"), n=10)
+
+    logotipo(rom, os.path.join(sal, "logotipo.png"))
 
     t = vram_del_titulo(rom)
     rango(t, 0xC0, 32, os.path.join(sal, "titulo-tiles.png"))

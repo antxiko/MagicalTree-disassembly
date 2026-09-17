@@ -25,7 +25,7 @@ F 0x617a w
 # Donde acaba cada bloque lo mide tools/rle.py ejecutandolo.
 D 0x47d2 0x4894 bloque_0x47D2  194 bytes comprimidos -> 256 en VRAM (1 tramos: 0x2600); lo carga 0x4265
 D 0x4894 0x489f bloque_0x4894  11 bytes comprimidos -> 16 en VRAM (1 tramos: ?); lo carga 0x4272
-D 0x48f9 0x498c bloque_0x48F9  147 bytes comprimidos -> 208 en VRAM (1 tramos: ?); lo carga 0x48AA
+D 0x48f9 0x498c logotipo_de_konami  147 bytes comprimidos que 0x48AA suelta en 0x2300, o sea en el patron 0x60, y que son 208 bytes: VEINTISEIS dibujos. Dibujados desde la ROM y puestos como los pone 0x48D0 -tres celdas, once y doce, cada tanda una fila mas abajo- se lee KONAMI con su (R), en la letra de la casa. Es el logotipo que sale antes del titulo
 D 0x5445 0x5937 bloque_0x5445  1266 bytes comprimidos -> 1600 en VRAM (2 tramos: 0x2038 0x2300); lo carga 0x60C9
 D 0x5d0d 0x60c9 bloque_0x5D0D  956 bytes comprimidos -> 1248 en VRAM (1 tramos: 0x1B00); lo carga 0x6125
 D 0x757d 0x7595 bloque_0x757D  24 bytes comprimidos -> 22 en VRAM (2 tramos: 0x394A 0x398B); lo carga 0x7505
@@ -1770,15 +1770,15 @@ C 0x79c2 la tabla de valores
 C 0x79d2 el color del premio
 C 0x79d6 y se suman los puntos
 C 0x79d9 y suena el aviso
-L 0x48be baja_la_cortinilla
-B 0x48be UN PASO DE CORTINILLA. Avanza 32 celdas -una fila- y pinta la franja en DOS sitios a la vez: en la posicion que toca y en su reflejo respecto de 0x3AAA, con `sbc hl,de`. Por eso la cortina se cierra desde arriba y desde abajo al mismo tiempo.
+L 0x48be baja_el_logotipo_un_paso
+B 0x48be UN PASO DEL LOGOTIPO. Avanza 32 celdas -una fila-, y la posicion donde escribe no es esa sino su REFLEJO respecto de 0x3AAA (`sbc hl,de`), asi que segun el contador sube, el logotipo baja por la pantalla. Cada paso pinta las veintiseis celdas del logotipo repartidas en tres filas seguidas: tres, once y doce, con los patrones CORRELATIVOS desde el 0x60 -de eso se encarga el `inc a` de 0x48EF-. Diecisiete pasos, que es lo que 0x489F deja en (0xE00A).
 C 0x48be por donde va
 C 0x48c1 una fila, 32 celdas
-C 0x48ca el punto de reflejo
-C 0x48cd restando sale la franja de abajo
-C 0x48d0 el primer patron
-C 0x48d2 tres celdas
-C 0x48d7 once celdas empezando por la 12
+C 0x48ca el punto de reflejo: la posicion de verdad sale de restarle la cuenta
+C 0x48cd y por eso el logotipo baja mientras la cuenta sube
+C 0x48d0 el primer patron del logotipo
+C 0x48d2 tres celdas: la fila de arriba
+C 0x48d7 once en la siguiente, y en C quedan las doce de la ultima
 
 
 # ======================================================================
@@ -2068,7 +2068,7 @@ C 0x799f y al llegar a cero, el sonido 7
 L 0x7b63 mira_el_modificador_de_canal
 C 0x7b66 el bit 6: la voz esta encadenada
 C 0x7b6b y solo en el canal 3
-L 0x489f barrido_de_la_pantalla_de_fin
+L 0x489f monta_el_logotipo_de_konami
 C 0x489f diecisiete pasos
 
 
@@ -2189,8 +2189,8 @@ C 0x765a dos bytes mas alla
 # ======================================================================
 C 0x51f8 los tres perseguidores
 C 0x5201 y los cinco moviles
-C 0x48a4 la cortinilla, por arriba del todo
-C 0x48aa el bloque de la pantalla de fin
+C 0x48a4 el logotipo empieza por arriba del todo
+C 0x48aa los veintiseis dibujos del logotipo
 C 0x6e53 la posicion, corregida
 C 0x6e57 en las dos coordenadas
 C 0x7a9a la copia del registro 7

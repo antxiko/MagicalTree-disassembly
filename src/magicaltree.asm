@@ -206,7 +206,7 @@ L_40F0:
 	ld a,(0e003h)		;40f0   ; el contador de cuadros
 	rra			;40f3   ; su bit 0 al acarreo
 	ret nc			;40f4
-	call baja_la_cortinilla		;40f5
+	call baja_el_logotipo_un_paso		;40f5
 	ret nz			;40f8
 	ld hl,047bch		;40f9   ; el rotulo
 	call pinta_rotulo		;40fc   ; con la mascara a 0xFF: pintandolo
@@ -459,7 +459,7 @@ DATA_guion_0x4247:
 ; EL MONTAJE DE LA PANTALLA DEL TITULO, y acaba con un bucle que repite DIECISEIS veces el mismo bloquecito de dieciseis bytes por la VRAM: es como se pinta la cenefa sin guardarla dieciseis veces.
 ; ----------------------------------------------------------------------
 monta_la_pantalla_del_titulo:
-	call barrido_de_la_pantalla_de_fin		;4257
+	call monta_el_logotipo_de_konami		;4257
 	call rellena_y_vuelca		;425a
 carga_los_graficos_del_titulo:
 	ld a,070h		;425d   ; el relleno de color
@@ -1224,12 +1224,12 @@ DATA_bloque_0x4894:
 ; ======================================================================
 
 
-barrido_de_la_pantalla_de_fin:
+monta_el_logotipo_de_konami:
 	ld a,011h		;489f   ; diecisiete pasos
 	ld (0e00ah),a		;48a1
-	ld hl,00000h		;48a4   ; la cortinilla, por arriba del todo
+	ld hl,00000h		;48a4   ; el logotipo empieza por arriba del todo
 	ld (0e00eh),hl		;48a7
-	ld hl,048f9h		;48aa   ; el bloque de la pantalla de fin
+	ld hl,048f9h		;48aa   ; los veintiseis dibujos del logotipo
 	ld de,02300h		;48ad
 	call descomprime_en_de		;48b0
 	ld de,00300h		;48b3
@@ -1238,22 +1238,22 @@ barrido_de_la_pantalla_de_fin:
 	jp rellena_vram		;48bb
 
 ; ----------------------------------------------------------------------
-; UN PASO DE CORTINILLA. Avanza 32 celdas -una fila- y pinta la franja en DOS sitios a la vez: en la posicion que toca y en su reflejo respecto de 0x3AAA, con `sbc hl,de`. Por eso la cortina se cierra desde arriba y desde abajo al mismo tiempo.
+; UN PASO DEL LOGOTIPO. Avanza 32 celdas -una fila-, y la posicion donde escribe no es esa sino su REFLEJO respecto de 0x3AAA (`sbc hl,de`), asi que segun el contador sube, el logotipo baja por la pantalla. Cada paso pinta las veintiseis celdas del logotipo repartidas en tres filas seguidas: tres, once y doce, con los patrones CORRELATIVOS desde el 0x60 -de eso se encarga el `inc a` de 0x48EF-. Diecisiete pasos, que es lo que 0x489F deja en (0xE00A).
 ; ----------------------------------------------------------------------
-baja_la_cortinilla:
+baja_el_logotipo_un_paso:
 	ld hl,(0e00eh)		;48be   ; por donde va
 	ld de,00020h		;48c1   ; una fila, 32 celdas
 	add hl,de			;48c4
 	ld (0e00eh),hl		;48c5
 	ex de,hl			;48c8
 	or a			;48c9
-	ld hl,03aaah		;48ca   ; el punto de reflejo
-	sbc hl,de		;48cd   ; restando sale la franja de abajo
+	ld hl,03aaah		;48ca   ; el punto de reflejo: la posicion de verdad sale de restarle la cuenta
+	sbc hl,de		;48cd   ; y por eso el logotipo baja mientras la cuenta sube
 	ex de,hl			;48cf
-	ld a,060h		;48d0   ; el primer patron
-	ld b,003h		;48d2   ; tres celdas
+	ld a,060h		;48d0   ; el primer patron del logotipo
+	ld b,003h		;48d2   ; tres celdas: la fila de arriba
 	call pinta_franja_y_baja		;48d4
-	ld bc,00b0ch		;48d7   ; once celdas empezando por la 12
+	ld bc,00b0ch		;48d7   ; once en la siguiente, y en C quedan las doce de la ultima
 	call pinta_franja_y_baja		;48da
 	ld b,c			;48dd
 	call pinta_franja_y_baja		;48de
@@ -1276,10 +1276,13 @@ pinta_franja_correlativa:
 	ret			;48f8
 
 ; ----------------------------------------------------------------------
-; DATOS bloque_0x48F9: 147 bytes comprimidos -> 208 en VRAM (1 tramos: ?); lo
-;   carga 0x48AA
+; DATOS logotipo_de_konami: 147 bytes comprimidos que 0x48AA suelta en 0x2300,
+;   o sea en el patron 0x60, y que son 208 bytes: VEINTISEIS dibujos.
+;   Dibujados desde la ROM y puestos como los pone 0x48D0 -tres celdas, once y
+;   doce, cada tanda una fila mas abajo- se lee KONAMI con su (R), en la letra
+;   de la casa. Es el logotipo que sale antes del titulo
 ;   0x48f9..0x498c  (147 bytes)
-DATA_bloque_0x48F9:
+DATA_logotipo_de_konami:
 	defb 00eh,000h,082h,007h,00fh,006h,000h,082h,0f8h,0f0h,004h,03eh,004h,03fh,090h,01fh	; 48f9  ...........>.?..
 	defb 03fh,07fh,0ffh,0feh,0fch,0f8h,0f0h,0e0h,0c0h,080h,000h,000h,000h,03eh,03eh,005h	; 4909  ?............>>.
 	defb 000h,083h,01fh,07fh,0fbh,005h,000h,083h,00fh,0cfh,0efh,005h,000h,083h,078h,0fch	; 4919  ..............x.
