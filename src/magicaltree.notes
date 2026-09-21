@@ -276,7 +276,7 @@ L 0x4299 donde_va_el_cursor
 B 0x4299 DONDE CAE EL CURSOR DEL MENU. La opcion vive en (0xE042); sumando 0x14 y girando dos veces sale el byte bajo de la celda, con la fila 0x7A fija en D.
 C 0x4299 la opcion elegida
 C 0x429c el desplazamiento a la primera fila del menu
-C 0x429e dos giros: cuatro filas por opcion
+C 0x429e dos giros, y son ROTACIONES: el bit que se sale por abajo sube al 7, y es el que separa una opcion de la siguiente. Salen las filas 16, 18, 20 y 22, o sea DOS filas por opcion, que son las que pinta el guion de 0x472B
 C 0x42a1 la pagina, fija
 L 0x42a4 pinta_rotulo_con_marca
 C 0x42a4 el rotulo

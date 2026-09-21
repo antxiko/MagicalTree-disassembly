@@ -11,7 +11,7 @@ de ATRIBUTOS de sprite (0x3B00) no se compara: lo que se compara es el
 decorado, que es lo que graficos.py dice reproducir.
 
 Uso: coteja_vram.py <rom> <vram.bin> <escena>
-     escena: fase | titulo
+     escena: presentacion | seleccion | seleccion-sin-cursor | fase | titulo
 """
 import os
 import sys
@@ -39,6 +39,10 @@ def main():
     # La mascara de color de la tanda sale de 0x741F, que 0x73F9 indexa con
     # tres bits del contador de tandas.
     monta = {
+        "presentacion": graficos.vram_de_la_presentacion,
+        "seleccion": graficos.vram_de_la_seleccion,
+        "seleccion-sin-cursor":
+            lambda r: graficos.vram_de_la_seleccion(r, cursor=False),
         "fase": lambda r: graficos.vram_de_la_fase(r, r[0x741F - ORG_ROM]),
         "titulo": graficos.vram_del_titulo,
     }

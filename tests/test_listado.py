@@ -99,6 +99,65 @@ class TablasDelDespachador(unittest.TestCase):
         self.assertEqual(self.entradas(0x40C3, 16)[0], 0x40C3 + 16 * 2)
 
 
+class LasDosPantallasDeMenu(unittest.TestCase):
+    """Las dos pantallas que graficos.py monta desde la ROM, y que NO son la
+    misma: la de LA CASA (el logotipo de KONAMI y "(r) VIDEO CARTRIDGE (r)") y
+    la de TITULO (el menu con ":KONAMI 1984" y "PLAY SELECT").
+
+    Contra los volcados del emulador las dos dan CERO bytes de diferencia en
+    las cuatro tablas (tools/coteja_vram.py, que necesita el volcado). Lo de
+    aqui es lo que se ata sin emulador: donde acaba cada cosa.
+    """
+
+    def monta(self, cual, *a, **k):
+        import graficos
+        graficos.ORG = ORG
+        return getattr(graficos, cual)(lee(), *a, **k)
+
+    def celda(self, v, fila, col):
+        return v[0x3800 + fila * 32 + col]
+
+    def test_el_logotipo_acaba_en_la_fila_4_columna_10(self):
+        """Diecisiete pasadas y el reflejo respecto de 0x3AAA lo dejan en
+        0x388A. Los patrones son CORRELATIVOS desde el 0x60, en franjas de 3,
+        11 y 12. Circus Charlie lo hace igual y en la misma direccion, solo que
+        desde el 0x41."""
+        v = self.monta("vram_de_la_presentacion")
+        self.assertEqual([self.celda(v, 4, 10 + i) for i in range(3)],
+                         [0x60, 0x61, 0x62])
+        self.assertEqual([self.celda(v, 5, 10 + i) for i in range(11)],
+                         list(range(0x63, 0x6E)))
+        self.assertEqual([self.celda(v, 6, 10 + i) for i in range(12)],
+                         list(range(0x6E, 0x7A)))
+
+    def test_las_cuatro_opciones_van_de_dos_en_dos_filas(self):
+        """El comentario del listado decia CUATRO filas y son DOS: el guion de
+        0x472B las pinta en la 16, la 18, la 20 y la 22."""
+        v = self.monta("vram_de_la_seleccion")
+        for fila in (16, 18, 20, 22):
+            self.assertNotEqual(self.celda(v, fila, 7), 0,
+                                "falta el renglon de la fila %d" % fila)
+
+    def test_el_cursor_sale_de_una_ROTACION_y_no_de_una_division(self):
+        """`add a,014h / rrca / rrca`: con la opcion 0 rotar y dividir dan lo
+        mismo, con la 1 no. Con division las cuatro opciones caen en la misma
+        fila."""
+        import graficos
+        self.assertEqual([graficos.donde_va_el_cursor(k) for k in range(4)],
+                         [0x3A05, 0x3A45, 0x3A85, 0x3AC5])
+        v = self.monta("vram_de_la_seleccion")
+        self.assertEqual(self.celda(v, 16, 5), 0x3E)
+        self.assertEqual(self.celda(v, 16, 6), 0x3F)
+
+    def test_el_menu_borra_el_logotipo_de_una_franja(self):
+        """0x4107 rellena 256 celdas desde 0x3880 a cero -filas 4 a 11-, que se
+        lleva por delante el logotipo y el rotulo de una vez, sin usar el
+        guion. Lo que queda encima son la cortina y el menu."""
+        v = self.monta("vram_de_la_seleccion")
+        self.assertEqual(self.celda(v, 11, 6), 0x00,
+                         "el rotulo de la casa ya no esta")
+
+
 class Guiones(unittest.TestCase):
     """El interprete de rotulos de 0x4062, ejecutado.
 

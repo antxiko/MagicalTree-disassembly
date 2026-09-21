@@ -502,7 +502,7 @@ L_428C:
 donde_va_el_cursor:
 	ld a,(0e042h)		;4299   ; la opcion elegida
 	add a,014h		;429c   ; el desplazamiento a la primera fila del menu
-	rrca			;429e   ; dos giros: cuatro filas por opcion
+	rrca			;429e   ; dos giros, y son ROTACIONES: el bit que se sale por abajo sube al 7, y es el que separa una opcion de la siguiente. Salen las filas 16, 18, 20 y 22, o sea DOS filas por opcion, que son las que pinta el guion de 0x472B
 	rrca			;429f
 	ld e,a			;42a0
 	ld d,07ah		;42a1   ; la pagina, fija

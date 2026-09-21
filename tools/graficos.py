@@ -216,9 +216,146 @@ def vram_de_la_fase(rom, mascara):
     return v
 
 
+def monta_el_logotipo_de_konami(vram, rom):
+    """0x48AA: los veintiseis dibujos del logotipo, al patron 0x60.
+
+    Son 147 bytes comprimidos que salen 208 -0x2300, o sea el patron 0x60 del
+    tercer tercio- mas 208 celdas de color a 0xF0 en 0x0300. Sin esto, el
+    montaje de la pantalla se separa del cartucho en 447 bytes de patrones y
+    624 de color, que son exactamente estos.
+    """
+    descomprime_en(vram, rom, 0x48F9, destino=0x2300)     # 0x48B0
+    rellena(vram, 0x0300, 0xD0, 0xF0)                     # 0x48BB
+
+
+def baja_el_logotipo(vram, pasos=0x11):
+    """0x48BE, y lo que baja es el LOGOTIPO, no una cortinilla.
+
+    Cada pasada escribe tres franjas de patrones CORRELATIVOS -3, 11 y 12
+    celdas desde el 0x60, que son los veintiseis dibujos- y detras borra doce
+    celdas de la fila de abajo, que es el rastro de la pasada anterior.
+
+    Escribe en el REFLEJO de la cuenta respecto de 0x3AAA (`ld hl,03aaah /
+    sbc hl,de`). Con los diecisiete pasos de 0x489F acaba en 0x388A: fila 4,
+    columna 10. Circus Charlie (RC-712) hace esto MISMO, en la MISMA
+    direccion, y solo cambia el patron por el que empieza (el 0x41).
+    """
+    for paso in range(1, pasos + 1):
+        de = (0x3AAA - paso * 0x20) & 0x3FFF
+        a = 0x60
+        for n in (3, 11, 12):
+            for i in range(n):
+                vram[(de + i) & 0x3FFF] = a
+                a = (a + 1) & 0xFF
+            de = (de + 0x20) & 0x3FFF
+        rellena(vram, de, 12, 0x00)                       # 0x48E1
+
+
+def pinta_rotulo(vram, rom, ini, mascara=0xFF):
+    """El interprete de rotulos de 0x4062, el mismo de tools/guiones.py.
+
+    Con la mascara a 0xFF pinta y con 0x00 BORRA, sobre la misma geometria.
+    """
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from guiones import ejecuta
+    fin, tramos = ejecuta(rom, ORG, ini)
+    for destino, cuerpo in tramos:
+        for i, b in enumerate(cuerpo):
+            vram[(destino + i) & 0x3FFF] = b & mascara
+    return fin
+
+
+def barre_la_franja(vram, pasos=0x0F):
+    """0x43E7: la cortina que tapa el logotipo, columna a columna.
+
+    DE arranca en 0x3889 -fila 4, columna 9- y le suma el numero de pasada,
+    que es la columna; luego baja de fila en fila. Son DOS celdas por columna
+    -no tres, como en Circus- con los patrones 0xC0+2n y 0xC1+2n, y quince
+    pasadas. Detras hay un remate: en las columnas 3 y 4 escribe ademas 0xDE y
+    0xDF dos filas mas abajo, que es el borde.
+    """
+    for paso in range(pasos):
+        de = 0x3889 + paso
+        c = 0xC0 + paso * 2
+        for _ in range(2):
+            vram[de & 0x3FFF] = c & 0xFF
+            de += 0x20
+            c = (c + 1) & 0xFF
+        a = ((de & 0xFF) - 0xCC) & 0xFF                   # 0x4409
+        if a < 2:
+            vram[de & 0x3FFF] = (a + 0xDE) & 0xFF
+
+
+def donde_va_el_cursor(opcion):
+    """0x4299, y hay que hacerlo con ROTACIONES, no con divisiones.
+
+        ld a,(0e042h) / add a,014h / rrca / rrca / ld e,a / ld d,07ah
+
+    `rrca` ROTA: el bit 0 sube al 7. Con la opcion 0 rotar y dividir dan lo
+    mismo (0x05), pero con la 1 dan 0x45 y 0x05, que no es lo mismo en
+    absoluto. Salen 0x3A05, 0x3A45, 0x3A85 y 0x3AC5: la columna 5 de las filas
+    16, 18, 20 y 22, justo delante de los cuatro renglones que pinta el guion
+    de 0x472B. O sea DOS filas por opcion, no cuatro.
+    """
+    a = (0x14 + opcion) & 0xFF
+    for _ in range(2):
+        a = ((a >> 1) | ((a & 1) << 7)) & 0xFF
+    return (0x7A00 | a) & 0x3FFF
+
+
+def vram_de_la_presentacion(rom):
+    """LA PANTALLA DE LA CASA, entera: el logotipo de KONAMI subiendo y el
+    rotulo "(r) VIDEO CARTRIDGE (r)".
+
+    OJO: esta NO es la pantalla de titulo del juego. La de titulo es la del
+    menu, con ":KONAMI 1984" y "PLAY SELECT", y se monta encima de esta sin
+    recargar el decorado. Confundirlas costo una tanda de imagenes malas.
+
+        0x4257  monta_el_logotipo_de_konami + el resto de 0x425A
+        0x40F5  baja_el_logotipo, diecisiete pasos
+        0x40FC  pinta_rotulo 0x47BC
+    """
+    v = vram_del_titulo(rom)
+    baja_el_logotipo(v)
+    pinta_rotulo(v, rom, 0x47BC)
+    return v
+
+
+def vram_de_la_seleccion(rom, cursor=True, opcion=0):
+    """LA PANTALLA DE TITULO DE VERDAD: la del menu.
+
+    Tres pasos sobre la anterior, en el orden en que los da el cartucho:
+
+        0x4107  rellena 256 celdas desde 0x3880 a cero: se lleva por delante
+                el logotipo (filas 4 a 6) y el rotulo (fila 11) de una vez, sin
+                usar el guion
+        0x43E7  barre_la_franja, la cortina
+        0x4418  pinta_rotulo 0x472B: "PLAY SELECT", las cuatro opciones y el
+                ":KONAMI 1984"
+
+    El cursor (0x4282) son dos celdas, los patrones 0x3E y 0x3F, y parpadea.
+    """
+    v = vram_de_la_presentacion(rom)
+    rellena(v, 0x3880, 0x100, 0x00)                       # 0x4107
+    barre_la_franja(v)
+    pinta_rotulo(v, rom, 0x472B)
+    if cursor:
+        de = donde_va_el_cursor(opcion)
+        v[de & 0x3FFF] = 0x3E
+        v[(de + 1) & 0x3FFF] = 0x3F
+    return v
+
+
 def vram_del_titulo(rom):
-    """Lo que hace carga_los_graficos_del_titulo (0x425A)."""
+    """Lo que hace monta_la_pantalla_del_titulo (0x4257), que son DOS cosas.
+
+    La primera es el logotipo, y faltaba: 0x4257 llama a
+    monta_el_logotipo_de_konami ANTES de cargar los graficos del titulo, y sin
+    el, el montaje se separaba del cartucho en 447 bytes de patrones y 624 de
+    color.
+    """
     v = bytearray(0x4000)
+    monta_el_logotipo_de_konami(v, rom)           # 0x4257
     rellena_una_franja(v, rom, 0x0180, 0xF0)      # 0x425A -> 0x447E
     duplica_las_dos_tablas(v)
     rellena_una_franja(v, rom, 0x1600, 0x70)      # 0x425D: el tercer tercio
@@ -340,6 +477,30 @@ def logotipo(rom, fn, esc=6):
     png(w, h, px, fn)
 
 
+def pantalla_entera(v, fn, esc=2, con_sprites=False):
+    """Los 256x192 puntos, con EL MISMO renderizador que se coteja.
+
+    No se dibuja aqui a mano: se llama a tools/vram.py, que es el que esta
+    medido contra la pantalla de openMSX punto por punto. Si el dibujante y el
+    cotejador fueran dos trozos de codigo distintos, el verde del segundo no
+    diria nada del primero.
+    """
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import vram as V
+    px = V.pantalla(bytes(v), VDP, con_sprites=con_sprites)
+    if esc == 1:
+        png(256, 192, px, fn)
+        return
+    w, h = 256 * esc, 192 * esc
+    g = bytearray(w * h * 3)
+    for y in range(h):
+        fy = y // esc
+        for x in range(w):
+            i, j = (y * w + x) * 3, (fy * 256 + x // esc) * 3
+            g[i:i + 3] = px[j:j + 3]
+    png(w, h, g, fn)
+
+
 def main():
     rom = open(sys.argv[1], "rb").read()
     global ORG
@@ -359,7 +520,15 @@ def main():
     sprites(v, 0x1800, os.path.join(sal, "sprites.png"), n=10)
     sprites(v, 0x1940, os.path.join(sal, "sprites-espejo.png"), n=10)
 
-    logotipo(rom, os.path.join(sal, "logotipo.png"))
+    # LAS DOS PANTALLAS ENTERAS, las unicas de las que se puede decir que son
+    # lo que el jugador ve: las dos cotejadas contra el volcado del emulador a
+    # CERO bytes de diferencia (tools/coteja_vram.py).
+    pantalla_entera(vram_de_la_presentacion(rom),
+                    os.path.join(sal, "pantalla-presentacion.png"))
+    pantalla_entera(vram_de_la_seleccion(rom),
+                    os.path.join(sal, "pantalla-titulo.png"))
+
+    logotipo(rom, os.path.join(sal, "logotipo-konami.png"))
 
     t = vram_del_titulo(rom)
     rango(t, 0xC0, 32, os.path.join(sal, "titulo-tiles.png"))
