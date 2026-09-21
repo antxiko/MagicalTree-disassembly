@@ -229,6 +229,49 @@ C 0x41a0 el sonido del final
 C 0x41a5 los rotulos
 C 0x41b7 y la altura alcanzada
 C 0x41bd escena 13
+C 0x4198 si quedan, no es el final
+C 0x419f mientras suene algo, no se sigue
+C 0x41a2 pedido
+C 0x41a8 pintados
+C 0x41ab el otro rotulo
+C 0x41ae pintado
+C 0x41b1 la altura
+C 0x41b4 y su celda
+C 0x41ba el marcador
+C 0x41bf y se pasa a ella
+C 0x7271 se guarda DE
+C 0x7272 se copia el puntero
+C 0x7277 cuatro bytes mas alla
+C 0x727b copiados
+C 0x727d se cambian
+C 0x727f dos atras
+C 0x7282 el byte de antes
+C 0x7285 mas la columna
+C 0x7286 guardada
+C 0x7287 se recupera
+C 0x728b uno de cada cuatro
+C 0x7c0f el byte de la partitura
+C 0x7c10 y se avanza
+C 0x7c17 el nibble de arriba
+C 0x7c19 cuatro rotaciones, para bajarlo
+C 0x7c1d en B
+C 0x7c1e menos doce
+C 0x7c20 guardado
+C 0x7c23 si es justo doce, al PSG
+C 0x7c25 el valor de antes
+C 0x7c28 restituido
+C 0x7c2b la duracion
+C 0x7c2e el indice de la nota
+C 0x68d5 se recuperan los tres
+C 0x68d8 y se guarda el primero
+C 0x68da dos bytes mas alla
+C 0x68db el tipo
+C 0x68de si son los dos, es especial
+C 0x68e0 se recupera
+C 0x68e6 por dos: el bit 7 al acarreo
+C 0x68e7 con acarreo no se pinta
+C 0x68e9 y si no, se pinta en su sitio
+C 0x68ef tres mas alla
 C 0x41c5 si el otro jugador tiene partida, se le cede el turno
 L 0x41cf cambia_de_jugador
 B 0x41cf EL CAMBIO DE JUGADOR, y es una sola instruccion la que lo hace todo: los treinta y dos bytes del que juega viven en 0xE050 y los del otro en 0xE080, y se PERMUTAN. No hay indices ni dos copias de la logica: el jugador en turno esta siempre en 0xE050.
@@ -311,6 +354,35 @@ C 0x42e9 en BCD
 C 0x42ee los del medio, con acarreo
 C 0x42f6 y el tercer par
 C 0x42fc si desborda los seis digitos, el record se clava en 999999
+C 0x42e7 el par de abajo del tanteo
+C 0x42ea guardado
+C 0x42eb en E
+C 0x42ec el byte siguiente
+C 0x42ed el par del medio
+C 0x42f0 guardado
+C 0x42f1 en D
+C 0x42f2 el siguiente
+C 0x42f3 sin acarreo, no hay que tocar el tercero
+C 0x42f5 el par de arriba
+C 0x42f9 guardado
+C 0x42fa y si no desborda, se sigue
+C 0x42ff los dos pares de arriba
+C 0x4303 y los dos de abajo
+C 0x68b6 por dos: el bit 7 al acarreo
+C 0x68b7 con acarreo, se sale
+C 0x68b9 el byte siguiente
+C 0x68ba el byte alto
+C 0x68bc y la variante
+C 0x68bd el alto, en H
+C 0x68be y la fila, en L
+C 0x68bf la direccion del movimiento
+C 0x68c2 su bit 0 al acarreo
+C 0x68c3 con acarreo, sin desplazar
+C 0x68c5 uno menos
+C 0x68ca sumado a la fila
+C 0x68cb guardada
+C 0x68ce con el puesto, se sale
+C 0x68d0 a cero
 L 0x4309 mira_la_vida_extra
 B 0x4309 LA VIDA EXTRA. El umbral vive en (0xE052) y se compara con las centenas de millar del tanteo. Cada vez que se cruza, el umbral sube DOS -no uno- y, cuando desbordaria, se clava en 0xFF: a partir de ahi ya no hay mas vidas de regalo. Igual que en Circus Charlie.
 C 0x4309 el umbral
@@ -494,6 +566,34 @@ C 0x4532 una fila del teclado
 C 0x4537 pulsado es cero, se invierte
 C 0x453c y otra fila
 C 0x4545 las dos teclas de esta fila
+C 0x4538 una rotacion
+C 0x4539 y se queda con su bit
+C 0x453b guardado en E
+C 0x4541 pulsado es cero aqui tambien
+C 0x4542 dos rotaciones
+C 0x4544 el resto, en B
+C 0x4547 juntadas con las de antes
+C 0x4548 en C
+C 0x4549 lo que quedaba
+C 0x454a dos rotaciones mas
+C 0x454c otra vez en B
+C 0x454f juntadas
+C 0x4550 en C
+C 0x4551 y lo ultimo
+C 0x4552 una rotacion
+C 0x4553 las dos que faltan
+C 0x4555 juntadas: las seis teclas caben en un byte
+C 0x455c guardado
+C 0x4563 los dos juntos
+C 0x4567 y el teclado encima: se juega con cualquiera de los tres
+C 0x456b lo de antes
+C 0x456d el byte siguiente
+C 0x456f en B
+C 0x4573 los nuevos, en B
+C 0x4574 a cero
+C 0x457b la escena de ahora
+C 0x457e comparadas
+C 0x457f en las demas, solo se apunta la lectura
 C 0x454d y las dos que quedan
 L 0x4557 atiende_el_menu
 B 0x4557 EL MENU DE SELECCION, que es el remate que 0x40A7 apila cuando el bit 6 de (0xE002) esta a cero. Junta las TRES entradas -los dos puertos de mando y el teclado- con un `or`, de modo que en el menu vale cualquiera, y se queda con el FLANCO (`xor c / and b`): cuenta el momento de pulsar, no que siga pulsado.
@@ -591,6 +691,27 @@ C 0x628f y si hay suelo debajo
 C 0x6294 mira si agarra
 C 0x629f el bit 0 de lo que se pulsa
 C 0x62a2 la altura a la que se llego
+C 0x6287 el paso del dibujo
+C 0x628d con direccion, se cae
+C 0x6292 sin boton no se agarra
+C 0x6293 se guarda lo pulsado
+C 0x6297 si no hay nada cerca, cae
+C 0x6299 y se busca en la lista
+C 0x629c tampoco: cae
+C 0x629e se recupera
+C 0x62a0 con acarreo, mira la celda de al lado
+C 0x62a5 la del jugador
+C 0x62a8 la diferencia
+C 0x62ab fuera de margen: no rehace nada
+C 0x62ad se rehace la pantalla
+C 0x73c7 los topes
+C 0x73cc la celda de referencia
+C 0x73d0 la de al lado
+C 0x73d4 uno mas: 0xFF se convierte en cero
+C 0x73d5 y si no era 0xFF, no toca cambiar de fase
+C 0x73d7 el numero de fase
+C 0x73de guardado
+C 0x73df y el contador de tandas
 C 0x62a9 treinta y seis de margen
 L 0x62b0 pasa_al_estado_6
 C 0x62b0 el paso, a seis
@@ -792,6 +913,39 @@ C 0x65d3 a los dos sprites
 L 0x65d7 mete_al_jugador_inclinado
 C 0x65dd por cinco: esta tabla gasta uno mas
 C 0x65e0 la otra tabla de poses
+C 0x65d7 dos filas mas abajo
+C 0x65d9 el byte siguiente
+C 0x65da la columna
+C 0x65db el siguiente
+C 0x65dc y la pose
+C 0x65e3 indexada
+C 0x65e6 el bufer de atributos
+C 0x65ee mas la fila
+C 0x65ef guardada
+C 0x65f0 y el segundo
+C 0x65f3 la columna
+C 0x65f6 al atributo del tercero
+C 0x65f9 la columna otra vez
+C 0x65fc guardada
+C 0x6b2e se guardan los dos
+C 0x6b30 la ficha
+C 0x6b32 vacia: al siguiente
+C 0x6b34 el byte siguiente
+C 0x6b36 en E
+C 0x6b38 y uno mas
+C 0x6b39 la lista de objetos
+C 0x6b3c indexada
+C 0x6b3f su columna
+C 0x6b40 menos el borde
+C 0x6b42 tiene que caber en 0x78
+C 0x6b44 y si no, el perseguidor se retira
+C 0x6b47 dos bytes mas alla
+C 0x6b4b el 0x80 vale
+C 0x6b4d y el 0x81 tambien
+C 0x6b4f los demas, no
+C 0x6b51 se pinta
+C 0x6b56 a cero
+C 0x6b58 el byte de antes
 
 
 # ======================================================================
@@ -819,6 +973,41 @@ C 0x6689 nueve pixeles de margen
 C 0x6692 ocho de desplazamiento
 C 0x6694 y el ancho, que lo trae el tipo
 C 0x669a los tres bytes del objeto, copiados
+C 0x6dd8 se guardan los dos
+C 0x6dda la ficha
+C 0x6ddc vacia: al siguiente
+C 0x6dde se copia el puntero a IY
+C 0x6de1 el byte de antes
+C 0x6de2 el numero de objeto
+C 0x6de4 por tres, que es lo que ocupa cada uno
+C 0x6de5 y vuelta
+C 0x6de9 indexada
+C 0x6dec se copia a IX
+C 0x6def su primer byte
+C 0x6df2 retirado: nada que hacer
+C 0x6df4 el tipo
+C 0x6df9 tienen que caber en cuatro
+C 0x6dfd o ser el quinto
+C 0x6dff y los demas no cuentan
+C 0x6e03 sin el, el otro camino
+C 0x6e05 se espera al turno
+C 0x6e0a y se mira contra el jugador
+C 0x6682 dos bytes atras
+C 0x6684 se guarda DE
+C 0x6685 el ancho, que lo dice el tipo
+C 0x6688 se recupera
+C 0x668a menos la columna del objeto
+C 0x668d fuera de margen: no hay contacto
+C 0x668f el byte siguiente
+C 0x6690 la fila del jugador
+C 0x6691 menos la del objeto
+C 0x6695 y si no cabe, tampoco
+C 0x6697 el ancho
+C 0x6698 se recuperan
+C 0x66a0 copiados
+C 0x66a2 y el ancho detras
+C 0x66a8 el tipo
+C 0x66a9 dos veces por dos
 C 0x66a3 acarreo: hay contacto
 L 0x66a5 ancho_del_objeto
 C 0x66a8 el tipo, por ocho
@@ -915,6 +1104,32 @@ C 0x683e el contador de refresco del Z80: el azar
 C 0x6840 recortado a la mascara
 C 0x6842 el valor mas alto
 C 0x684b se rebaja en la fase 2
+C 0x680a el byte siguiente
+C 0x680e guardado en B
+C 0x680f la celda de al lado
+C 0x6813 el segundo, a la ficha
+C 0x6815 y el primero detras
+C 0x6816 el primero otra vez
+C 0x6819 y si no lo son, es terreno normal
+C 0x681d se guardan los dos punteros
+C 0x6822 si ya hay una ficha ahi, se descarta
+C 0x6825 a cero: se busca un hueco libre
+C 0x682c si no lo hay, no cabe otro objeto
+C 0x682e la posicion, a la ficha
+C 0x6830 los dos bytes
+C 0x6832 el siguiente
+C 0x6836 guardado en C
+C 0x6839 en las demas, cuatro variantes
+C 0x683d y en la primera, dos
+C 0x6840 recortado a lo que haya en B
+C 0x6841 a la ficha
+C 0x6842 la variante mas alta
+C 0x6846 la fase
+C 0x6849 en las demas se queda como esta
+C 0x684f el bit 0 al acarreo
+C 0x6850 con acarreo se deja como esta
+C 0x6854 el byte siguiente
+C 0x6855 y el hueco elegido
 C 0x684c la direccion del movimiento
 C 0x6852 y el bit 7 marca el sentido del objeto
 C 0x685b el tipo que se leyo de la pantalla
@@ -989,6 +1204,37 @@ C 0x6983 el ancho del objeto
 C 0x698a sus tres bytes, copiados
 C 0x6994 el valor 10, aparte
 C 0x6999 y si no, ese es el numero de fase
+C 0x6962 la lectura del mando
+C 0x6967 sin direccion, nada que hacer
+C 0x6968 el bit 0 al acarreo
+C 0x6969 con acarreo, el otro camino
+C 0x696b el paso 6
+C 0x696e baja si puede
+C 0x6971 y mira lo que tenga cerca
+C 0x6979 en B
+C 0x697a la ficha del objeto
+C 0x697d su fila
+C 0x6980 y entonces no hay objeto
+C 0x6981 comparada con la del jugador
+C 0x6982 por debajo, no llega
+C 0x6986 el bufer del objeto de cerca
+C 0x6989 se guarda
+C 0x698d copiados
+C 0x698f y el ancho detras
+C 0x6990 se recupera
+C 0x6992 dos bytes mas alla
+C 0x6993 lo que haya ahi
+C 0x6996 tiene su propio camino
+C 0x699f el paso 6
+C 0x69a2 los objetos de cerca
+C 0x69a5 y si puede subir
+C 0x69ab la fila
+C 0x69ae guardada
+C 0x69b2 sin acarreo, mira si ha llegado al suelo
+C 0x69b8 el paso 10
+C 0x69bc o el 6
+C 0x69be se guarda
+C 0x69bf y se trepa
 L 0x699f estado_alterno_trepando
 C 0x69a8 la posicion del jugador
 C 0x69ac treinta y seis por debajo
@@ -1099,6 +1345,34 @@ C 0x6b9f el tipo del objeto
 C 0x6ba1 cinco
 C 0x6ba5 o cuatro
 C 0x6bac el color del sprite
+C 0x6b6e el byte de antes
+C 0x6b71 con el bit puesto, este no sale
+C 0x6b73 dos mas alla
+C 0x6b78 si vale cero, no se pinta
+C 0x6b7b el contador
+C 0x6b7e sin el, tampoco
+C 0x6b82 entre dos: queda el indice
+C 0x6b83 se guarda DE
+C 0x6b87 indexados
+C 0x6b8a el patron que toca
+C 0x6b8b guardado en el acumulador alternativo
+C 0x6b8c y se recupera DE
+C 0x6b8e dos bytes atras
+C 0x6b90 el bufer de atributos
+C 0x6b93 su hueco
+C 0x6b96 la fila
+C 0x6b99 al atributo
+C 0x6b9a el byte siguiente
+C 0x6b9c la columna, en C
+C 0x6b9e y el tipo
+C 0x6ba3 en los demas, cinco
+C 0x6ba7 la columna
+C 0x6ba8 menos el ajuste
+C 0x6ba9 al atributo
+C 0x6bab se cambian
+C 0x6bae el patron guardado
+C 0x6bb0 y al atributo
+C 0x6bb5 el suyo
 L 0x6bb2 saca_el_sprite_de_pantalla
 C 0x6bb5 su hueco de sprite
 C 0x6bb8 0xC3: fuera de la pantalla
@@ -1178,6 +1452,33 @@ C 0x6ce0 o que no
 C 0x6ce2 a menos de 0x30
 C 0x6ce4 reacciona uno de cada ocho
 C 0x6ce8 y de cerca, uno de cada cuatro
+C 0x6ca1 su estado
+C 0x6ca4 fuera de la pantalla: no decide nada
+C 0x6ca7 sin tipo, tampoco
+C 0x6ca8 se guarda el puntero
+C 0x6caa dos bytes mas alla
+C 0x6cac el siguiente
+C 0x6cad y la fila
+C 0x6cae se recupera
+C 0x6cb3 los demas, por el otro camino
+C 0x6cb8 menos la del bicho
+C 0x6cbb si no cabe, no lo alcanza
+C 0x6cbc el estado del jugador
+C 0x6cc1 en los demas no pasa nada
+C 0x6cc2 el estado del bicho
+C 0x6cc5 y se le quita el 3
+C 0x6cc7 guardado
+C 0x6ccc el tipo 3
+C 0x6cce los otros, con la primera ventana
+C 0x6cd3 y se le marca el bit 4
+C 0x6cd5 la fila del bicho
+C 0x6cd6 menos el alto de la ventana
+C 0x6cd7 en B
+C 0x6cdb menos la del bicho
+C 0x6cdf y si no cabe, se deshace la marca
+C 0x6ce2 la distancia
+C 0x6ce6 de lejos, uno de cada ocho
+C 0x6cea el contador
 C 0x6cef la otra coordenada del jugador
 C 0x6cf5 el bit 7 es hacia donde mira
 C 0x6cf9 y se le da la vuelta si el jugador esta al otro lado
@@ -1597,6 +1898,36 @@ C 0x74c9 la altura alcanzada
 C 0x74ca en BCD
 C 0x74cf el byte alto, con acarreo
 C 0x74d9 el sonido del recuento
+C 0x748b lo que se guardo
+C 0x748c con el signo puesto, todavia no toca
+C 0x7491 mientras suene algo, no se sigue
+C 0x7492 el contador de fases
+C 0x7495 la novena tiene su propio remate
+C 0x749c pintado
+C 0x74a2 apuntados
+C 0x74a6 y sumados al tanteo
+C 0x74a9 la altura
+C 0x74ac su celda en la pantalla
+C 0x74b2 el bloque de origen
+C 0x74b5 su destino
+C 0x74b8 seis por ocho
+C 0x74be los dos bytes del tope
+C 0x74c2 el bajo
+C 0x74c3 donde se compone el resultado
+C 0x74c6 y la altura de la que se parte
+C 0x74cb guardada
+C 0x74cc el byte siguiente
+C 0x74ce el alto del tope
+C 0x74d1 guardado
+C 0x74d3 la celda donde se pinta
+C 0x74d6 los dos bytes, en BCD
+C 0x74de a cero
+C 0x74e4 y el contador de cuadros tambien
+C 0x74ea los dos bloques de tres por tres
+C 0x74f3 pintado
+C 0x74fb uno de cada ciento veintiocho cuadros
+C 0x7503 la novena va por otro lado
+C 0x7508 a la VRAM
 L 0x74ea remate_de_la_novena
 C 0x74f0 el rotulo "CONGRATULATIONS"
 L 0x74f8 estado_15_espera_larga
@@ -1743,6 +2074,37 @@ L 0x78e7 apunta_al_perseguidor
 C 0x78ea vacio: al siguiente
 C 0x78f2 el numero por tres
 C 0x78f7 se marca el bit 7
+C 0x78e7 dos bytes mas alla
+C 0x78e9 el tipo
+C 0x78ed se cambian
+C 0x78ee la tabla de fichas
+C 0x78f1 el numero de ficha
+C 0x78f3 por tres, que es lo que ocupa cada una
+C 0x78f4 indexada
+C 0x78f9 el contador de perseguidores
+C 0x78fd uno mas
+C 0x7900 y de ahi no pasa
+C 0x7901 guardado
+C 0x7902 con dos ya esta
+C 0x7905 el byte siguiente
+C 0x7906 se marca
+C 0x7908 el siguiente
+C 0x7909 y el numero de ficha detras
+C 0x790a el byte de antes
+C 0x790d guardado
+C 0x7912 su estado
+C 0x7914 sin perseguidor no hay nada que mover
+C 0x7915 en B
+C 0x7916 se copia el puntero a DE
+C 0x7918 el byte siguiente
+C 0x791a el bufer de atributos
+C 0x791d su hueco
+C 0x7920 si esta a la vista
+C 0x7923 fuera: no se dibuja
+C 0x7925 el bit 7 del estado
+C 0x792c uno de cada ocho
+C 0x792f el dibujo, alternado
+C 0x7934 sin el, ya esta
 C 0x78fd el contador, uno mas
 C 0x78fe el tope son tres
 L 0x60fc da_la_vuelta_a_una_fila
@@ -1753,6 +2115,40 @@ C 0x6101 que juntos son un registro de dieciseis bits
 C 0x6105 dieciseis vueltas: la fila entera
 C 0x610e y dieciseis mas, que con los que ya avanzo el bucle son 0x20 por tanda
 C 0x6119 el destino: 0x1940, cuarenta patrones despues de 0x1800
+C 0x6107 al juego alternativo
+C 0x6108 la fila siguiente
+C 0x610a y el byte de salida
+C 0x6111 se cambian
+C 0x6113 y de vuelta
+C 0x6116 se recupera
+C 0x611c el bufer donde se dio la vuelta
+C 0x61f7 se guardan los dos
+C 0x61f9 el tipo
+C 0x61fe fuera de rango: ese no se agarra
+C 0x6201 dos bytes atras
+C 0x6202 la columna
+C 0x6205 retirado: tampoco
+C 0x620b menos la columna del objeto
+C 0x620e fuera de alcance
+C 0x6210 el byte siguiente
+C 0x6211 la fila del objeto
+C 0x6214 menos la del jugador
+C 0x6217 y si cabe, se agarra
+C 0x6219 se recuperan
+C 0x72be leido
+C 0x72bf a la ficha
+C 0x72c4 al tipo
+C 0x72c5 guardado
+C 0x72c6 se recupera
+C 0x72c7 el bufer de atributos
+C 0x72ca su hueco
+C 0x72cd se guarda
+C 0x72d1 copiados
+C 0x72d3 se recupera
+C 0x72d6 mas la columna
+C 0x72d7 guardada
+C 0x72d9 dos bytes mas alla
+C 0x72e4 de una vez con el byte de al lado
 C 0x611f 320 bytes
 L 0x790f mueve_el_perseguidor
 B 0x790f EL PERSEGUIDOR EN MARCHA. Con el bit 7 puesto solo se atiende uno de cada ocho cuadros; el bit 3 le anade 0x40 al estado.
@@ -1762,12 +2158,57 @@ C 0x7919 el objeto al que sigue
 C 0x7929 el contador de cuadros
 C 0x792c uno de cada ocho
 C 0x7932 el bit 3
+C 0x7937 al estado
+C 0x7938 y se vuelve
+C 0x65ae dos veces por dos
+C 0x65b0 indexada
+C 0x65b6 el primero
+C 0x65bb mas la fila
+C 0x65bc guardada
+C 0x65bd y el segundo
+C 0x65c2 el estado del jugador
+C 0x65c7 por debajo no se ajusta nada
+C 0x65c8 la fila del primer sprite
+C 0x65cb leida
+C 0x65ce guardada
+C 0x65cf y la del segundo
+C 0x65d2 leida
+C 0x65d5 guardada
 L 0x79b8 cobra_el_objeto
 B 0x79b8 COBRAR UN OBJETO: saca de la tabla de 0x79DE los puntos que vale -indexada por su tipo, por dos- y los suma con el byte alto, o sea en centenas. Ademas deja el sprite del premio con el color 0x0F.
 C 0x79b8 el hueco del sprite
 C 0x79c1 el tipo por dos
 C 0x79c2 la tabla de valores
 C 0x79d2 el color del premio
+C 0x6223 se recuperan los dos
+C 0x6225 dos bytes atras
+C 0x6227 y se guarda
+C 0x622b se recupera
+C 0x622c su columna
+C 0x622f el byte siguiente
+C 0x6230 la fila
+C 0x6232 y el tipo
+C 0x6233 guardado en D
+C 0x6236 tienen que caber en tres
+C 0x6238 el tipo otra vez
+C 0x6239 los demas, por el otro camino
+C 0x623b el contador de objetos
+C 0x623f y se sigue
+C 0x6241 se guardan
+C 0x6243 el tipo, en B
+C 0x6248 el patron
+C 0x79bb el suyo
+C 0x79be la posicion
+C 0x79bf el tipo guardado
+C 0x79c0 se cambian
+C 0x79c5 indexada
+C 0x79c8 el byte bajo
+C 0x79ca y el alto
+C 0x79cb se cambian otra vez
+C 0x79cc la columna, al atributo
+C 0x79ce la fila
+C 0x79d0 el patron
+C 0x79d4 el byte bajo de los puntos, a cero
 C 0x79d6 y se suman los puntos
 C 0x79d9 y suena el aviso
 L 0x48be baja_el_logotipo_un_paso
