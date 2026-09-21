@@ -5814,7 +5814,11 @@ L_741C:
 ;   en (0xE05D). De ahi los coge el descompresor de 0x612C, que al sacar cada
 ;   byte de color mira los nibbles: donde valga 3 pone el de la mascara. O sea
 ;   que el decorado es SIEMPRE el mismo y lo que cambia de una tanda a otra es
-;   el color, sin guardar una segunda copia
+;   el color, sin guardar una segunda copia. OJO: la PRIMERA tanda no sale de
+;   aqui, sale de los diecisiete valores iniciales de 0x51C1 -el decimocuarto
+;   es (0xE05D) y vale 0x77-; medido en el emulador con la fase 1 y la tanda a
+;   cero, y montando la pantalla con ese 0x77 el cotejo contra el volcado da
+;   cero bytes de color
 ;   0x741f..0x7427  (8 bytes)
 DATA_mascaras_de_color_por_tanda:
 	defb 011h,033h,0bbh,0eeh,011h,0bbh,0eeh,011h	; 741f  .3......

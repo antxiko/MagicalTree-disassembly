@@ -508,9 +508,16 @@ def main():
     sal = sys.argv[3]
     os.makedirs(sal, exist_ok=True)
 
-    # La mascara de color de la primera tanda sale de 0x741F, que 0x73F9
-    # indexa con tres bits del contador de tandas.
-    mascara = rom[0x741F - ORG]
+    # LA MASCARA DE COLOR DE LA PRIMERA TANDA NO SALE DE LA TABLA DE 0x741F:
+    # sale de los DIECISIETE VALORES INICIALES de 0x51C1, que 0x51AB copia con
+    # un `ldir` a 0xE050 al reiniciar al jugador. El decimocuarto es (0xE05D),
+    # la mascara, y vale 0x77. La tabla de 0x741F solo entra a partir de la
+    # segunda tanda, cuando 0x73E2 incrementa el contador.
+    #
+    # Medido en el emulador: con la fase 1 y la tanda 0, (0xE05D) vale 0x77; y
+    # montando la pantalla con ese valor el cotejo contra el volcado da CERO
+    # bytes de color. Con el primero de la tabla (0x11) se separaba en 1.809.
+    mascara = rom[0x51CE - ORG]
 
     v = vram_de_la_fase(rom, mascara)
     hoja(v, 0, os.path.join(sal, "tiles-fase.png"))

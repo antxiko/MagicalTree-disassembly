@@ -86,7 +86,8 @@ proc foto {acto} {
     puts $f [format {tiempo %s} [machine_info time]]
     puts $f [format {regs %s} [join $r { }]]
     foreach {nombre dir} {escena 0xE000 subescena 0xE001 modo 0xE002
-                          reloj 0xE003 espera 0xE004} {
+                          reloj 0xE003 espera 0xE004 fase 0xE051
+                          tanda 0xE05C mascara_de_color 0xE05D} {
         puts $f [format {%s %d} $nombre [debug read memory $dir]]
     }
     close $f
