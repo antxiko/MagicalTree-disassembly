@@ -29,15 +29,15 @@ escribe_en_vram:
 	call prepara_escritura_vram		;4010   ; pone el puntero de escritura y deja 0x98 en C'
 	exx			;4013   ; al juego alternativo, donde C es el puerto de datos del VDP
 	out (c),a		;4014   ; y ahi va el byte
-	exx			;4016
+	exx			;4016   ; de vuelta al juego normal
 	ei			;4017   ; la rutina de abajo entro con `di`
 	ret			;4018
 lee_de_vram:
 	call prepara_lectura_vram		;4019   ; lo mismo para leer
-	exx			;401c
+	exx			;401c   ; al juego alternativo, igual que al escribir
 	in a,(c)		;401d   ; el byte leido vuelve en A
 	exx			;401f
-	ei			;4020
+	ei			;4020   ; la lectura tambien entro con `di`
 	ret			;4021
 
 ; ----------------------------------------------------------------------
@@ -53,29 +53,29 @@ suma_a_a_de:
 	add a,e			;4027   ; DE += A, la gemela
 	ld e,a			;4028
 	ret nc			;4029
-	inc d			;402a
+	inc d			;402a   ; y con acarreo, el byte alto
 	ret			;402b
 
 ; ----------------------------------------------------------------------
 ; EL GANCHO DE LA INTERRUPCION, donde vive el juego entero: INIT lo engancha en H.KEYI y se queda en el `jr $` de 0x40A5, asi que todo lo que pasa, pasa una vez por cuadro desde aqui. El cerrojo de (0xE005) es de UN BIT -`bit 0,(hl)`-, al contrario que en Circus Charlie, que lleva un contador.
 ; ----------------------------------------------------------------------
 gancho_de_interrupcion:
-	di			;402c
+	di			;402c   ; la interrupcion entra con todo cerrado
 	call 0013eh		;402d   ; BIOS RDVDP - Reads VDP status register | lee el estado del VDP para que baje su bandera
 	call suena_un_cuadro		;4030   ; el sonido, lo primero
 	ld hl,0e005h		;4033   ; el cerrojo de reentrada
 	bit 0,(hl)		;4036   ; si ya hay una dentro, no se entra otra vez
-	jr nz,L_4047		;4038
-	inc (hl)			;403a
+	jr nz,L_4047		;4038   ; con el cerrojo tomado se sale sin hacer nada
+	inc (hl)			;403a   ; y si no, se toma
 	ei			;403b   ; se abren las interrupciones ESTANDO dentro
 	call lee_los_mandos		;403c   ; lee los mandos y el teclado
 	call reparte_la_escena		;403f   ; y aqui se despacha la escena
-	di			;4042
+	di			;4042   ; al salir se vuelve a cerrar
 	xor a			;4043
-	ld (0e005h),a		;4044   ; se suelta el cerrojo
+	ld (0e005h),a		;4044   ; el cerrojo es de UN BIT: basta con dejarlo a cero
 L_4047:
 	ei			;4047
-	reti		;4048
+	reti		;4048   ; y se sale con las interrupciones ya abiertas
 
 ; ----------------------------------------------------------------------
 ; EL DESPACHADOR DE ESCENAS: la tabla va PEGADA detras del `call`, y el `pop hl` recupera su propia direccion de retorno, que es justo donde empieza. Quien llama solo pasa el numero de escena en A.
@@ -86,8 +86,8 @@ despacha_por_tabla:
 	call suma_a_a_hl		;404c   ; la entrada que toca
 	ld e,(hl)			;404f   ; y de ahi el destino
 	inc hl			;4050
-	ld d,(hl)			;4051
-	ex de,hl			;4052
+	ld d,(hl)			;4051   ; la palabra del destino
+	ex de,hl			;4052   ; a HL, que es el unico par con el que se puede saltar
 	jp (hl)			;4053   ; se salta sin dejar retorno
 
 ; ----------------------------------------------------------------------
@@ -97,10 +97,10 @@ intercambia_bloques:
 	ld c,(hl)			;4054   ; el de (HL)
 	ld a,(de)			;4055   ; y el de (DE)
 	ld (hl),a			;4056   ; cada uno al sitio del otro
-	ld a,c			;4057
+	ld a,c			;4057   ; el que estaba guardado va al otro lado
 	ld (de),a			;4058
 	inc hl			;4059
-	inc de			;405a
+	inc de			;405a   ; y el siguiente par de bytes
 	djnz intercambia_bloques		;405b
 	ret			;405d
 
@@ -115,12 +115,12 @@ pinta_rotulo:
 L_4064:
 	ld e,(hl)			;4064   ; de la cabecera sale el destino en la VRAM
 	inc hl			;4065
-	ld d,(hl)			;4066
+	ld d,(hl)			;4066   ; la palabra del destino, byte bajo primero
 	inc hl			;4067
 L_4068:
 	ld a,(hl)			;4068   ; el siguiente byte del guion
 	inc hl			;4069
-	ld b,a			;406a
+	ld b,a			;406a   ; B es la copia con la que se miran los dos codigos de control sin perder A
 	inc b			;406b   ; 0xFF es el fin del rotulo
 	ret z			;406c
 	inc b			;406d   ; 0xFE es "sigue en otro sitio"
@@ -135,21 +135,21 @@ L_4068:
 ; ----------------------------------------------------------------------
 init:
 	di			;4077
-	im 1		;4078
+	im 1		;4078   ; modo 1: la interrupcion entra por 0x0038 y la BIOS la encamina a H.KEYI
 	ld a,0c3h		;407a   ; un `jp` en 0xFD9A y la direccion detras: asi se engancha H.KEYI
 	ld (0fd9ah),a		;407c
 	ld hl,gancho_de_interrupcion		;407f   ; el gancho es el de 0x402C
-	ld (0fd9bh),hl		;4082
+	ld (0fd9bh),hl		;4082   ; y detras del `jp`, la direccion del gancho
 	ld sp,0e400h		;4085   ; la pila, por encima de las variables
 	ld hl,0e000h		;4088   ; y las variables, a cero de 0xE000 a 0xE3FF
 	ld de,0e001h		;408b
 	ld bc,003ffh		;408e
-	ld (hl),000h		;4091
+	ld (hl),000h		;4091   ; el clasico ldir sobre si mismo: se pone UN cero y el resto lo arrastra
 	ldir		;4093
 	ld a,001h		;4095   ; el cerrojo, tomado durante el arranque
-	ld (0e005h),a		;4097
+	ld (0e005h),a		;4097   ; nadie va a atender un cuadro mientras se monta el hardware
 	call arranca_el_hardware		;409a   ; prepara el VDP y la pantalla
-	xor a			;409d
+	xor a			;409d   ; el hardware ya esta, se puede soltar
 	ld (0e005h),a		;409e   ; y ahora si, se suelta
 	call 0013eh		;40a1   ; BIOS RDVDP - Reads VDP status register
 	ei			;40a4
@@ -161,9 +161,9 @@ espera_para_siempre:
 ; ----------------------------------------------------------------------
 reparte_la_escena:
 	ld hl,0e003h		;40a7   ; el contador de cuadros
-	inc (hl)			;40aa
+	inc (hl)			;40aa   ; un cuadro mas; no se pone nunca a cero, da la vuelta sola
 	ld a,(0e002h)		;40ab   ; el bit 6 decide cual de los dos remates se apila
-	and 040h		;40ae
+	and 040h		;40ae   ; aisla el bit 6
 	ld hl,043aah		;40b0   ; uno
 	jr nz,L_40B8		;40b3
 	ld hl,04557h		;40b5   ; y el otro
@@ -194,7 +194,7 @@ DATA_tabla_de_escenas:
 ; ----------------------------------------------------------------------
 L_40E3:
 	call baja_los_contadores_y_barre		;40e3
-	ret p			;40e6
+	ret p			;40e6   ; `ret p`: con el bit 7 puesto todavia queda cuenta atras
 	call monta_la_pantalla_del_titulo		;40e7
 	call vuelca_los_registros_del_vdp		;40ea
 	jp pasa_a_la_escena_siguiente		;40ed
@@ -206,11 +206,11 @@ L_40F0:
 	ld a,(0e003h)		;40f0   ; el contador de cuadros
 	rra			;40f3   ; su bit 0 al acarreo
 	ret nc			;40f4
-	call baja_el_logotipo_un_paso		;40f5
+	call baja_el_logotipo_un_paso		;40f5   ; y el resto del parpadeo lo lleva el logotipo
 	ret nz			;40f8
 	ld hl,047bch		;40f9   ; el rotulo
 	call pinta_rotulo		;40fc   ; con la mascara a 0xFF: pintandolo
-	xor a			;40ff
+	xor a			;40ff   ; plazo cero
 	jr L_417C		;4100
 
 ; ----------------------------------------------------------------------
@@ -218,12 +218,12 @@ L_40F0:
 ; ----------------------------------------------------------------------
 L_4102:
 	ld hl,0e004h		;4102   ; el plazo
-	dec (hl)			;4105
+	dec (hl)			;4105   ; un cuadro menos del plazo
 	ret nz			;4106
 	ld de,03880h		;4107   ; la franja de abajo
 	ld bc,00100h		;410a   ; 256 celdas
-	xor a			;410d
-	ld (0e00ah),a		;410e
+	xor a			;410d   ; a cero: la franja se borra
+	ld (0e00ah),a		;410e   ; y la bandera de 0xE00A tambien
 	call rellena_vram		;4111
 L_4114:
 	jr pasa_a_la_escena_siguiente		;4114
@@ -233,8 +233,8 @@ L_4114:
 ; ----------------------------------------------------------------------
 L_4116:
 	call barre_una_franja		;4116
-	ret c			;4119
-	xor a			;411a
+	ret c			;4119   ; mientras devuelva acarreo, queda pantalla por barrer
+	xor a			;411a   ; escena 0, la primera de la partida
 	jr L_417C		;411b
 
 ; ----------------------------------------------------------------------
@@ -242,8 +242,8 @@ L_4116:
 ; ----------------------------------------------------------------------
 L_411D:
 	ld hl,0e004h		;411d
-	dec (hl)			;4120
-	jp nz,parpadea_el_cursor		;4121
+	dec (hl)			;4120   ; el plazo de la pantalla de seleccion
+	jp nz,parpadea_el_cursor		;4121   ; mientras corre, solo parpadea el cursor
 	jr plazo_de_32_y_siguiente_escena		;4124
 
 ; ----------------------------------------------------------------------
@@ -251,7 +251,7 @@ L_411D:
 ; ----------------------------------------------------------------------
 L_4126:
 	call baja_los_contadores_y_barre		;4126
-	ret p			;4129
+	ret p			;4129   ; hasta que las dos cuentas no llegan a cero, no se arranca
 	call arranca_la_vida		;412a
 	jr plazo_de_32_y_siguiente_escena		;412d
 
@@ -261,7 +261,7 @@ L_4126:
 L_412F:
 	call avanza_el_guion_y_sigue		;412f
 	ld a,(0e00ch)		;4132   ; si (0xE00C) esta a cero, todavia no toca
-	or a			;4135
+	or a			;4135   ; cero quiere decir que todavia no
 	ret z			;4136
 L_4137:
 	xor a			;4137
@@ -272,7 +272,7 @@ L_4137:
 ; ----------------------------------------------------------------------
 L_413B:
 	ld a,(0e00dh)		;413b   ; la senal de fin de partida
-	or a			;413e
+	or a			;413e   ; cero es "la partida sigue"
 	jr nz,L_415C		;413f
 	call baja_los_contadores_y_barre		;4141
 	ret p			;4144
@@ -280,12 +280,12 @@ L_413B:
 	dec (hl)			;4148   ; una menos: esta se va a jugar
 	call pinta_el_marcador		;4149   ; repinta el marcador
 	ld a,(0e002h)		;414c   ; el bit 5 dice si hay dos jugadores
-	and 020h		;414f
+	and 020h		;414f   ; el bit 5
 	jr z,L_4159		;4151
 	ld hl,047b1h		;4153   ; el rotulo "PLAYER 1"
 	call pinta_rotulo_con_marca		;4156
 L_4159:
-	call pinta_la_altura_y_el_marcador		;4159
+	call pinta_la_altura_y_el_marcador		;4159   ; y detras, la altura y el marcador enteros
 L_415C:
 	jr pasa_a_la_escena_siguiente		;415c
 
@@ -294,23 +294,23 @@ L_415C:
 ; ----------------------------------------------------------------------
 espera_a_que_pare_el_sonido:
 	ld a,(0e012h)		;415e   ; lo que este sonando
-	or a			;4161
+	or a			;4161   ; mientras suene algo, no se cierra la vida
 	ret nz			;4162
 	ld a,(0e05eh)		;4163   ; la bandera que elige el sonido
-	rra			;4166   ; su bit 0
+	rra			;4166   ; el bit 0 elige entre los dos sonidos
 	ld a,009h		;4167   ; un sonido
 	jr c,L_416D		;4169
 	ld a,08ch		;416b   ; o el otro
 L_416D:
 	call pide_un_sonido		;416d
-	xor a			;4170
+	xor a			;4170   ; la bandera de "ya se hizo", a cero
 	ld (0e001h),a		;4171
 	ld hl,00000h		;4174
-	ld (0e00ch),hl		;4177
+	ld (0e00ch),hl		;4177   ; y las dos senales de fin, de una tacada
 plazo_de_32_y_siguiente_escena:
 	ld a,020h		;417a   ; 32 cuadros de plazo
 L_417C:
-	ld (0e004h),a		;417c
+	ld (0e004h),a		;417c   ; el plazo, donde lo mira la escena siguiente
 pasa_a_la_escena_siguiente:
 	ld hl,0e000h		;417f   ; el numero de escena
 	inc (hl)			;4182   ; la siguiente
@@ -323,11 +323,11 @@ L_4184:
 	call el_cuadro_del_juego		;4184
 	ld hl,0e00ch		;4187   ; la senal de fin
 	ld a,(hl)			;418a
-	or a			;418b
+	or a			;418b   ; cero es que la partida sigue
 	jr nz,plazo_de_32_y_siguiente_escena		;418c
-	inc hl			;418e
+	inc hl			;418e   ; y el byte de al lado, la otra senal
 	or (hl)			;418f   ; y su pareja
-	ret z			;4190
+	ret z			;4190   ; con las dos a cero no hay nada que cerrar
 	ld a,00fh		;4191   ; escena 15
 	jr L_41FA		;4193
 
@@ -337,9 +337,9 @@ L_4184:
 L_4195:
 	ld a,(0e050h)		;4195   ; las vidas
 	or a			;4198   ; si quedan, no es el final
-	jr nz,L_41C5		;4199
+	jr nz,L_41C5		;4199   ; quedando vidas, se sigue jugando
 	ld a,(0e012h)		;419b   ; espera a que pare el sonido
-	or a			;419e
+	or a			;419e   ; mientras suene algo, no se cierra la partida
 	ret nz			;419f   ; mientras suene algo, no se sigue
 	ld a,093h		;41a0   ; el sonido del final
 	call pide_un_sonido		;41a2   ; pedido
@@ -353,14 +353,14 @@ L_4195:
 	call pinta_el_marcador		;41ba   ; el marcador
 	ld a,00dh		;41bd   ; escena 13
 	ld (0e000h),a		;41bf   ; y se pasa a ella
-	xor a			;41c2
+	xor a			;41c2   ; plazo cero: el cartel se queda puesto
 	jr L_417C		;41c3
 L_41C5:
 	ld a,(0e080h)		;41c5   ; si el otro jugador tiene partida, se le cede el turno
-	or a			;41c8
+	or a			;41c8   ; cero es "el otro no tiene partida"
 	jr nz,pasa_a_la_escena_siguiente		;41c9
 L_41CB:
-	ld a,009h		;41cb
+	ld a,009h		;41cb   ; escena 9, la que mira si quedan vidas
 	jr L_41FA		;41cd
 
 ; ----------------------------------------------------------------------
@@ -372,30 +372,30 @@ cambia_de_jugador:
 	ld b,020h		;41d5   ; treinta y dos bytes cada uno
 	call intercambia_bloques		;41d7   ; y se cambian de sitio
 	ld hl,0e002h		;41da
-	ld a,(hl)			;41dd
+	ld a,(hl)			;41dd   ; el byte de banderas
 	xor 080h		;41de   ; el bit 7 dice de quien es el turno
 	ld (hl),a			;41e0
-	jr L_41CB		;41e1
+	jr L_41CB		;41e1   ; y a la escena 9, ya con los bloques permutados
 
 ; ----------------------------------------------------------------------
 ; ESCENA 10: el relevo, cuando se agota el plazo.
 ; ----------------------------------------------------------------------
 L_41E3:
 	ld hl,0e004h		;41e3   ; el plazo
-	dec (hl)			;41e6
+	dec (hl)			;41e6   ; un cuadro menos del cartel de relevo
 	ret nz			;41e7
 	ld a,(0e080h)		;41e8   ; el estado del otro jugador
-	or a			;41eb
+	or a			;41eb   ; cero es "el otro no tiene partida"
 	jr nz,escena_13_con_plazo_de_32		;41ec
 	ld hl,0e002h		;41ee
 	ld a,(hl)			;41f1
 	and 0bfh		;41f2   ; apaga el bit 6 de (0xE002)
 	ld (hl),a			;41f4
-	jp L_4137		;41f5
+	jp L_4137		;41f5   ; sigue el mismo jugador
 escena_13_con_plazo_de_32:
 	ld a,00dh		;41f8   ; escena 13
 L_41FA:
-	ld (0e000h),a		;41fa
+	ld (0e000h),a		;41fa   ; la escena elegida, que es lo que mira el reparto del cuadro siguiente
 	ld a,020h		;41fd   ; y 32 cuadros de plazo
 	ld (0e004h),a		;41ff
 	ret			;4202
@@ -405,7 +405,7 @@ L_41FA:
 ; ----------------------------------------------------------------------
 L_4203:
 	ld hl,0e004h		;4203
-	dec (hl)			;4206
+	dec (hl)			;4206   ; el plazo del relevo
 	ret nz			;4207
 	ld a,009h		;4208   ; escena 9
 	ld (0e000h),a		;420a
@@ -416,31 +416,31 @@ L_4203:
 ; ----------------------------------------------------------------------
 fin_de_partida:
 	ld a,(0e001h)		;420e   ; solo la primera vez
-	or a			;4211
+	or a			;4211   ; cero es la primera vez que se entra
 	jr nz,L_422C		;4212
 	ld a,096h		;4214   ; el sonido del fin de partida
 	call pide_un_sonido		;4216
 	ld a,050h		;4219   ; 80 cuadros
-	ld (0e004h),a		;421b
+	ld (0e004h),a		;421b   ; 80 cuadros para el cartel
 L_421E:
 	call limpia_la_pantalla		;421e   ; limpia
-	call carga_los_graficos_del_titulo		;4221
-	call barre_la_pantalla_entera		;4224
+	call carga_los_graficos_del_titulo		;4221   ; y se monta el decorado del cartel
+	call barre_la_pantalla_entera		;4224   ; barrida entera de una vez
 	ld hl,0e001h		;4227
 	inc (hl)			;422a   ; se marca que ya se hizo
 	ret			;422b
 L_422C:
 	ld hl,0e004h		;422c
-	dec (hl)			;422f
+	dec (hl)			;422f   ; el plazo del cartel de fin de partida
 	jr z,L_4241		;4230
 	bit 3,(hl)		;4232   ; el bit 3 del plazo: parpadeo de ocho en ocho cuadros
 	jp nz,barre_la_pantalla_entera		;4234
-	call donde_va_el_cursor		;4237
+	call donde_va_el_cursor		;4237   ; la celda donde esta el cursor
 	ld bc,0001bh		;423a   ; 27 celdas que borrar
-	xor a			;423d
+	xor a			;423d   ; cero: lo que se escribe es la celda vacia
 	jp rellena_vram		;423e
 L_4241:
-	call borra_el_tanteo		;4241
+	call borra_el_tanteo		;4241   ; y al agotarse, se borra el tanteo
 	jp plazo_de_32_y_siguiente_escena		;4244
 
 ; ----------------------------------------------------------------------
@@ -463,11 +463,11 @@ monta_la_pantalla_del_titulo:
 	call rellena_y_vuelca		;425a
 carga_los_graficos_del_titulo:
 	ld a,070h		;425d   ; el relleno de color
-	ld de,01600h		;425f
+	ld de,01600h		;425f   ; la tabla de color
 	call rellena_una_franja		;4262
 	ld hl,047d2h		;4265   ; los patrones del titulo
 	call descomprime		;4268
-	ld de,00600h		;426b
+	ld de,00600h		;426b   ; desde la celda 0x600
 	ld b,010h		;426e   ; dieciseis veces
 L_4270:
 	push bc			;4270
@@ -476,7 +476,7 @@ L_4270:
 	call descomprime_en_de		;4275
 	pop hl			;4278
 	ld bc,00010h		;4279   ; y cada vuelta dieciseis celdas mas alla
-	add hl,bc			;427c
+	add hl,bc			;427c   ; dieciseis celdas mas alla en cada vuelta
 	ex de,hl			;427d
 	pop bc			;427e
 	djnz L_4270		;427f
@@ -489,10 +489,10 @@ pinta_el_cursor:
 	ld bc,00000h		;4289   ; y en la otra mitad, celdas vacias
 L_428C:
 	call donde_va_el_cursor		;428c   ; donde va el cursor
-	ld a,b			;428f
+	ld a,b			;428f   ; el primero de los dos patrones
 	call escribe_en_vram		;4290
 	ld a,c			;4293
-	inc de			;4294
+	inc de			;4294   ; y el de al lado
 	call escribe_en_vram		;4295
 	ret			;4298
 
@@ -504,16 +504,16 @@ donde_va_el_cursor:
 	add a,014h		;429c   ; el desplazamiento a la primera fila del menu
 	rrca			;429e   ; dos giros, y son ROTACIONES: el bit que se sale por abajo sube al 7, y es el que separa una opcion de la siguiente. Salen las filas 16, 18, 20 y 22, o sea DOS filas por opcion, que son las que pinta el guion de 0x472B
 	rrca			;429f
-	ld e,a			;42a0
+	ld e,a			;42a0   ; el byte bajo ya es la celda: no hay nada mas que sumar
 	ld d,07ah		;42a1   ; la pagina, fija
 	ret			;42a3
 pinta_rotulo_con_marca:
 	call pinta_rotulo		;42a4   ; el rotulo
 	ld a,(0e002h)		;42a7   ; el turno
-	or a			;42aa
-	ret p			;42ab
+	or a			;42aa   ; el bit 7 al signo
+	ret p			;42ab   ; sin marca, aqui se acaba
 	ld a,032h		;42ac   ; el patron de la marca
-	dec de			;42ae
+	dec de			;42ae   ; la celda de delante del rotulo
 	call escribe_en_vram		;42af
 	ret			;42b2
 
@@ -523,19 +523,19 @@ pinta_rotulo_con_marca:
 baja_los_contadores_y_barre:
 	ld hl,0e003h		;42b3   ; el contador de cuadros
 	dec (hl)			;42b6
-	inc hl			;42b7
+	inc hl			;42b7   ; y el de al lado
 	ld b,018h		;42b8   ; veinticuatro filas
-	dec (hl)			;42ba
+	dec (hl)			;42ba   ; las dos cuentas bajan en el mismo sitio
 	ret m			;42bb   ; si se paso de cero, se sale con el signo puesto
-	ld a,(hl)			;42bc
+	ld a,(hl)			;42bc   ; el indice del barrido
 	srl a		;42bd   ; el bit de abajo al acarreo
 	jr c,L_42C3		;42bf
 	xor 01fh		;42c1   ; y en media vuelta, al reves
 L_42C3:
-	ld e,a			;42c3
+	ld e,a			;42c3   ; convertido en columna
 	ld d,038h		;42c4   ; la fila 0x38 de la VRAM
 L_42C6:
-	xor a			;42c6
+	xor a			;42c6   ; un cero por fila
 	call escribe_en_vram		;42c7   ; un cero en cada fila
 	ld a,020h		;42ca   ; la de abajo, 32 celdas mas alla
 	call suma_a_a_de		;42cc
@@ -544,7 +544,7 @@ saca_los_sprites_de_pantalla:
 	ld de,03b00h		;42d1   ; los atributos de sprites
 	ld a,0d0h		;42d4   ; 0xD0 en la fila: los saca de la pantalla
 	call escribe_en_vram		;42d6
-	xor a			;42d9
+	xor a			;42d9   ; sale con A a cero y sin acarreo, que es lo que espera quien llama
 	ret			;42da
 
 ; ----------------------------------------------------------------------
@@ -555,7 +555,7 @@ suma_puntos:
 	add a,a			;42de   ; el bit 7 al acarreo, el 6 al signo
 	ret p			;42df   ; con el bit 6 puesto no se suman puntos
 	ld hl,0e049h		;42e0   ; el tanteo de un jugador
-	jr nc,L_42E7		;42e3
+	jr nc,L_42E7		;42e3   ; el acarreo -el bit 7- elige cual de los dos tanteos
 	ld l,046h		;42e5   ; o el del otro
 L_42E7:
 	ld a,(hl)			;42e7   ; el par de abajo del tanteo
@@ -566,7 +566,7 @@ L_42E7:
 	inc l			;42ec   ; el byte siguiente
 	ld a,(hl)			;42ed   ; el par del medio
 	adc a,d			;42ee   ; los del medio, con acarreo
-	daa			;42ef
+	daa			;42ef   ; el ajuste a BCD, otra vez
 	ld (hl),a			;42f0   ; guardado
 	ld d,a			;42f1   ; en D
 	inc hl			;42f2   ; el siguiente
@@ -578,7 +578,7 @@ L_42E7:
 	jr nc,mira_la_vida_extra		;42fa   ; y si no desborda, se sigue
 	ld bc,09999h		;42fc   ; si desborda los seis digitos, el record se clava en 999999
 	ld (0e043h),bc		;42ff   ; los dos pares de arriba
-	ld (0e044h),bc		;4303   ; y los dos de abajo
+	ld (0e044h),bc		;4303   ; las dos escrituras van SOLAPADAS: entre ellas dejan 99 99 99 en 0xE043..0xE045
 	jr L_4367		;4307
 
 ; ----------------------------------------------------------------------
@@ -587,8 +587,8 @@ L_42E7:
 mira_la_vida_extra:
 	ld a,(0e052h)		;4309   ; el umbral
 	cp (hl)			;430c   ; contra los digitos altos del tanteo
-	jr nc,mira_si_es_record		;430d
-	push de			;430f
+	jr nc,mira_si_es_record		;430d   ; por debajo del umbral no hay vida que regalar
+	push de			;430f   ; el tanteo se guarda, que la vida extra usa los mismos pares
 	push hl			;4310
 	add a,002h		;4311   ; el siguiente umbral, dos mas
 	daa			;4313
@@ -609,16 +609,16 @@ L_4318:
 ; ----------------------------------------------------------------------
 mira_si_es_record:
 	ld a,(0e045h)		;4329   ; el par alto del record
-	ld b,(hl)			;432c
+	ld b,(hl)			;432c   ; los digitos altos del tanteo
 	sub b			;432d   ; contra el del tanteo
 	jr c,L_4339		;432e
 	jr nz,L_4370		;4330   ; si el record es mayor, nada que hacer
 	ld hl,(0e043h)		;4332   ; empatan arriba: se miran los de abajo
-	sbc hl,de		;4335
+	sbc hl,de		;4335   ; el acarreo llega limpio del `sub` de arriba, asi que la resta es exacta
 	jr nc,L_4370		;4337
 L_4339:
 	ld (0e043h),de		;4339   ; el tanteo nuevo manda
-	ld a,b			;433d
+	ld a,b			;433d   ; y el par alto, que ya estaba en B
 	ld (0e045h),a		;433e
 	jr L_4367		;4341
 
@@ -628,7 +628,7 @@ L_4339:
 pinta_el_marcador:
 	ld hl,04710h		;4343   ; los rotulos del marcador
 	call pinta_rotulo		;4346
-	ld a,(0e002h)		;4349
+	ld a,(0e002h)		;4349   ; las banderas
 	bit 5,a		;434c   ; el bit 5: hay dos jugadores?
 	jr z,L_435E		;434e
 	ld hl,04725h		;4350   ; entonces tambien el "2P"
@@ -639,26 +639,30 @@ pinta_el_marcador:
 L_435E:
 	call pinta_las_vidas		;435e   ; el contador de vidas
 	call pinta_la_altura		;4361   ; la altura
-	call pinta_las_vidas_numero		;4364
+	call pinta_el_numero_de_fase		;4364   ; y el numero de fase
 L_4367:
 	ld hl,0e045h		;4367   ; el record
 	ld de,0380fh		;436a   ; en la fila de arriba, columna 15
 	call imprime_tres_bytes_bcd		;436d
 L_4370:
-	ld a,(0e002h)		;4370
+	ld a,(0e002h)		;4370   ; el turno, para elegir cual de los dos tanteos
 pinta_el_tanteo:
 	ld de,03805h		;4373   ; la celda del primer tanteo
 	ld hl,0e04bh		;4376   ; y su variable
 	add a,a			;4379   ; el bit 7 al acarreo
 	jr nc,imprime_tres_bytes_bcd		;437a
 	ld e,025h		;437c   ; la columna del segundo
-	ld hl,0e048h		;437e
+	ld hl,0e048h		;437e   ; y la variable del segundo
 imprime_tres_bytes_bcd:
 	ld b,003h		;4381   ; tres bytes de BCD
 	jr imprime_bcd		;4383
-pinta_las_vidas_numero:
+
+; ----------------------------------------------------------------------
+; EL NUMERO DE FASE DEL MARCADOR, el "STAGE". Imprime (0xE051) -un byte, dos digitos BCD-, que es el mismo contador que leen las seis rutinas del juego para saber por que fase va. No tiene nada que ver con las vidas: esas las pinta 0x43C4, con marcas y no con numeros.
+; ----------------------------------------------------------------------
+pinta_el_numero_de_fase:
 	ld de,0381ch		;4385   ; la celda del contador
-	ld hl,0e051h		;4388
+	ld hl,0e051h		;4388   ; (0xE051), el numero de fase en BCD
 	ld b,001h		;438b   ; un solo byte
 
 ; ----------------------------------------------------------------------
@@ -666,20 +670,20 @@ pinta_las_vidas_numero:
 ; ----------------------------------------------------------------------
 imprime_bcd:
 	ld a,(hl)			;438d   ; el byte
-	push af			;438e
+	push af			;438e   ; el byte entero se guarda: hacen falta sus dos mitades
 	and 00fh		;438f   ; el digito de abajo
 	or 030h		;4391   ; +0x30: el "0" de la fuente
-	ld c,a			;4393
-	pop af			;4394
+	ld c,a			;4393   ; el digito de abajo, apartado en C hasta que le toque
+	pop af			;4394   ; y se recupera el byte entero
 	and 0f0h		;4395   ; y el de arriba
 	rra			;4397   ; cuatro veces a la derecha
 	rra			;4398
 	rra			;4399
 	rra			;439a
-	or 030h		;439b
+	or 030h		;439b   ; el mismo desplazamiento para el de arriba
 	call escribe_en_vram		;439d   ; primero el alto
 	inc de			;43a0
-	ld a,c			;43a1
+	ld a,c			;43a1   ; y ahora el que estaba esperando en C
 	call escribe_en_vram		;43a2   ; y detras el bajo
 	dec hl			;43a5   ; la variable va hacia atras
 	inc de			;43a6   ; y la pantalla hacia delante
@@ -687,21 +691,21 @@ imprime_bcd:
 	ret			;43a9
 
 ; ----------------------------------------------------------------------
-; EL PARPADEO DEL "1P" / "2P", cada 32 cuadros. Con dos jugadores se descuenta uno para que los dos no parpadeen a la vez.
+; EL PARPADEO DEL "1P" / "2P", y todo el sale del contador de cuadros. El `ld hl,(0e002h)` trae de un tiron las banderas en L y el contador en H. Solo se hace algo cuando los cinco bits de abajo del contador estan a cero -un cuadro de cada 32-, y la mascara con la que se pinta es el BIT 5 DE ESE MISMO CONTADOR: a cero deja C=0x00, que en el interprete de rotulos es BORRAR, y a uno lo baja a 0xFF, que es pintar. De ahi salen los 32 cuadros encendido y 32 apagado. El turno solo elige CUAL de los dos rotulos. Igual que en Circus Charlie, byte a byte.
 ; ----------------------------------------------------------------------
 parpadea_el_turno:
 	ld hl,(0e002h)		;43aa   ; de un tiron: (0xE002) y el contador de cuadros
 	ld a,01fh		;43ad   ; los cinco bits de abajo
-	and h			;43af
+	and h			;43af   ; H trae el contador de cuadros
 	ret nz			;43b0   ; uno de cada 32 cuadros
-	ld c,a			;43b1
-	bit 5,h		;43b2
+	ld c,a			;43b1   ; y aqui A vale cero: la mascara 0x00, la de BORRAR
+	bit 5,h		;43b2   ; el bit 5 del CONTADOR, no de las banderas: es lo que alterna cada 32 cuadros
 	jr z,L_43B7		;43b4
-	dec c			;43b6   ; con dos jugadores, se desfasa
+	dec c			;43b6   ; C pasa de 0x00 a 0xFF, o sea de borrar a pintar
 L_43B7:
 	bit 7,l		;43b7   ; el bit 7 dice de quien es el turno
 	ld hl,0471fh		;43b9
-	jr z,L_43C1		;43bc
+	jr z,L_43C1		;43bc   ; el turno solo elige cual de los dos rotulos
 	ld hl,04725h		;43be
 L_43C1:
 	jp L_4064		;43c1
@@ -712,12 +716,12 @@ L_43C1:
 pinta_las_vidas:
 	ld de,0383dh		;43c4   ; la celda mas a la derecha
 	ld a,(0e050h)		;43c7   ; las vidas que quedan
-	ld c,a			;43ca
+	ld c,a			;43ca   ; las vidas, al contador del bucle
 	ld b,005h		;43cb   ; cinco marcas como maximo
 	ld a,02eh		;43cd   ; la marca
 L_43CF:
-	dec c			;43cf
-	jp p,L_43D5		;43d0
+	dec c			;43cf   ; una menos
+	jp p,L_43D5		;43d0   ; mientras la resta no se pase de cero, marca
 	ld a,000h		;43d3   ; agotadas: celda vacia
 L_43D5:
 	call escribe_en_vram		;43d5
@@ -726,10 +730,10 @@ L_43D5:
 	ret			;43db
 barre_la_pantalla_entera:
 	ld a,000h		;43dc
-	ld (0e00ah),a		;43de
+	ld (0e00ah),a		;43de   ; la cortina se baja desde la fila 0
 L_43E1:
 	call barre_una_franja		;43e1
-	jr c,L_43E1		;43e4
+	jr c,L_43E1		;43e4   ; mientras devuelva acarreo, queda franja
 	ret			;43e6
 
 ; ----------------------------------------------------------------------
@@ -737,39 +741,39 @@ L_43E1:
 ; ----------------------------------------------------------------------
 barre_una_franja:
 	ld hl,0e00ah		;43e7   ; por donde iba
-	ld a,(hl)			;43ea
+	ld a,(hl)			;43ea   ; por donde iba
 	inc (hl)			;43eb   ; y se deja avanzada
 	cp 00fh		;43ec   ; quince pasadas
-	jr nc,L_4417		;43ee
+	jr nc,L_4417		;43ee   ; de la quince en adelante, el barrido se acabo
 	ld de,03889h		;43f0   ; la esquina de arriba
-	ld c,a			;43f3
+	ld c,a			;43f3   ; el paso, apartado: hace falta dos veces
 	add a,e			;43f4   ; mas el paso, que es la columna
 	ld e,a			;43f5
 	ld a,c			;43f6
 	add a,a			;43f7   ; el paso por dos
 	add a,0c0h		;43f8   ; +0xC0: de ahi sale el patron de la cortina
-	ld c,a			;43fa
+	ld c,a			;43fa   ; el patron con el que se pinta esta franja
 	ld b,002h		;43fb   ; dos filas de golpe
 L_43FD:
 	ld a,c			;43fd
 	call escribe_en_vram		;43fe
 	ld a,020h		;4401   ; la de abajo
 	call suma_a_a_de		;4403
-	inc c			;4406
+	inc c			;4406   ; y el patron siguiente para la fila de abajo
 	djnz L_43FD		;4407
-	ld a,e			;4409
+	ld a,e			;4409   ; la columna a la que se ha llegado
 	sub 0cch		;440a   ; el remate del borde
-	cp 002h		;440c
+	cp 002h		;440c   ; solo en dos de las quince pasadas
 	jr nc,L_4415		;440e
-	add a,0deh		;4410
+	add a,0deh		;4410   ; y entonces, un patron aparte: el remate del borde
 	call escribe_en_vram		;4412
 L_4415:
 	scf			;4415   ; acarreo: todavia queda
-	ret			;4416
+	ret			;4416   ; el que llama sigue llamando mientras haya acarreo
 L_4417:
-	push af			;4417
+	push af			;4417   ; la cuenta se guarda para el `cp` de abajo
 	ld hl,0472bh		;4418   ; "PLAY SELECT" con sus cuatro opciones
-	call z,pinta_rotulo		;441b
+	call z,pinta_rotulo		;441b   ; el menu se pinta justo en la pasada 15, cuando el barrido acaba
 	pop af			;441e
 	cp 034h		;441f   ; y se avisa si se llego al paso 52
 	ret			;4421
@@ -777,7 +781,7 @@ limpia_la_pantalla:
 	call saca_los_sprites_de_pantalla		;4422
 	ld de,07800h		;4425   ; la tabla de nombres
 	ld bc,00300h		;4428   ; sus 768 celdas
-	xor a			;442b
+	xor a			;442b   ; a cero: la tabla de nombres entera en blanco
 
 ; ----------------------------------------------------------------------
 ; RELLENAR LA VRAM con el mismo byte, BC veces. Los dos `ex af,af'` seguidos de 0x442F no son un despiste: valen como espera y dejan el byte en el juego correcto para el bucle.
@@ -792,15 +796,15 @@ L_4430:
 	out (c),a		;4432   ; el byte, tal cual
 	exx			;4434
 	ex af,af'			;4435
-	dec bc			;4436
-	ld a,b			;4437
+	dec bc			;4436   ; una celda menos
+	ld a,b			;4437   ; BC a cero se mira en dos pasos, que el `dec bc` no toca banderas
 	or c			;4438
 	jr nz,L_4430		;4439   ; hasta que BC llega a cero
-	ei			;443b
+	ei			;443b   ; el relleno entro con `di`; aqui se abre
 	ret			;443c
 repite_byte:
 	ld a,(hl)			;443d   ; el byte que se repite
-	inc hl			;443e
+	inc hl			;443e   ; y el puntero queda detras del byte repetido
 	jr L_442F		;443f
 
 ; ----------------------------------------------------------------------
@@ -816,7 +820,7 @@ vuelca_bc_bytes:
 	exx			;4449
 	inc hl			;444a
 	dec bc			;444b   ; una menos
-	ld a,b			;444c
+	ld a,b			;444c   ; igual aqui: el `dec bc` no levanta el cero
 	or c			;444d
 	jr nz,vuelca_bc_bytes		;444e
 	ei			;4450
@@ -827,13 +831,13 @@ vuelca_bc_bytes:
 ; ----------------------------------------------------------------------
 copia_vram_a_vram:
 	call lee_de_vram		;4452   ; lee de (HL) en la VRAM
-	ex de,hl			;4455
+	ex de,hl			;4455   ; los dos punteros se turnan: HL lee y DE escribe
 	call escribe_en_vram		;4456   ; y escribe en (DE), tambien en la VRAM
 	ex de,hl			;4459
 	inc hl			;445a
 	inc de			;445b
 	dec bc			;445c
-	ld a,c			;445d
+	ld a,c			;445d   ; y otra vez la cuenta en dos pasos
 	or b			;445e
 	jr nz,copia_vram_a_vram		;445f
 	ret			;4461
@@ -853,21 +857,21 @@ duplica_las_dos_tablas:
 	call duplica_los_tercios_de_patrones		;4473   ; primero los patrones
 duplica_los_tercios_de_color:
 	ld de,00000h		;4476   ; y luego el color, que R3=0x7F deja en 0x0000
-	ld hl,00800h		;4479
+	ld hl,00800h		;4479   ; y el color, en el primer tercio de su tabla
 	jr L_4468		;447c
 rellena_y_vuelca:
 	ld a,0f0h		;447e   ; el COLOR de relleno: tinta 15 sobre fondo transparente
 	ld de,00180h		;4480   ; 384 celdas: las 48 de la fuente por ocho filas
-	call rellena_una_franja		;4483
-	jr duplica_las_dos_tablas		;4486
+	call rellena_una_franja		;4483   ; la franja de color, rellena
+	jr duplica_las_dos_tablas		;4486   ; y de ahi, a repartirla por los tres tercios
 rellena_una_franja:
 	ld bc,00180h		;4488   ; 384 celdas
-	call rellena_vram		;448b
+	call rellena_vram		;448b   ; 384 celdas del mismo byte
 	ld hl,045b8h		;448e   ; la fuente
 	ld a,020h		;4491   ; 0x2000 mas alla: de la tabla de color a la de patrones. 0x0180 es la celda 48, o sea que el primer dibujo cae en el patron 0x30
-	add a,d			;4493
+	add a,d			;4493   ; se le suma 0x20 al byte ALTO, que son los 0x2000 de la separacion
 	ld d,a			;4494
-	ld bc,00180h		;4495
+	ld bc,00180h		;4495   ; y los mismos 384 bytes
 	jp vuelca_bloque		;4498
 
 ; ----------------------------------------------------------------------
@@ -875,7 +879,7 @@ rellena_una_franja:
 ; ----------------------------------------------------------------------
 descomprime:
 	ld e,(hl)			;449b   ; el destino de VRAM, que va delante del bloque
-	inc hl			;449c
+	inc hl			;449c   ; y la palabra entera del destino
 	ld d,(hl)			;449d
 	inc hl			;449e
 descomprime_en_de:
@@ -884,33 +888,33 @@ descomprime_en_de:
 L_44A3:
 	ld a,(hl)			;44a3   ; el byte de control
 	and 07fh		;44a4   ; los siete bits de abajo son la cuenta
-	ld c,a			;44a6
+	ld c,a			;44a6   ; la cuenta, apartada en C
 	ld a,(hl)			;44a7   ; y el byte entero se guarda para mirarle el bit 7
-	inc hl			;44a8
+	inc hl			;44a8   ; el puntero, detras del byte de control
 	jr nz,L_44B0		;44a9   ; cuenta distinta de cero: hay tramo
 	cp c			;44ab   ; cuenta cero y byte 0x00: se acabo el bloque
 	jr nz,descomprime		;44ac   ; cuenta cero y byte 0x80: detras viene otro destino
 	ei			;44ae
 	ret			;44af
 L_44B0:
-	ld b,000h		;44b0
+	ld b,000h		;44b0   ; la parte alta de la cuenta, siempre cero
 	cp c			;44b2   ; compara el byte con su cuenta: solo difieren si el bit 7 esta puesto
-	push af			;44b3
+	push af			;44b3   ; el resultado del `cp` hace falta dos veces, una por rama
 	call nz,vuelca_bc_bytes		;44b4   ; bit 7 puesto -> copiar n bytes tal cual
 	pop af			;44b7
 	call z,repite_byte		;44b8   ; bit 7 a cero -> repetir el siguiente byte n veces
-	di			;44bb
+	di			;44bb   ; las dos ramas salen con las interrupciones abiertas; el bucle las quiere cerradas
 	jr L_44A3		;44bc
 
 ; ----------------------------------------------------------------------
 ; PREPARAR EL PUERTO DE LA VRAM con SETWRT de la BIOS, y guardarse el puerto de datos en C' para que los bucles solo tengan que hacer `out (c),a`. SETWRT se queda con los catorce bits de abajo, que es por lo que los bloques llevan destinos como 0x5800 -que es 0x1800.
 ; ----------------------------------------------------------------------
 prepara_escritura_vram:
-	ex af,af'			;44be
-	ex de,hl			;44bf
+	ex af,af'			;44be   ; A se aparta, que SETWRT lo usa
+	ex de,hl			;44bf   ; SETWRT quiere la direccion en HL
 	call 00053h		;44c0   ; BIOS SETWRT - Enables VDP to write | SETWRT: el puntero de escritura
-	di			;44c3
-	ex de,hl			;44c4
+	di			;44c3   ; SETWRT vuelve con las interrupciones abiertas, y aqui no interesan
+	ex de,hl			;44c4   ; y HL y DE, como estaban
 	exx			;44c5
 	ld a,(00006h)		;44c6   ; el puerto de datos, de la tabla de la BIOS
 	ld c,a			;44c9   ; a C', donde lo esperan los bucles
@@ -923,7 +927,7 @@ prepara_lectura_vram:
 	di			;44d1
 	ex de,hl			;44d2
 	exx			;44d3
-	ld a,(00007h)		;44d4
+	ld a,(00007h)		;44d4   ; el puerto de LECTURA, que es otro que el de escritura
 	ld c,a			;44d7
 	exx			;44d8
 	ret			;44d9
@@ -932,23 +936,23 @@ prepara_lectura_vram:
 ; EL ARRANQUE DEL HARDWARE: apaga el sonido, borra los dieciseis kilobytes de VRAM y vuelca los ocho registros del VDP desde 0x44FF.
 ; ----------------------------------------------------------------------
 arranca_el_hardware:
-	ld a,0b8h		;44da
-	call escribe_el_volumen_general		;44dc
+	ld a,0b8h		;44da   ; 0xB8 en el mezclador: los tres tonos abiertos, los tres ruidos cerrados y el puerto A como entrada, que es por donde se leen los mandos
+	call escribe_el_mezclador_del_psg		;44dc
 	ld a,09fh		;44df   ; el sonido de arranque
 	call pide_un_sonido		;44e1
 	ld de,00000h		;44e4   ; la VRAM entera
 	ld bc,04000h		;44e7   ; los dieciseis kilobytes
-	xor a			;44ea
+	xor a			;44ea   ; a cero, byte a byte
 	call rellena_vram		;44eb
 vuelca_los_registros_del_vdp:
 	ld hl,044ffh		;44ee   ; los ocho registros del VDP
 	ld d,008h		;44f1   ; ocho escrituras
-	ld c,000h		;44f3
+	ld c,000h		;44f3   ; se empieza por el registro 0
 L_44F5:
 	ld b,(hl)			;44f5   ; el valor
 	call 00047h		;44f6   ; BIOS WRTVDP - Writes data in the VDP-register | WRTVDP: C lleva el numero de registro
 	inc hl			;44f9
-	inc c			;44fa
+	inc c			;44fa   ; el siguiente: van los ocho seguidos, de R0 a R7
 	dec d			;44fb
 	jr nz,L_44F5		;44fc
 	ret			;44fe
@@ -974,15 +978,15 @@ lee_el_mando:
 	ld e,08fh		;4507   ; la seleccion de puerto
 	ld hl,0e002h		;4509
 	bit 7,(hl)		;450c   ; el turno
-	jr z,lee_un_puerto_del_psg		;450e
+	jr z,lee_un_puerto_del_psg		;450e   ; con el bit 7 a cero, el primer puerto
 	set 6,e		;4510   ; el segundo jugador usa el otro puerto
 lee_un_puerto_del_psg:
 	ld a,00fh		;4512   ; registro 15 del PSG: el que elige el puerto
 	call 00093h		;4514   ; BIOS WRTPSG - Writes data to PSG-register
 	ld a,00eh		;4517   ; y el 14, que es donde se lee
-	di			;4519
+	di			;4519   ; la lectura del PSG no puede partirse por una interrupcion
 	call 00096h		;451a   ; BIOS RDPSG - Reads value from PSG-register
-	ei			;451d
+	ei			;451d   ; y aqui se vuelve a abrir
 	cpl			;451e   ; pulsado es cero, asi que se invierte
 	and 03fh		;451f   ; seis bits: cuatro direcciones y dos botones
 	ret			;4521
@@ -996,9 +1000,9 @@ lee_los_mandos:
 	call nz,lee_el_teclado		;4527
 	ld hl,0e009h		;452a   ; la lectura de este cuadro
 	ld c,(hl)			;452d   ; la de antes se guarda al lado
-	ld (hl),a			;452e
+	ld (hl),a			;452e   ; la de ahora ocupa su sitio
 	dec hl			;452f
-	ld (hl),c			;4530
+	ld (hl),c			;4530   ; y la vieja queda en (0xE008), que es contra lo que se miran los flancos
 	ret			;4531
 
 ; ----------------------------------------------------------------------
@@ -1050,7 +1054,7 @@ atiende_el_menu:
 	ld c,(hl)			;456b   ; lo de antes
 	ld (hl),a			;456c   ; y lo de antes justo detras
 	inc hl			;456d   ; el byte siguiente
-	ld (hl),c			;456e
+	ld (hl),c			;456e   ; y la anterior, en (0xE041)
 	ld b,a			;456f   ; en B
 	xor c			;4570   ; los bits que han cambiado
 	and b			;4571   ; y de esos, los que ahora estan pulsados: el flanco
@@ -1062,19 +1066,19 @@ atiende_el_menu:
 	ld hl,0e000h		;457b   ; la escena de ahora
 	cp (hl)			;457e   ; comparadas
 	jr nz,L_459A		;457f   ; en las demas, solo se apunta la lectura
-	ld a,b			;4581
+	ld a,b			;4581   ; los bits recien pulsados
 	cp 010h		;4582   ; de 0x10 para arriba son botones; por debajo, direcciones
 	jr c,mueve_el_cursor		;4584
 	ld hl,045b4h		;4586   ; los cuatro modos de juego
 	ld a,(0e042h)		;4589   ; indexados por la opcion elegida
-	call suma_a_a_hl		;458c
-	ld a,(hl)			;458f
+	call suma_a_a_hl		;458c   ; indexa la tabla de modos
+	ld a,(hl)			;458f   ; el modo que le toca a esa opcion
 	ld (0e002h),a		;4590   ; y el modo queda en (0xE002)
 	ld hl,00008h		;4593   ; a la escena 8, la que arranca sin remate apilado
-	ld (0e000h),hl		;4596
+	ld (0e000h),hl		;4596   ; las DOS a la vez: escena 8 en (0xE000) y cero en (0xE001), que es la bandera de la escena de fin
 	ret			;4599
 L_459A:
-	ld (hl),a			;459a
+	ld (hl),a			;459a   ; en las demas escenas solo se apunta la lectura
 	jp L_421E		;459b
 
 ; ----------------------------------------------------------------------
@@ -1083,9 +1087,9 @@ L_459A:
 mueve_el_cursor:
 	push bc			;459e
 	call pinta_el_cursor		;459f   ; borra el cursor de donde estaba
-	pop af			;45a2
+	pop af			;45a2   ; los bits recien pulsados vuelven en A
 	ld hl,0e042h		;45a3   ; la opcion elegida
-	ld b,(hl)			;45a6
+	ld b,(hl)			;45a6   ; la opcion de ahora
 	rra			;45a7   ; el bit 0: arriba
 	jr nc,L_45AB		;45a8
 	dec b			;45aa   ; una menos
@@ -1094,7 +1098,7 @@ L_45AB:
 	jr nc,L_45AF		;45ac
 	inc b			;45ae   ; una mas
 L_45AF:
-	ld a,b			;45af
+	ld a,b			;45af   ; la opcion nueva
 	and 003h		;45b0   ; cuatro opciones, y da la vuelta sola
 	ld (hl),a			;45b2
 	ret			;45b3
@@ -1232,9 +1236,9 @@ monta_el_logotipo_de_konami:
 	ld hl,048f9h		;48aa   ; los veintiseis dibujos del logotipo
 	ld de,02300h		;48ad
 	call descomprime_en_de		;48b0
-	ld de,00300h		;48b3
-	ld bc,000d0h		;48b6
-	ld a,0f0h		;48b9
+	ld de,00300h		;48b3   ; la tabla de color, desde la celda 0x300
+	ld bc,000d0h		;48b6   ; 208 celdas
+	ld a,0f0h		;48b9   ; y el color de la cortina
 	jp rellena_vram		;48bb
 
 ; ----------------------------------------------------------------------
@@ -1243,34 +1247,34 @@ monta_el_logotipo_de_konami:
 baja_el_logotipo_un_paso:
 	ld hl,(0e00eh)		;48be   ; por donde va
 	ld de,00020h		;48c1   ; una fila, 32 celdas
-	add hl,de			;48c4
-	ld (0e00eh),hl		;48c5
+	add hl,de			;48c4   ; una fila mas abajo en cada paso
+	ld (0e00eh),hl		;48c5   ; y la cuenta queda guardada
 	ex de,hl			;48c8
-	or a			;48c9
+	or a			;48c9   ; limpia el acarreo para el `sbc` del reflejo
 	ld hl,03aaah		;48ca   ; el punto de reflejo: la posicion de verdad sale de restarle la cuenta
 	sbc hl,de		;48cd   ; y por eso el logotipo baja mientras la cuenta sube
-	ex de,hl			;48cf
+	ex de,hl			;48cf   ; la posicion de verdad, al puntero de escritura
 	ld a,060h		;48d0   ; el primer patron del logotipo
 	ld b,003h		;48d2   ; tres celdas: la fila de arriba
-	call pinta_franja_y_baja		;48d4
+	call pinta_franja_y_baja		;48d4   ; la fila de arriba, y sale apuntando a la de abajo
 	ld bc,00b0ch		;48d7   ; once en la siguiente, y en C quedan las doce de la ultima
 	call pinta_franja_y_baja		;48da
-	ld b,c			;48dd
+	ld b,c			;48dd   ; y la tercera, de doce: la cuenta venia guardada en C
 	call pinta_franja_y_baja		;48de
-	xor a			;48e1
+	xor a			;48e1   ; lo que queda de la fila, en blanco
 	call rellena_vram		;48e2
 	ld hl,0e00ah		;48e5
-	dec (hl)			;48e8
+	dec (hl)			;48e8   ; un paso menos de los diecisiete
 	ret			;48e9
 pinta_franja_y_baja:
-	push de			;48ea
+	push de			;48ea   ; esta puerta se guarda el destino; la de abajo, no
 pinta_franja_correlativa:
 	call escribe_en_vram		;48eb   ; el patron
-	inc de			;48ee
+	inc de			;48ee   ; la celda de al lado
 	inc a			;48ef   ; el siguiente, uno mas
 	djnz pinta_franja_correlativa		;48f0
 	pop de			;48f2
-	ld hl,00020h		;48f3   ; y al salir, la fila de abajo
+	ld hl,00020h		;48f3   ; y sale apuntando una fila mas abajo, que es lo que encadena las tres llamadas
 	add hl,de			;48f6
 	ex de,hl			;48f7
 	ret			;48f8
@@ -1300,99 +1304,99 @@ DATA_logotipo_de_konami:
 
 
 lee_la_celda_de_ahi:
-	call posicion_a_celda		;498c
+	call posicion_a_celda		;498c   ; la celda en la que esta
 	jp lee_de_vram		;498f   ; y se trae su indice de la VRAM
 
 ; ----------------------------------------------------------------------
 ; DE POSICION A CELDA DE PANTALLA. Divide las dos coordenadas entre ocho de una vez, encadenando los `rra` de una con los `rr e` de la otra, y le pega el 0x38 de la tabla de nombres. Tres bits de cada una, que es justo el tamano de un patron.
 ; ----------------------------------------------------------------------
 posicion_a_celda:
-	ld a,l			;4992
+	ld a,l			;4992   ; las dos coordenadas, cada una en su registro
 	ld e,h			;4993
 	rra			;4994   ; cuatro giros
-	rra			;4995
+	rra			;4995   ; las dos se dividen entre ocho A LA VEZ
 	rra			;4996
 	rra			;4997
-	rr e		;4998   ; arrastrando el acarreo a la otra coordenada
+	rr e		;4998   ; el acarreo que sale de una entra en la otra: asi la columna se arma sola
 	rra			;499a
 	rr e		;499b
 	rra			;499d
 	rr e		;499e
 	and 003h		;49a0   ; lo que queda de la fila
 	add a,038h		;49a2   ; mas la pagina de la tabla de nombres
-	ld d,a			;49a4
+	ld d,a			;49a4   ; y la fila, al byte alto
 	ret			;49a5
 vuelca_b_filas:
 	push bc			;49a6
-	ld b,000h		;49a7
+	ld b,000h		;49a7   ; la cuenta alta, siempre cero: una fila no llega a 256
 	call vuelca_bloque		;49a9   ; una fila
 	pop bc			;49ac
-	ld a,020h		;49ad   ; y la siguiente, 32 celdas mas alla
+	ld a,020h		;49ad   ; la fila de abajo
 	call suma_a_a_de		;49af
 	djnz vuelca_b_filas		;49b2
 	ret			;49b4
 pinta_bloque_de_la_ficha:
-	call elige_la_tabla_de_piezas		;49b5
+	call elige_la_tabla_de_piezas		;49b5   ; la pieza y su tamano
 
 ; ----------------------------------------------------------------------
 ; PINTAR UN BLOQUE EN SU SITIO, fila a fila, SALTANDOSE las que caen fuera de la banda util (0x18..0xC0). Si C es menor de 7 la fila va tal cual; si no, se descomprime. Y cuando la fila esta fuera, 0x49ED avanza por los datos SIN pintar, interpretando el mismo lenguaje: un byte con el bit 7 puesto es un salto de n bytes. Asi se recorta por arriba y por abajo sin dibujar de mas.
 ; ----------------------------------------------------------------------
 pinta_bloque_en_su_sitio:
-	ld a,(hl)			;49b8
+	ld a,(hl)			;49b8   ; el puntero que hay ahi
 	inc hl			;49b9
-	ld h,(hl)			;49ba
+	ld h,(hl)			;49ba   ; leido al reves: primero el bajo y luego el alto sobre el mismo par
 	ld l,a			;49bb
 pinta_bloque_recortado:
-	ld a,l			;49bc
+	ld a,l			;49bc   ; la coordenada de la fila
 	sub 018h		;49bd   ; la banda util empieza en 0x18
 	cp 0a8h		;49bf   ; y mide 0xA8
-	jr nc,salta_la_fila_que_no_se_ve		;49c1
-	push hl			;49c3
+	jr nc,salta_la_fila_que_no_se_ve		;49c1   ; fuera de la banda util no se dibuja: se salta
+	push hl			;49c3   ; la posicion se guarda, que posicion_a_celda la gasta
 	push de			;49c4
 	call posicion_a_celda		;49c5   ; de posicion a celda
 	pop hl			;49c8
 	push bc			;49c9
-	ld a,c			;49ca
+	ld a,c			;49ca   ; el ancho de la fila
 	cp 007h		;49cb   ; por debajo de siete va tal cual
 	jr nc,L_49D6		;49cd
-	ld b,000h		;49cf
+	ld b,000h		;49cf   ; la cuenta alta, cero
 	call vuelca_bloque		;49d1
 	jr L_49D9		;49d4
 L_49D6:
 	call descomprime_en_de		;49d6   ; y si no, se descomprime
 L_49D9:
-	ex de,hl			;49d9
+	ex de,hl			;49d9   ; el puntero por donde va el bloque
 	pop bc			;49da
 	pop hl			;49db
 L_49DC:
 	ld a,l			;49dc
 	add a,008h		;49dd   ; ocho pixeles: la fila de abajo
 	ld l,a			;49df
-	djnz pinta_bloque_recortado		;49e0
+	djnz pinta_bloque_recortado		;49e0   ; hasta las B filas del bloque
 	ret			;49e2
 salta_la_fila_que_no_se_ve:
-	ld a,c			;49e3
+	ld a,c			;49e3   ; el mismo ancho que arriba
 	cp 007h		;49e4   ; por debajo de siete, un ancho fijo
-	jr nc,L_49ED		;49e6
+	jr nc,L_49ED		;49e6   ; con siete o mas hay que ir leyendo el lenguaje
 	call suma_a_a_de		;49e8   ; que se salta
-	jr L_49DC		;49eb
+	jr L_49DC		;49eb   ; y a la fila siguiente, sin haber pintado nada
 L_49ED:
 	ld a,(de)			;49ed   ; el byte de control
-	inc de			;49ee
-	or a			;49ef
+	inc de			;49ee   ; detras del byte de control
+	or a			;49ef   ; un cero cierra la fila
 	jr z,L_49DC		;49f0   ; un cero cierra
 	jp p,L_49FC		;49f2   ; bit 7 a cero: una sola celda
 	and 07fh		;49f5   ; y con el bit 7, siete bits de salto
 L_49F7:
-	call suma_a_a_de		;49f7
+	call suma_a_a_de		;49f7   ; se avanza sin escribir
 	jr L_49ED		;49fa
 L_49FC:
-	ld a,001h		;49fc
+	ld a,001h		;49fc   ; con el bit 7 a cero, el salto es de una sola celda
 	jr L_49F7		;49fe
 borra_la_celda_de_ahi:
 	ld a,l			;4a00   ; la banda util
-	sub 018h		;4a01
-	cp 0a8h		;4a03
+	sub 018h		;4a01   ; la banda util empieza en 0x18
+	cp 0a8h		;4a03   ; y mide 0xA8
 	ret nc			;4a05
 	call posicion_a_celda		;4a06   ; de posicion a celda
 	ld a,003h		;4a09   ; y se borra con el indice 3
@@ -1403,49 +1407,49 @@ borra_la_celda_de_ahi:
 ; ----------------------------------------------------------------------
 elige_la_tabla_de_piezas:
 	push hl			;4a0e
-	inc hl			;4a0f
+	inc hl			;4a0f   ; el tercer byte del objeto
 	inc hl			;4a10
-	ld a,(hl)			;4a11
+	ld a,(hl)			;4a11   ; que es el que trae los tres bits
 	bit 7,a		;4a12   ; el bit 7
-	ld hl,05130h		;4a14
+	ld hl,05130h		;4a14   ; la primera tabla
 	jr z,saca_la_pieza_y_su_tamano		;4a17
-	ld hl,05188h		;4a19
+	ld hl,05188h		;4a19   ; la segunda
 	bit 5,a		;4a1c   ; el bit 5
 	jr nz,L_4A2A		;4a1e
-	ld hl,05146h		;4a20
+	ld hl,05146h		;4a20   ; la tercera
 	bit 6,a		;4a23   ; el bit 6
 	jr z,L_4A2A		;4a25
-	ld hl,05170h		;4a27
+	ld hl,05170h		;4a27   ; y la cuarta
 L_4A2A:
 	and 01fh		;4a2a   ; cinco bits de indice
 saca_la_pieza_y_su_tamano:
 	add a,a			;4a2c   ; por dos: son punteros
-	call suma_a_a_hl		;4a2d
+	call suma_a_a_hl		;4a2d   ; indexa la tabla elegida
 	ld e,(hl)			;4a30   ; el puntero a la pieza
-	inc hl			;4a31
+	inc hl			;4a31   ; y la palabra entera
 	ld d,(hl)			;4a32
-	pop hl			;4a33
+	pop hl			;4a33   ; el objeto, de vuelta
 	ex de,hl			;4a34
-	ld b,(hl)			;4a35   ; y sus dos bytes de cabecera
+	ld b,(hl)			;4a35   ; el primer byte de la pieza es cuantas filas tiene
 	inc hl			;4a36
-	ld c,(hl)			;4a37
-	inc hl			;4a38
+	ld c,(hl)			;4a37   ; y el segundo, lo ancha que es
+	inc hl			;4a38   ; los datos empiezan detras de los dos
 	ex de,hl			;4a39
 	ret			;4a3a
 hueco_de_sprite:
 	ld a,c			;4a3b
-	add a,a			;4a3c
+	add a,a			;4a3c   ; por cuatro: cuatro bytes por sprite en la tabla de atributos
 	add a,a			;4a3d
 	jp suma_a_a_hl		;4a3e
 hueco_de_sprite_en_de:
 	ld a,c			;4a41
-	add a,a			;4a42
+	add a,a			;4a42   ; los mismos cuatro, pero sobre DE
 	add a,a			;4a43
 	jp suma_a_a_de		;4a44
 hueco_de_sprite_por_indice:
 	ld a,c			;4a47
 	add a,a			;4a48
-	add a,c			;4a49
+	add a,c			;4a49   ; por tres: tres bytes por ficha en el bloque de 0xE132
 	ld hl,0e132h		;4a4a
 	jp suma_a_a_hl		;4a4d
 
@@ -1707,60 +1711,60 @@ el_cuadro_del_juego:
 ; EL CUADRO DE LA PARTIDA, y es lo mas parecido a un indice del cartucho: once llamadas seguidas, una por cada cosa que se mueve -los perseguidores, los tres de la lista, los cinco moviles, los bichos nuevos, los sueltos-.
 ; ----------------------------------------------------------------------
 el_cuadro_de_la_partida:
-	call mira_el_contacto_del_jugador		;51f5
+	call mira_el_contacto_del_jugador		;51f5   ; lo primero, si al jugador le ha tocado algo
 	call mueve_los_tres_perseguidores		;51f8   ; los tres perseguidores
-	call mira_el_digito_y_suelta		;51fb
+	call mira_el_digito_y_suelta		;51fb   ; el digito que se gana y lo que suelta
 	call mueve_los_tres_de_la_lista		;51fe
 	call mueve_los_cinco_moviles		;5201   ; y los cinco moviles
-	call suelta_el_bicho_del_cuadro_cero		;5204
+	call suelta_el_bicho_del_cuadro_cero		;5204   ; el bicho del cuadro cero
 	call suelta_un_bicho_nuevo		;5207
-	call suelta_el_premio_de_la_fase_6		;520a
+	call suelta_el_premio_de_la_fase_6		;520a   ; el premio que solo sale en la fase 6
 	call mueve_los_premios		;520d
 	call mueve_los_dos_bichos_sueltos		;5210
 	call mueve_los_tres_proyectiles		;5213
-	call mueve_los_tres_caidos		;5216
+	call mueve_los_tres_caidos		;5216   ; los que van cayendo
 	call mueve_el_perseguidor		;5219
-	call limpia_los_huecos_sobrantes		;521c
+	call limpia_los_huecos_sobrantes		;521c   ; y al final, los huecos de sprite que hayan quedado sueltos
 L_521F:
-	call pinta_la_altura_en_bcd		;521f
+	call pinta_la_altura_en_bcd		;521f   ; la altura, que es el marcador de este juego
 	xor a			;5222
-	ld (0e1aah),a		;5223
+	ld (0e1aah),a		;5223   ; y la direccion del movimiento se borra: cada cuadro la vuelve a poner quien toque
 	ret			;5226
 L_5227:
-	call vuelca_los_sprites		;5227
+	call vuelca_los_sprites		;5227   ; esta puerta vuelca los sprites ANTES de mirar el contacto
 	call mira_el_contacto_del_jugador		;522a
 	jr L_521F		;522d
 el_jugador_pierde:
 	ld a,09ch		;522f   ; el sonido de perder
 	call pide_un_sonido		;5231
-	ld a,008h		;5234
+	ld a,008h		;5234   ; estado 8: perdiendo
 	ld (0e1b2h),a		;5236   ; estado 8
 	xor a			;5239
-	ld (0e003h),a		;523a
-	inc a			;523d
+	ld (0e003h),a		;523a   ; el contador de cuadros se pone a cero para medir desde aqui
+	inc a			;523d   ; y (0xE001) a uno
 	ld (0e001h),a		;523e   ; y se marca que ya paso
 	ret			;5241
 mira_lo_que_pisa:
 	call lee_las_dos_celdas_de_debajo		;5242   ; las dos celdas de debajo
 	ld a,(0e1b2h)		;5245   ; el estado del jugador
-	cp 004h		;5248
+	cp 004h		;5248   ; en el estado 4 no se mira lo que pisa
 	ret z			;524a
 	cp 003h		;524b   ; el estado 3 mira ademas el sentido
-	jr nz,L_5254		;524d
+	jr nz,L_5254		;524d   ; el estado 3 mira ademas el sentido
 	ld a,(0e1c8h)		;524f
-	and a			;5252
+	and a			;5252   ; con el bit 7 puesto, tampoco
 	ret m			;5253
 L_5254:
-	ld hl,0e1bfh		;5254
+	ld hl,0e1bfh		;5254   ; los dos patrones que se leyeron de debajo
 	ld b,002h		;5257
 busca_un_patron_del_arbol:
 	ld a,(hl)			;5259   ; el patron
-	ld c,a			;525a
+	ld c,a			;525a   ; el patron, apartado en C: es lo que devuelve la rutina
 	sub 020h		;525b   ; los indices desde 0x20
 	cp 00eh		;525d   ; catorce seguidos
-	ret c			;525f
+	ret c			;525f   ; dentro de los catorce, hay arbol: se sale con acarreo
 	inc hl			;5260
-	djnz busca_un_patron_del_arbol		;5261
+	djnz busca_un_patron_del_arbol		;5261   ; y si no, el otro
 	ld hl,0e0e4h		;5263   ; los huecos de sprite
 	ld de,01010h		;5266   ; dieciseis por dieciseis
 	ld b,008h		;5269   ; ocho
@@ -1770,10 +1774,10 @@ busca_un_patron_del_arbol:
 ; ----------------------------------------------------------------------
 mira_los_ocho_huecos:
 	push bc			;526b
-	call caja_alrededor_del_jugador		;526c
+	call caja_alrededor_del_jugador		;526c   ; contra este hueco
 	pop bc			;526f
-	inc hl			;5270
-	jr nc,L_527E		;5271
+	inc hl			;5270   ; al byte del patron
+	jr nc,L_527E		;5271   ; sin contacto, el siguiente
 	ld a,(hl)			;5273
 	cp 090h		;5274   ; estos dos patrones no cuentan
 	jr z,L_527E		;5276
@@ -1783,9 +1787,9 @@ mira_los_ocho_huecos:
 	ret			;527d
 L_527E:
 	inc hl			;527e
-	inc hl			;527f   ; tres bytes por hueco
+	inc hl			;527f   ; tres bytes por hueco, y uno ya se avanzo arriba
 	djnz mira_los_ocho_huecos		;5280
-	xor a			;5282
+	xor a			;5282   ; sin acarreo: no hay contacto con ninguno
 	ret			;5283
 
 ; ----------------------------------------------------------------------
@@ -1795,24 +1799,24 @@ caja_alrededor_del_jugador:
 	ld bc,(0e1b3h)		;5284   ; la posicion del jugador
 	ld a,008h		;5288   ; ocho por delante
 	add a,c			;528a
-	sub (hl)			;528b
+	sub (hl)			;528b   ; la distancia a este lado
 	cp e			;528c   ; contra el ancho
-	jr c,L_5294		;528d
-	ld a,018h		;528f   ; y veinticuatro
+	jr c,L_5294		;528d   ; dentro del primer margen, ya hay contacto
+	ld a,018h		;528f   ; y si no, se prueba con el ancho entero
 	add a,c			;5291
 	sub (hl)			;5292
 	cp e			;5293
 L_5294:
-	inc hl			;5294
-	ret nc			;5295
+	inc hl			;5294   ; al byte de la otra coordenada
+	ret nc			;5295   ; fuera en esta, no hace falta mirar la otra
 	ld a,006h		;5296   ; seis por arriba
 	add a,b			;5298
-	sub (hl)			;5299
+	sub (hl)			;5299   ; la distancia por arriba
 	cp d			;529a
 	ret c			;529b
 	ld a,00ah		;529c   ; y diez
 	add a,b			;529e
-	sub (hl)			;529f
+	sub (hl)			;529f   ; y por abajo
 	cp d			;52a0
 	ret			;52a1
 vuelca_los_sprites:
@@ -1825,51 +1829,51 @@ vuelca_los_sprites:
 ; LIMPIAR LAS DOS LISTAS con la propagacion del `ldir`: 292 bytes a cero desde 0xE131 y luego 119 bytes a 0xD0 desde 0xE132, que es el valor de "retirado". Dos instrucciones por lista.
 ; ----------------------------------------------------------------------
 limpia_los_objetos:
-	ld hl,0e131h		;52ae
+	ld hl,0e131h		;52ae   ; la primera lista arranca en 0xE131
 	ld de,0e132h		;52b1
-	ld (hl),000h		;52b4   ; un cero
+	ld (hl),000h		;52b4   ; se pone UN cero
 	ld bc,00124h		;52b6   ; 292 bytes
-	ldir		;52b9
+	ldir		;52b9   ; y el `ldir` lo arrastra por los 292
 
 ; ----------------------------------------------------------------------
 ; EL MONTAJE DEL DECORADO. La fase indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -tres bytes por entrada- que da su tira de patrones. El guion acaba en el valor 0x16.
 ; ----------------------------------------------------------------------
 monta_el_decorado_de_la_fase:
-	ld hl,0e132h		;52bb
+	ld hl,0e132h		;52bb   ; la segunda lista, y la limpia la rutina de MONTAR el decorado: las dos van pegadas a proposito
 	ld de,0e133h		;52be
 	ld (hl),0d0h		;52c1   ; y 0xD0: retirado
 	ld bc,00077h		;52c3   ; 119 bytes
-	ldir		;52c6
+	ldir		;52c6   ; mismo arrastre, con el otro valor
 	ld de,03b80h		;52c8   ; el destino en la VRAM
 	ld a,(0e05ch)		;52cb   ; el numero de fase
 	add a,a			;52ce   ; por dos: son punteros
 	ld hl,04e1bh		;52cf   ; la tabla de decorados
-	call suma_a_a_hl		;52d2
-	ld a,(hl)			;52d5
+	call suma_a_a_hl		;52d2   ; indexa la tabla de decorados
+	ld a,(hl)			;52d5   ; el puntero al guion de trozos
 	inc hl			;52d6
-	ld h,(hl)			;52d7
+	ld h,(hl)			;52d7   ; leido al reves sobre el mismo par
 	ld l,a			;52d8
 L_52D9:
-	push hl			;52d9
-	ld a,(hl)			;52da
+	push hl			;52d9   ; el guion se guarda: pintar el trozo lo gasta
+	ld a,(hl)			;52da   ; el trozo que toca
 	call pinta_un_trozo_del_decorado		;52db
 	pop hl			;52de
-	ld a,(hl)			;52df
+	ld a,(hl)			;52df   ; y se vuelve a leer para mirar si era el ultimo
 	inc hl			;52e0
 	cp 016h		;52e1   ; el valor 0x16 cierra el guion
 	jr nz,L_52D9		;52e3
 	ret			;52e5
 pinta_un_trozo_del_decorado:
 	ld l,a			;52e6
-	add a,a			;52e7   ; el numero de trozo por tres
+	add a,a			;52e7   ; por tres, que es lo que ocupa cada entrada
 	add a,l			;52e8
 	ld hl,04d30h		;52e9   ; la tabla de trozos
 	call suma_a_a_hl		;52ec
-	ld a,(hl)			;52ef   ; su tira de patrones
+	ld a,(hl)			;52ef   ; el byte bajo de la tira
 	inc hl			;52f0
-	ld c,(hl)			;52f1
+	ld c,(hl)			;52f1   ; cuantas tiras tiene
 	inc hl			;52f2
-	ld b,(hl)			;52f3
+	ld b,(hl)			;52f3   ; y el byte alto
 	ld l,a			;52f4
 	ld h,c			;52f5
 
@@ -1877,33 +1881,33 @@ pinta_un_trozo_del_decorado:
 ; PINTAR UNA TIRA DE TRES CELDAS. El byte trae DOS cosas: los cinco bits de arriba son el tercer patron y los tres de abajo el primero, de modo que dos celdas caben en un byte. Un 0xFF cierra la tira.
 ; ----------------------------------------------------------------------
 pinta_la_tira_de_tres:
-	ld a,(hl)			;52f6
+	ld a,(hl)			;52f6   ; el byte, con DOS patrones dentro
 	cp 0ffh		;52f7   ; 0xFF: fin de la tira
 	jr z,L_5312		;52f9
 	and 0f8h		;52fb   ; los cinco bits de arriba
-	ld c,a			;52fd
-	ld a,(hl)			;52fe
+	ld c,a			;52fd   ; el tercero, apartado hasta el final
+	ld a,(hl)			;52fe   ; y el mismo byte otra vez
 	and 007h		;52ff   ; y los tres de abajo, el primer patron
 	call escribe_en_vram		;5301
 	inc de			;5304
-	inc hl			;5305
+	inc hl			;5305   ; el byte siguiente
 	ld a,(hl)			;5306   ; el segundo va entero
 	inc hl			;5307
 	call escribe_en_vram		;5308
 	inc de			;530b
-	ld a,c			;530c   ; y el tercero, el que se guardo
+	ld a,c			;530c   ; y ahora si, el tercero
 	call escribe_en_vram		;530d
 	jr L_531D		;5310
 L_5312:
-	inc hl			;5312
+	inc hl			;5312   ; detras del 0xFF
 	push bc			;5313
-	ld bc,00003h		;5314   ; tres celdas
+	ld bc,00003h		;5314   ; tres celdas seguidas, sin empaquetar
 	call vuelca_bloque		;5317
 	pop bc			;531a
-	inc de			;531b   ; y la tira siguiente
+	inc de			;531b   ; dos celdas mas, que las tiras van de tres en tres
 	inc de			;531c
 L_531D:
-	inc de			;531d
+	inc de			;531d   ; la tercera
 	djnz pinta_la_tira_de_tres		;531e
 	ret			;5320
 
@@ -1917,10 +1921,10 @@ pone_en_pie_la_partida:
 	ld de,0539dh		;532a   ; los cinco valores
 	ld b,005h		;532d   ; cinco
 L_532F:
-	ld a,(de)			;532f
+	ld a,(de)			;532f   ; el color de este sprite
 	ld (hl),a			;5330
 	inc de			;5331
-	inc hl			;5332   ; cuatro bytes por sprite: solo se toca uno
+	inc hl			;5332   ; cuatro bytes por sprite, y de los cuatro solo se toca el del color
 	inc hl			;5333
 	inc hl			;5334
 	inc hl			;5335
@@ -1928,7 +1932,7 @@ L_532F:
 	ld hl,05398h		;5338   ; los cinco valores del jugador
 	ld de,0e1b3h		;533b
 	ld bc,00005h		;533e   ; cinco bytes
-	ldir		;5341
+	ldir		;5341   ; los cinco a su sitio
 	jp mete_al_jugador_en_los_sprites		;5343
 
 ; ----------------------------------------------------------------------
@@ -1937,19 +1941,19 @@ L_532F:
 prepara_los_sprites:
 	ld de,0e0b0h		;5346
 	ld hl,05394h		;5349
-	ld bc,00404h		;534c   ; cuatro por cuatro
+	ld bc,00404h		;534c   ; cuatro copias de cuatro bytes: el mismo grupo repetido
 L_534F:
 	push hl			;534f
 	push bc			;5350
-	ld b,000h		;5351
+	ld b,000h		;5351   ; la cuenta alta, cero
 	ldir		;5353
 	pop bc			;5355
 	pop hl			;5356
 	djnz L_534F		;5357
-	ld h,d			;5359
+	ld h,d			;5359   ; DE quedo detras de la ultima copia, y de ahi arranca el arrastre
 	ld l,e			;535a
 	ld (hl),0c3h		;535b   ; 0xC3: fuera de la pantalla
-	inc de			;535d
+	inc de			;535d   ; y el `ldir` copia sobre si mismo
 	ld c,06fh		;535e   ; y el ldir lo arrastra por el resto
 	ldir		;5360
 	ret			;5362
@@ -1960,29 +1964,29 @@ L_534F:
 recorre_el_decorado_entero:
 	ld a,(0e059h)		;5363   ; por donde iba
 	ld hl,(0e05ah)		;5366
-	push af			;5369
+	push af			;5369   ; las dos cosas se guardan: las veintiseis pasadas las machacan
 	push hl			;536a
-	dec hl			;536b   ; tres celdas atras
+	dec hl			;536b   ; tres celdas atras, que es desde donde se monta
 	dec hl			;536c
 	dec hl			;536d
 	ld (0e1c5h),hl		;536e
 	call 0004ah		;5371   ; BIOS RDVRM - Reads the content of VRAM
-	dec a			;5374
+	dec a			;5374   ; uno menos que el indice leido
 	ld (0e1c4h),a		;5375
-	ld a,001h		;5378
+	ld a,001h		;5378   ; hacia un lado
 	ld (0e1aah),a		;537a   ; la direccion del movimiento
 	ld b,01ah		;537d   ; veintiseis pasadas
 L_537F:
 	push bc			;537f
-	call mueve_el_decorado_un_paso		;5380
+	call mueve_el_decorado_un_paso		;5380   ; y una pasada entera del decorado
 	pop bc			;5383
 	djnz L_537F		;5384
 	pop hl			;5386
 	pop af			;5387
-	ld (0e059h),a		;5388   ; el puntero, restaurado
+	ld (0e059h),a		;5388   ; por donde iba, restaurado
 	ld (0e05ah),hl		;538b
 	ld hl,0e1abh		;538e
-	set 1,(hl)		;5391   ; y el tope de arriba
+	set 1,(hl)		;5391   ; y el tope de arriba, marcado
 	ret			;5393
 
 ; ----------------------------------------------------------------------
@@ -2018,24 +2022,24 @@ DATA_patrones_de_los_cinco_sprites:
 ; EL GUION DE LA FASE, con su propio plazo en (0xE24D): cuando se agota, lee dos bytes mas adelante y, si es 0xFF, levanta la senal de fin de vida.
 ; ----------------------------------------------------------------------
 avanza_el_guion_de_la_fase:
-	ld hl,0e24dh		;53a2
+	ld hl,0e24dh		;53a2   ; el plazo del paso en curso
 	ld de,(0e24eh)		;53a5   ; por donde va el guion
 	dec (hl)			;53a9   ; el plazo
 	jr nz,L_53BC		;53aa
-	inc de			;53ac
+	inc de			;53ac   ; dos bytes mas alla esta el paso siguiente
 	inc de			;53ad
 	ld a,(de)			;53ae
 	cp 0ffh		;53af   ; 0xFF cierra el guion
-	jr nz,L_53B7		;53b1
+	jr nz,L_53B7		;53b1   ; con 0xFF no hay mas guion
 	ld (0e00ch),a		;53b3   ; y es la senal de fin
 	ret			;53b6
 L_53B7:
-	ld (hl),a			;53b7
+	ld (hl),a			;53b7   ; el plazo nuevo
 	ld (0e24eh),de		;53b8   ; el guion queda apuntado
 L_53BC:
-	inc de			;53bc
+	inc de			;53bc   ; y el byte de detras del plazo
 	ld a,(de)			;53bd   ; y el paso siguiente pasa por (0xE009)
-	ld (0e009h),a		;53be
+	ld (0e009h),a		;53be   ; es lo que el resto del cartucho lee como si fuera el mando
 	ret			;53c1
 
 ; ----------------------------------------------------------------------
@@ -2045,13 +2049,13 @@ arranca_la_vida:
 	call borra_el_tanteo		;53c2
 	call pinta_el_marcador		;53c5
 	call pinta_la_altura_y_el_marcador		;53c8
-	xor a			;53cb
+	xor a			;53cb   ; cero para las dos senales
 	ld (0e00ch),a		;53cc   ; la senal de fin de vida
 	ld (0e001h),a		;53cf   ; y la de partida en marcha
 	ld a,096h		;53d2   ; ciento cincuenta cuadros
-	ld (0e24dh),a		;53d4
+	ld (0e24dh),a		;53d4   ; el plazo del primer paso
 	ld hl,053e4h		;53d7   ; el guion de la fase
-	ld (0e24eh),hl		;53da
+	ld (0e24eh),hl		;53da   ; y el guion queda apuntado
 	ret			;53dd
 avanza_el_guion_y_sigue:
 	call avanza_el_guion_de_la_fase		;53de
@@ -4836,45 +4840,45 @@ L_6EE7:
 	jr nz,L_6F52		;6ef1
 	djnz L_6EE7		;6ef3
 L_6EF5:
-	pop de			;6ef5
+	pop de			;6ef5   ; los dos punteros que dejo quien llama
 	pop hl			;6ef6
-	push hl			;6ef7
+	push hl			;6ef7   ; y se vuelven a apilar, que repintar los gasta
 	push de			;6ef8
 	call repinta_el_movil		;6ef9
 	pop de			;6efc
 	pop hl			;6efd
 	ld a,(de)			;6efe
-	sub 028h		;6eff
-	cp 078h		;6f01
-	ld a,000h		;6f03
+	sub 028h		;6eff   ; la banda util de este movil
+	cp 078h		;6f01   ; y lo ancha que es
+	ld a,000h		;6f03   ; fuera de ella no se mueve
 	jr nc,L_6F0F		;6f05
 	ld a,004h		;6f07   ; cuatro pixeles
 	bit 4,(hl)		;6f09   ; el bit 4: hacia el otro lado
 	jr z,L_6F0F		;6f0b
 	ld a,0fch		;6f0d   ; o cuatro hacia atras
 L_6F0F:
-	ld c,a			;6f0f
+	ld c,a			;6f0f   ; el paso, apartado: abajo se le mira un bit
 	ex de,hl			;6f10
-	inc hl			;6f11
-	add a,(hl)			;6f12
+	inc hl			;6f11   ; el byte de la posicion
+	add a,(hl)			;6f12   ; mas el paso
 	ld (hl),a			;6f13
 	inc hl			;6f14
-	bit 2,c		;6f15   ; el bit 2
+	bit 2,c		;6f15   ; el bit 2 del PASO, no del estado
 	jr z,L_6F23		;6f17
-	ld (hl),08ch		;6f19
+	ld (hl),08ch		;6f19   ; un dibujo
 	bit 2,a		;6f1b   ; el bit 2 elige el otro dibujo
 	jr z,L_6F21		;6f1d
 	ld (hl),08dh		;6f1f
 L_6F21:
 	jr L_6F2C		;6f21
 L_6F23:
-	ld a,(hl)			;6f23
+	ld a,(hl)			;6f23   ; el dibujo de ahora
 	cp 08ch		;6f24   ; el dibujo alterna entre 0x8C y 0x90
-	ld (hl),090h		;6f26
+	ld (hl),090h		;6f26   ; se escribe uno
 	jr z,L_6F2C		;6f28
-	ld (hl),08ch		;6f2a
+	ld (hl),08ch		;6f2a   ; y si ya estaba, el otro: alternan
 L_6F2C:
-	dec hl			;6f2c
+	dec hl			;6f2c   ; de vuelta al principio de la ficha
 	dec hl			;6f2d
 	call pinta_bloque_de_la_ficha		;6f2e
 	ld a,001h		;6f31   ; y el sonido del movil
@@ -4891,13 +4895,13 @@ el_movil_se_agota:
 	cp 08ah		;6f3c
 	jr nz,L_6F54		;6f3e
 L_6F40:
-	ld a,(hl)			;6f40
+	ld a,(hl)			;6f40   ; su byte de estado
 	and 00fh		;6f41   ; el nibble bajo
 	cp 00fh		;6f43   ; el tope, quince
-	jr nz,L_6F5A		;6f45
+	jr nz,L_6F5A		;6f45   ; mientras no llegue al tope, sigue
 retira_el_movil:
 	call borra_la_ficha		;6f47   ; se borra la ficha
-	call repinta_el_movil		;6f4a
+	call repinta_el_movil		;6f4a   ; y el hueco que dejo, repintado
 	ld (ix+000h),0d0h		;6f4d   ; y el objeto queda retirado
 	ret			;6f51
 L_6F52:
@@ -4909,7 +4913,7 @@ L_6F54:
 	res 6,(hl)		;6f58   ; le quita el bit 6
 L_6F5A:
 	ld a,030h		;6f5a   ; y le da la vuelta a los bits 4 y 5
-	xor (hl)			;6f5c
+	xor (hl)			;6f5c   ; los dos bits que dicen hacia donde va
 	ld (hl),a			;6f5d
 	ret			;6f5e
 
@@ -4919,30 +4923,30 @@ L_6F5A:
 avanza_el_movil_rapido:
 	ld a,(0e003h)		;6f5f   ; el contador de cuadros
 	and 00fh		;6f62   ; uno de cada dieciseis
-	ret nz			;6f64
-	push hl			;6f65
+	ret nz			;6f64   ; en los otros quince no se mueve
+	push hl			;6f65   ; los dos punteros, guardados
 	push de			;6f66
 	ld a,024h		;6f67   ; treinta y seis pixeles
 	bit 4,(hl)		;6f69   ; el bit 4: hacia arriba
-	jr z,L_6F6F		;6f6b
+	jr z,L_6F6F		;6f6b   ; con el bit a cero, hacia delante
 	ld a,0f8h		;6f6d   ; u ocho hacia atras
 L_6F6F:
 	ex de,hl			;6f6f
-	add a,(hl)			;6f70
+	add a,(hl)			;6f70   ; la posicion mas el paso
 	ld e,a			;6f71
 	inc hl			;6f72
-	ld d,(hl)			;6f73
+	ld d,(hl)			;6f73   ; y la otra coordenada, sin tocar
 	ex de,hl			;6f74
 	ld b,002h		;6f75   ; dos celdas
 L_6F77:
 	call lee_la_celda_de_ahi		;6f77   ; que hay ahi
 	cp 003h		;6f7a   ; el indice 3 es por donde se puede pasar
-	jr nz,L_6F9D		;6f7c
+	jr nz,L_6F9D		;6f7c   ; si no se puede pasar, no se avanza
 	ld a,h			;6f7e
-	add a,008h		;6f7f   ; ocho pixeles mas abajo
+	add a,008h		;6f7f   ; la celda de debajo
 	ld h,a			;6f81
-	djnz L_6F77		;6f82
-	pop de			;6f84
+	djnz L_6F77		;6f82   ; y las dos que hay que mirar
+	pop de			;6f84   ; los punteros, de vuelta
 	pop hl			;6f85
 	push hl			;6f86
 	push de			;6f87
@@ -4958,18 +4962,18 @@ L_6F95:
 	add a,(hl)			;6f96   ; aplicado a la posicion
 	ld (hl),a			;6f97
 	inc hl			;6f98
-	inc hl			;6f99
-	jp L_6F23		;6f9a
+	inc hl			;6f99   ; y al byte del dibujo
+	jp L_6F23		;6f9a   ; el dibujo lo cambia el mismo trozo de arriba
 L_6F9D:
 	pop de			;6f9d
 	pop hl			;6f9e
-	jr L_6F5A		;6f9f
+	jr L_6F5A		;6f9f   ; y si no se puede pasar, se da la vuelta
 repinta_el_movil:
-	ex de,hl			;6fa1
+	ex de,hl			;6fa1   ; esta puerta recibe la ficha en DE
 repinta_el_objeto:
 	call elige_la_tabla_de_piezas		;6fa2
 	ld de,06fabh		;6fa5   ; su tabla de patrones
-	jp pinta_bloque_en_su_sitio		;6fa8
+	jp pinta_bloque_en_su_sitio		;6fa8   ; y se pinta donde le toque
 
 ; ----------------------------------------------------------------------
 ; DATOS doce_celdas_en_blanco: doce bytes, todos 0x03 -el patron vacio-;
@@ -4990,52 +4994,52 @@ DATA_doce_celdas_en_blanco:
 suelta_el_premio_de_la_fase_6:
 	ld a,(0e051h)		;6fb7   ; el numero de fase
 	cp 006h		;6fba   ; de la sexta en adelante
-	ret c			;6fbc
+	ret c			;6fbc   ; antes de la sexta no hay premio
 	ld a,(0e05eh)		;6fbd
-	rra			;6fc0   ; y solo en un sentido de la fase
+	rra			;6fc0   ; y solo en uno de los dos sentidos de la fase
 	ret c			;6fc1
 	ld a,(0e003h)		;6fc2
-	or a			;6fc5   ; una vez cada 256 cuadros
+	or a			;6fc5   ; justo en el cuadro en que el contador da la vuelta
 	ret nz			;6fc6
 L_6FC7:
-	ld de,0e132h		;6fc7
-	ld b,028h		;6fca
+	ld de,0e132h		;6fc7   ; la lista de objetos
+	ld b,028h		;6fca   ; cuarenta entradas
 
 ; ----------------------------------------------------------------------
 ; BUSCAR UN OBJETO QUE VALGA: ni retirado, ni fuera de la banda 0x18..0xA0, y de los tipos 0x93 o 0x94.
 ; ----------------------------------------------------------------------
 busca_un_objeto_util:
-	ld a,(de)			;6fcc
-	inc de			;6fcd
+	ld a,(de)			;6fcc   ; el primer byte de la ficha
+	inc de			;6fcd   ; dos mas alla esta el tipo
 	inc de			;6fce
 	cp 0d0h		;6fcf   ; retirado
-	jr z,L_6FE0		;6fd1
+	jr z,L_6FE0		;6fd1   ; los retirados no valen
 	sub 018h		;6fd3   ; la banda util
-	cp 088h		;6fd5
+	cp 088h		;6fd5   ; y lo ancha que es
 	jr nc,L_6FE0		;6fd7
 	ld a,(de)			;6fd9
 	sub 093h		;6fda   ; los tipos 0x93 y 0x94
-	cp 002h		;6fdc
+	cp 002h		;6fdc   ; dos tipos seguidos
 	jr c,L_6FE4		;6fde
 L_6FE0:
-	inc de			;6fe0
+	inc de			;6fe0   ; al objeto siguiente: cinco bytes por ficha, dos ya avanzados
 	djnz busca_un_objeto_util		;6fe1
 	ret			;6fe3
 L_6FE4:
-	dec de			;6fe4
+	dec de			;6fe4   ; de vuelta al principio de la ficha buena
 	dec de			;6fe5
-	ld hl,0e208h		;6fe6
+	ld hl,0e208h		;6fe6   ; y ahora se busca hueco en la lista de premios
 	ld bc,00300h		;6fe9
 L_6FEC:
 	ld a,(hl)			;6fec
 	or a			;6fed   ; hueco vacio
 	jr z,coloca_el_premio		;6fee
-	inc hl			;6ff0
+	inc hl			;6ff0   ; cinco bytes por hueco
 	inc hl			;6ff1
 	inc hl			;6ff2
 	inc hl			;6ff3
 	inc hl			;6ff4
-	inc c			;6ff5   ; cinco bytes por hueco
+	inc c			;6ff5   ; y el indice va subiendo con el
 	djnz L_6FEC		;6ff6
 	ret			;6ff8
 
@@ -5046,112 +5050,112 @@ coloca_el_premio:
 	push hl			;6ff9
 	ex de,hl			;6ffa
 	ld de,0e0e4h		;6ffb   ; su hueco de sprite
-	call hueco_de_sprite_en_de		;6ffe
+	call hueco_de_sprite_en_de		;6ffe   ; el hueco de sprite que le toca
 	ld bc,00002h		;7001   ; dos bytes
-	ldir		;7004
+	ldir		;7004   ; las dos coordenadas, copiadas del objeto
 	ex de,hl			;7006
 	ld (hl),090h		;7007   ; el patron
-	inc hl			;7009
+	inc hl			;7009   ; y detras el color
 	ld (hl),00fh		;700a   ; y su color
 	pop hl			;700c
 	ld (hl),088h		;700d   ; el otro patron
-	inc hl			;700f
+	inc hl			;700f   ; el byte del color
 	ld a,r		;7010   ; el contador de refresco: el azar
 	and 007h		;7012   ; una entre ocho
-	jr nz,L_7018		;7014
+	jr nz,L_7018		;7014   ; las otras siete veces se queda con lo que hubiera
 	ld a,005h		;7016   ; y entonces el color 5
 L_7018:
 	ld (hl),a			;7018   ; el color
-	inc hl			;7019
+	inc hl			;7019   ; el mismo color en los dos bytes
 	ld (hl),a			;701a
 	inc hl			;701b
 	ld (hl),000h		;701c   ; y el tercer byte, a cero
 	ret			;701e
 mueve_los_premios:
-	ld de,0e208h		;701f
-	ld bc,00300h		;7022
+	ld de,0e208h		;701f   ; la lista de premios
+	ld bc,00300h		;7022   ; tres, y el indice empieza en cero
 
 ; ----------------------------------------------------------------------
 ; EL REPARTO POR TIPO DE BICHO: los bits 7, 6 y 5 de su estado eligen entre cuatro maneras de moverse. IX apunta a su ficha e IY a su hueco de sprite, de modo que las rutinas de abajo no vuelven a buscarlos.
 ; ----------------------------------------------------------------------
 mueve_un_bicho_por_su_tipo:
 	push de			;7025
-	push bc			;7026
+	push bc			;7026   ; la ficha y el indice, guardados para el final del bucle
 	ld a,(de)			;7027   ; el estado del bicho
 	or a			;7028   ; parado
 	jr z,L_706E		;7029
-	ld b,a			;702b
+	ld b,a			;702b   ; el estado, apartado: los tres bits se miran uno a uno
 	push de			;702c   ; su ficha
-	pop ix		;702d
+	pop ix		;702d   ; IX se queda con la ficha, y ya no hay que buscarla mas
 	ld hl,0e0e4h		;702f   ; su hueco de sprite
-	call hueco_de_sprite		;7032
+	call hueco_de_sprite		;7032   ; y IY con su hueco de sprite
 	push hl			;7035
 	pop iy		;7036
 	call mira_si_el_bicho_se_ve		;7038   ; esta en pantalla?
-	jr nc,L_706E		;703b
+	jr nc,L_706E		;703b   ; fuera de la pantalla no se mueve
 	bit 7,b		;703d   ; el bit 7
 	jr z,L_7046		;703f
 	call avanza_el_bicho_del_guion		;7041
 	jr L_706E		;7044
 L_7046:
-	bit 6,b		;7046   ; el bit 6
+	bit 6,b		;7046   ; y si no, el 6
 	jr z,L_704F		;7048
 	call avanza_el_bicho_que_cambia		;704a
 	jr mira_el_premio_de_cerca		;704d
 L_704F:
-	call avanza_el_bicho_lento		;704f
+	call avanza_el_bicho_lento		;704f   ; y sin ninguno de los dos, el lento
 mira_el_premio_de_cerca:
 	bit 4,(ix+000h)		;7052   ; el bit 4
-	jr nz,L_706E		;7056
+	jr nz,L_706E		;7056   ; con el bit 4 puesto, este no coge premios
 	push iy		;7058
-	pop hl			;705a
+	pop hl			;705a   ; la posicion del bicho
 	ld a,(hl)			;705b
 	sub 008h		;705c   ; ocho pixeles
-	ld b,a			;705e
+	ld b,a			;705e   ; apartada en B
 	inc hl			;705f
 	ld a,(hl)			;7060
 	sub 004h		;7061   ; y cuatro en la otra
-	ld c,a			;7063
+	ld c,a			;7063   ; y la otra en C
 	ld de,00c0ch		;7064   ; doce por doce de caja
 	push bc			;7067
-	call mira_tres_cajas		;7068
+	call mira_tres_cajas		;7068   ; contra los tres premios
 	pop bc			;706b
 	jr c,el_bicho_alcanza_al_premio		;706c
 L_706E:
-	pop bc			;706e
+	pop bc			;706e   ; el indice y la ficha, de vuelta
 	pop de			;706f
 	ld a,005h		;7070   ; cinco bytes por ficha
-	call suma_a_a_de		;7072
-	inc c			;7075
+	call suma_a_a_de		;7072   ; a la ficha siguiente
+	inc c			;7075   ; y el indice, uno mas
 	djnz mueve_un_bicho_por_su_tipo		;7076
 	ret			;7078
 el_bicho_alcanza_al_premio:
-	ld a,c			;7079
+	ld a,c			;7079   ; las dos coordenadas se cruzan: la rutina de abajo las quiere al reves
 	ld c,b			;707a
 	ld b,a			;707b
 	ld a,004h		;707c   ; el sonido
-	call suma_los_puntos_del_tipo		;707e
+	call suma_los_puntos_del_tipo		;707e   ; los puntos salen del tipo del bicho
 	push ix		;7081
-	pop hl			;7083
+	pop hl			;7083   ; la ficha del bicho
 	ld (hl),031h		;7084   ; el patron del golpe
 	inc hl			;7086
-	inc hl			;7087
+	inc hl			;7087   ; dos bytes mas alla, el dibujo
 	call repinta_el_hueco		;7088
 	jr L_706E		;708b
 esta_en_la_banda_util:
-	ld a,(hl)			;708d
-	sub 010h		;708e
+	ld a,(hl)			;708d   ; la coordenada
+	sub 010h		;708e   ; la banda util de la pantalla
 	cp 0b1h		;7090
 L_7092:
 	ret c			;7092
-	ld (hl),0c3h		;7093
+	ld (hl),0c3h		;7093   ; fuera de ella, el patron 0xC3: se deja de ver
 	xor a			;7095
-	ld (de),a			;7096
+	ld (de),a			;7096   ; y el hueco queda libre
 	ret			;7097
 mira_si_el_bicho_se_ve:
 	ld a,(hl)			;7098
 	sub 008h		;7099
-	cp 0b9h		;709b
+	cp 0b9h		;709b   ; que aqui es un poco mas ancha
 	jr L_7092		;709d
 
 ; ----------------------------------------------------------------------
@@ -6739,11 +6743,15 @@ L_7AAE:
 L_7AAF:
 	set 1,a		;7aaf
 	bit 4,a		;7ab1
-	jr z,escribe_el_volumen_general		;7ab3
+	jr z,escribe_el_mezclador_del_psg		;7ab3
 	res 1,a		;7ab5
-escribe_el_volumen_general:
+
+; ----------------------------------------------------------------------
+; EL MEZCLADOR DEL PSG, que es el registro 7 y NO el volumen: sus tres bits de abajo abren o cierran el TONO de cada canal, los tres siguientes el RUIDO, y los dos de arriba dicen si cada puerto de proposito general es de entrada o de salida -el A es por donde se leen los mandos, asi que tiene que quedar como entrada-. El valor de arranque es 0xB8: los tres tonos abiertos, los tres ruidos cerrados y el puerto A como entrada. La copia en (0xE031) es la que consulta el reproductor para abrir y cerrar canales sin releer el PSG.
+; ----------------------------------------------------------------------
+escribe_el_mezclador_del_psg:
 	ld (0e031h),a		;7ab7   ; la copia en RAM
-	ld e,a			;7aba
+	ld e,a			;7aba   ; el valor, apartado en E
 	ld a,007h		;7abb   ; registro 7 del PSG
 	jp 00093h		;7abd   ; BIOS WRTPSG - Writes data to PSG-register
 
@@ -6752,7 +6760,7 @@ escribe_el_volumen_general:
 ; ----------------------------------------------------------------------
 suena_un_cuadro:
 	ld a,(0e031h)		;7ac0   ; el volumen general
-	call escribe_el_volumen_general		;7ac3
+	call escribe_el_mezclador_del_psg		;7ac3
 	ld c,001h		;7ac6   ; el primer canal del PSG
 	ld ix,0e010h		;7ac8   ; el estado de la primera voz
 	exx			;7acc

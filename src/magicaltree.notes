@@ -130,7 +130,6 @@ C 0x4036 si ya hay una dentro, no se entra otra vez
 C 0x403b se abren las interrupciones ESTANDO dentro
 C 0x403c lee los mandos y el teclado
 C 0x403f y aqui se despacha la escena
-C 0x4044 se suelta el cerrojo
 L 0x404a despacha_por_tabla
 B 0x404a EL DESPACHADOR DE ESCENAS: la tabla va PEGADA detras del `call`, y el `pop hl` recupera su propia direccion de retorno, que es justo donde empieza. Quien llama solo pasa el numero de escena en A.
 C 0x404a el numero de escena, por dos: son palabras
@@ -210,7 +209,6 @@ L 0x415e espera_a_que_pare_el_sonido
 B 0x415e EL CIERRE DE LA VIDA. Espera a que no quede nada sonando y entonces elige el sonido segun el bit 0 de (0xE05E): el 9 o el 0x8C. Deja el plazo en 32 cuadros y pasa a la escena siguiente.
 C 0x415e lo que este sonando
 C 0x4163 la bandera que elige el sonido
-C 0x4166 su bit 0
 C 0x4167 un sonido
 C 0x416b o el otro
 L 0x417a plazo_de_32_y_siguiente_escena
@@ -242,14 +240,12 @@ C 0x41bf y se pasa a ella
 C 0x7271 se guarda DE
 C 0x7272 se copia el puntero
 C 0x7277 cuatro bytes mas alla
-C 0x727b copiados
 C 0x727d se cambian
 C 0x727f dos atras
 C 0x7282 el byte de antes
 C 0x7285 mas la columna
 C 0x7286 guardada
 C 0x7287 se recupera
-C 0x728b uno de cada cuatro
 C 0x7c0f el byte de la partitura
 C 0x7c10 y se avanza
 C 0x7c17 el nibble de arriba
@@ -268,7 +264,6 @@ C 0x68da dos bytes mas alla
 C 0x68db el tipo
 C 0x68de si son los dos, es especial
 C 0x68e0 se recupera
-C 0x68e6 por dos: el bit 7 al acarreo
 C 0x68e7 con acarreo no se pinta
 C 0x68e9 y si no, se pinta en su sitio
 C 0x68ef tres mas alla
@@ -367,7 +362,6 @@ C 0x42f5 el par de arriba
 C 0x42f9 guardado
 C 0x42fa y si no desborda, se sigue
 C 0x42ff los dos pares de arriba
-C 0x4303 y los dos de abajo
 C 0x68b6 por dos: el bit 7 al acarreo
 C 0x68b7 con acarreo, se sale
 C 0x68b9 el byte siguiente
@@ -421,7 +415,9 @@ C 0x4376 y su variable
 C 0x4379 el bit 7 al acarreo
 C 0x437c la columna del segundo
 C 0x4381 tres bytes de BCD
-L 0x4385 pinta_las_vidas_numero
+L 0x4385 pinta_el_numero_de_fase
+B 0x4385 EL NUMERO DE FASE DEL MARCADOR, el "STAGE". Imprime (0xE051) -un byte, dos digitos BCD-, que es el mismo contador que leen las seis rutinas del juego para saber por que fase va. No tiene nada que ver con las vidas: esas las pinta 0x43C4, con marcas y no con numeros.
+C 0x4388 (0xE051), el numero de fase en BCD
 C 0x4385 la celda del contador
 C 0x438b un solo byte
 L 0x438d imprime_bcd
@@ -436,11 +432,11 @@ C 0x43a2 y detras el bajo
 C 0x43a5 la variable va hacia atras
 C 0x43a6 y la pantalla hacia delante
 L 0x43aa parpadea_el_turno
-B 0x43aa EL PARPADEO DEL "1P" / "2P", cada 32 cuadros. Con dos jugadores se descuenta uno para que los dos no parpadeen a la vez.
+B 0x43aa EL PARPADEO DEL "1P" / "2P", y todo el sale del contador de cuadros. El `ld hl,(0e002h)` trae de un tiron las banderas en L y el contador en H. Solo se hace algo cuando los cinco bits de abajo del contador estan a cero -un cuadro de cada 32-, y la mascara con la que se pinta es el BIT 5 DE ESE MISMO CONTADOR: a cero deja C=0x00, que en el interprete de rotulos es BORRAR, y a uno lo baja a 0xFF, que es pintar. De ahi salen los 32 cuadros encendido y 32 apagado. El turno solo elige CUAL de los dos rotulos. Igual que en Circus Charlie, byte a byte.
 C 0x43aa de un tiron: (0xE002) y el contador de cuadros
 C 0x43ad los cinco bits de abajo
 C 0x43b0 uno de cada 32 cuadros
-C 0x43b6 con dos jugadores, se desfasa
+C 0x43b6 C pasa de 0x00 a 0xFF, o sea de borrar a pintar
 C 0x43b7 el bit 7 dice de quien es el turno
 L 0x43c4 pinta_las_vidas
 B 0x43c4 EL CONTADOR DE VIDAS, cinco marcas de derecha a izquierda: mientras queden se escribe la marca 0x2E y, en cuanto se acaban, un cero. Por eso el hueco se ve siempre.
@@ -485,7 +481,6 @@ L 0x4441 vuelca_bloque
 B 0x4441 VOLCAR BC BYTES DE MEMORIA A LA VRAM, tal cual. Es lo que usan los bloques que NO van comprimidos.
 C 0x4445 un byte
 C 0x4447 y al puerto de datos
-C 0x444b una menos
 L 0x4452 copia_vram_a_vram
 B 0x4452 COPIAR DE VRAM A VRAM byte a byte, pasando por el Z80: el VDP no sabe hacerlo solo.
 C 0x4452 lee de (HL) en la VRAM
@@ -903,7 +898,6 @@ C 0x6593 cuatro pixeles de correccion
 C 0x659d el paso quieto
 C 0x65a6 el bit 0 del paso corrige un pixel
 C 0x65ab la tabla de poses
-C 0x65ae por cuatro
 C 0x65b3 el bufer de sprites
 C 0x65b9 dieciseis mas abajo: el segundo sprite
 C 0x65c0 y el tercero, fuera de pantalla
@@ -936,7 +930,6 @@ C 0x6b38 y uno mas
 C 0x6b39 la lista de objetos
 C 0x6b3c indexada
 C 0x6b3f su columna
-C 0x6b40 menos el borde
 C 0x6b42 tiene que caber en 0x78
 C 0x6b44 y si no, el perseguidor se retira
 C 0x6b47 dos bytes mas alla
@@ -1006,7 +999,6 @@ C 0x6697 el ancho
 C 0x6698 se recuperan
 C 0x66a0 copiados
 C 0x66a2 y el ancho detras
-C 0x66a8 el tipo
 C 0x66a9 dos veces por dos
 C 0x66a3 acarreo: hay contacto
 L 0x66a5 ancho_del_objeto
@@ -1091,7 +1083,6 @@ C 0x6807 el hueco elegido, apuntado
 C 0x680b el indice que hay en la pantalla
 C 0x6810 y el de al lado
 C 0x6817 los tres bits de arriba
-C 0x6819 si son todos, es un objeto especial
 
 
 # ======================================================================
@@ -1101,8 +1092,6 @@ B 0x6833 EL AZAR SALE DEL REGISTRO R. `ld a,r` lee el contador de refresco de me
 C 0x6833 el numero de fase
 C 0x6837 en la fase 1 solo hay dos variantes
 C 0x683e el contador de refresco del Z80: el azar
-C 0x6840 recortado a la mascara
-C 0x6842 el valor mas alto
 C 0x684b se rebaja en la fase 2
 C 0x680a el byte siguiente
 C 0x680e guardado en B
@@ -1372,7 +1361,6 @@ C 0x6ba9 al atributo
 C 0x6bab se cambian
 C 0x6bae el patron guardado
 C 0x6bb0 y al atributo
-C 0x6bb5 el suyo
 L 0x6bb2 saca_el_sprite_de_pantalla
 C 0x6bb5 su hueco de sprite
 C 0x6bb8 0xC3: fuera de la pantalla
@@ -1449,7 +1437,6 @@ C 0x6cd8 la posicion del jugador
 C 0x6cdc contra la ventana
 C 0x6cdd se marca que esta cerca
 C 0x6ce0 o que no
-C 0x6ce2 a menos de 0x30
 C 0x6ce4 reacciona uno de cada ocho
 C 0x6ce8 y de cerca, uno de cada cuatro
 C 0x6ca1 su estado
@@ -1589,7 +1576,6 @@ C 0x6eef y todas tienen que ser el 3
 C 0x6f07 cuatro pixeles
 C 0x6f09 el bit 4: hacia el otro lado
 C 0x6f0d o cuatro hacia atras
-C 0x6f15 el bit 2
 
 
 # ======================================================================
@@ -1600,7 +1586,6 @@ C 0x6f24 el dibujo alterna entre 0x8C y 0x90
 C 0x6f31 y el sonido del movil
 L 0x6f36 el_movil_se_agota
 B 0x6f36 EL MOVIL QUE SE AGOTA. Los tipos 0x86 y 0x8A tienen cuenta atras: cuando su nibble bajo llega a 15, se borra la ficha y el objeto queda retirado. Y con el indice 0x9B delante se le quita el bit 6, o sea que cambia de modo.
-C 0x6f38 los dos tipos con cuenta atras
 C 0x6f41 el nibble bajo
 C 0x6f43 el tope, quince
 C 0x6f47 se borra la ficha
@@ -1618,7 +1603,6 @@ C 0x6f6d u ocho hacia atras
 C 0x6f75 dos celdas
 C 0x6f77 que hay ahi
 C 0x6f7a el indice 3 es por donde se puede pasar
-C 0x6f7f ocho pixeles mas abajo
 C 0x6f8d cuatro pixeles
 C 0x6f8f el bit 4
 C 0x6f93 o cuatro hacia atras
@@ -1781,17 +1765,14 @@ C 0x72b4 hueco libre
 C 0x72b7 el numero de hueco
 L 0x72bd lanza_el_proyectil
 B 0x72bd LANZAR EL PROYECTIL, y el azar vuelve a decidir: dos bits del registro R se AGREGAN con un `or` al tipo, de modo que no todos salen iguales. Se copian cuatro bytes de ficha, se pone la segunda mitad dieciseis pixeles mas alla con el patron 0xF4 y suena el 0x4A.
-C 0x72be el tipo
 C 0x72c0 el contador de refresco: el azar
 C 0x72c2 dos bits
-C 0x72c4 agregados al tipo
 C 0x72ce cuatro bytes de ficha
 C 0x72d4 dieciseis pixeles mas alla
 C 0x72da el patron de la segunda mitad
 C 0x72dc y el sonido del lanzamiento
 L 0x72e1 mueve_los_tres_proyectiles
 B 0x72e1 LOS TRES PROYECTILES. Los dos bits de abajo de su tipo son la velocidad y el bit 6 el sentido, asi que un proyectil rapido y otro lento salen del mismo codigo cambiando dos bits. Cada cuadro avanza esa cantidad y sube el patron.
-C 0x72e4 tres
 C 0x72e8 hueco vacio
 C 0x72f5 la fila, uno mas
 C 0x72f9 los dos bits de abajo: la velocidad
@@ -1925,7 +1906,6 @@ C 0x74de a cero
 C 0x74e4 y el contador de cuadros tambien
 C 0x74ea los dos bloques de tres por tres
 C 0x74f3 pintado
-C 0x74fb uno de cada ciento veintiocho cuadros
 C 0x7503 la novena va por otro lado
 C 0x7508 a la VRAM
 L 0x74ea remate_de_la_novena
@@ -1965,12 +1945,10 @@ C 0x498f y se trae su indice de la VRAM
 L 0x4992 posicion_a_celda
 B 0x4992 DE POSICION A CELDA DE PANTALLA. Divide las dos coordenadas entre ocho de una vez, encadenando los `rra` de una con los `rr e` de la otra, y le pega el 0x38 de la tabla de nombres. Tres bits de cada una, que es justo el tamano de un patron.
 C 0x4994 cuatro giros
-C 0x4998 arrastrando el acarreo a la otra coordenada
 C 0x49a0 lo que queda de la fila
 C 0x49a2 mas la pagina de la tabla de nombres
 L 0x49a6 vuelca_b_filas
 C 0x49a9 una fila
-C 0x49ad y la siguiente, 32 celdas mas alla
 L 0x49b8 pinta_bloque_en_su_sitio
 B 0x49b8 PINTAR UN BLOQUE EN SU SITIO, fila a fila, SALTANDOSE las que caen fuera de la banda util (0x18..0xC0). Si C es menor de 7 la fila va tal cual; si no, se descomprime. Y cuando la fila esta fuera, 0x49ED avanza por los datos SIN pintar, interpretando el mismo lenguaje: un byte con el bit 7 puesto es un salto de n bytes. Asi se recorta por arriba y por abajo sin dibujar de mas.
 C 0x49bd la banda util empieza en 0x18
@@ -1978,7 +1956,6 @@ C 0x49bf y mide 0xA8
 C 0x49c5 de posicion a celda
 C 0x49cb por debajo de siete va tal cual
 C 0x49d6 y si no, se descomprime
-C 0x49dd ocho pixeles: la fila de abajo
 L 0x49e3 salta_la_fila_que_no_se_ve
 C 0x49e4 por debajo de siete, un ancho fijo
 C 0x49e8 que se salta
@@ -2029,7 +2006,9 @@ C 0x7a82 contra las que pide la partitura
 # ======================================================================
 # COMENTARIOS DE LINEA
 # ======================================================================
-L 0x7ab7 escribe_el_volumen_general
+L 0x7ab7 escribe_el_mezclador_del_psg
+B 0x7ab7 EL MEZCLADOR DEL PSG, que es el registro 7 y NO el volumen: sus tres bits de abajo abren o cierran el TONO de cada canal, los tres siguientes el RUIDO, y los dos de arriba dicen si cada puerto de proposito general es de entrada o de salida -el A es por donde se leen los mandos, asi que tiene que quedar como entrada-. El valor de arranque es 0xB8: los tres tonos abiertos, los tres ruidos cerrados y el puerto A como entrada. La copia en (0xE031) es la que consulta el reproductor para abrir y cerrar canales sin releer el PSG.
+C 0x7aba el valor, apartado en E
 C 0x7ab7 la copia en RAM
 C 0x7abb registro 7 del PSG
 L 0x7ac0 suena_un_cuadro
@@ -2082,7 +2061,6 @@ C 0x78f1 el numero de ficha
 C 0x78f3 por tres, que es lo que ocupa cada una
 C 0x78f4 indexada
 C 0x78f9 el contador de perseguidores
-C 0x78fd uno mas
 C 0x7900 y de ahi no pasa
 C 0x7901 guardado
 C 0x7902 con dos ya esta
@@ -2102,7 +2080,6 @@ C 0x791d su hueco
 C 0x7920 si esta a la vista
 C 0x7923 fuera: no se dibuja
 C 0x7925 el bit 7 del estado
-C 0x792c uno de cada ocho
 C 0x792f el dibujo, alternado
 C 0x7934 sin el, ya esta
 C 0x78fd el contador, uno mas
@@ -2235,7 +2212,6 @@ C 0x702c su ficha
 C 0x702f su hueco de sprite
 C 0x7038 esta en pantalla?
 C 0x703d el bit 7
-C 0x7046 el bit 6
 L 0x77e7 suelta_el_premio
 C 0x77e7 la posicion
 C 0x77f1 dieciseis hacia un lado
@@ -2248,7 +2224,6 @@ C 0x52f7 0xFF: fin de la tira
 C 0x52fb los cinco bits de arriba
 C 0x52ff y los tres de abajo, el primer patron
 C 0x5306 el segundo va entero
-C 0x530c y el tercero, el que se guardo
 L 0x6ff9 coloca_el_premio
 B 0x6ff9 COLOCAR EL PREMIO, y aqui el azar vuelve a aparecer: `ld a,r / and 007h` -una entre ocho- decide si el color es 5 o el que hubiera. Se copian dos bytes de la ficha y se le ponen los patrones 0x90 y 0x88.
 C 0x6ffb su hueco de sprite
@@ -2319,13 +2294,11 @@ C 0x5266 dieciseis por dieciseis
 C 0x5269 ocho
 C 0x5274 estos dos patrones no cuentan
 C 0x527c acarreo: hay contacto
-C 0x527f tres bytes por hueco
 L 0x5284 caja_alrededor_del_jugador
 B 0x5284 LA CAJA ALREDEDOR DEL JUGADOR, y no es simetrica: de 8 a 0x18 en una coordenada y de 6 a 0x0A en la otra. Es la manera de que rozar por arriba no cuente igual que chocar de frente.
 C 0x5284 la posicion del jugador
 C 0x5288 ocho por delante
 C 0x528c contra el ancho
-C 0x528f y veinticuatro
 C 0x5296 seis por arriba
 C 0x529c y diez
 L 0x52a2 vuelca_los_sprites
@@ -2334,7 +2307,6 @@ C 0x52a5 la tabla de atributos de la VRAM
 C 0x52a8 128 bytes, los 32 sprites
 L 0x52ae limpia_los_objetos
 B 0x52ae LIMPIAR LAS DOS LISTAS con la propagacion del `ldir`: 292 bytes a cero desde 0xE131 y luego 119 bytes a 0xD0 desde 0xE132, que es el valor de "retirado". Dos instrucciones por lista.
-C 0x52b4 un cero
 C 0x52b6 292 bytes
 C 0x52c1 y 0xD0: retirado
 C 0x52c3 119 bytes
@@ -2346,37 +2318,28 @@ C 0x52ce por dos: son punteros
 C 0x52cf la tabla de decorados
 C 0x52e1 el valor 0x16 cierra el guion
 L 0x52e6 pinta_un_trozo_del_decorado
-C 0x52e7 el numero de trozo por tres
 C 0x52e9 la tabla de trozos
-C 0x52ef su tira de patrones
 
 
 # ======================================================================
 # COMENTARIOS DE LINEA
 # ======================================================================
-C 0x5314 tres celdas
-C 0x531b y la tira siguiente
 L 0x5321 pone_en_pie_la_partida
 B 0x5321 PONER EN PIE LA PARTIDA: monta el decorado, prepara los sprites, reparte los cinco bytes de 0x539D uno de cada cuatro -o sea, solo los colores- y copia los cinco valores iniciales del jugador.
 C 0x5327 el bufer de sprites
 C 0x532a los cinco valores
 C 0x532d cinco
-C 0x5332 cuatro bytes por sprite: solo se toca uno
 C 0x5338 los cinco valores del jugador
 C 0x533e cinco bytes
 L 0x5346 prepara_los_sprites
 B 0x5346 PREPARAR EL BUFER DE SPRITES: cuatro copias del mismo grupo de cuatro bytes y, detras, 111 bytes de 0xC3 propagados con un `ldir` desde la propia celda. Todo lo que no se use queda fuera de la pantalla.
-C 0x534c cuatro por cuatro
 C 0x535b 0xC3: fuera de la pantalla
 C 0x535e y el ldir lo arrastra por el resto
 L 0x5363 recorre_el_decorado_entero
 B 0x5363 RECORRER EL DECORADO ENTERO DE UNA VEZ: guarda por donde iba, retrocede tres celdas y da VEINTISEIS pasadas seguidas de la rutina de movimiento, para dejar el arbol montado desde el principio. Al acabar, restaura el puntero.
 C 0x5363 por donde iba
-C 0x536b tres celdas atras
 C 0x537a la direccion del movimiento
 C 0x537d veintiseis pasadas
-C 0x5388 el puntero, restaurado
-C 0x5391 y el tope de arriba
 L 0x53a2 avanza_el_guion_de_la_fase
 B 0x53a2 EL GUION DE LA FASE, con su propio plazo en (0xE24D): cuando se agota, lee dos bytes mas adelante y, si es 0xFF, levanta la senal de fin de vida.
 C 0x53a5 por donde va el guion
@@ -2482,7 +2445,6 @@ C 0x4a2a cinco bits de indice
 L 0x4a2c saca_la_pieza_y_su_tamano
 C 0x4a2c por dos: son punteros
 C 0x4a30 el puntero a la pieza
-C 0x4a35 y sus dos bytes de cabecera
 L 0x51f5 el_cuadro_de_la_partida
 B 0x51f5 EL CUADRO DE LA PARTIDA, y es lo mas parecido a un indice del cartucho: once llamadas seguidas, una por cada cosa que se mueve -los perseguidores, los tres de la lista, los cinco moviles, los bichos nuevos, los sueltos-.
 L 0x797b engancha_el_segundo_trozo
@@ -2517,7 +2479,6 @@ C 0x489f diecisiete pasos
 # COMENTARIOS DE LINEA
 # ======================================================================
 C 0x6fed hueco vacio
-C 0x6ff5 cinco bytes por hueco
 L 0x518e borra_el_tanteo
 C 0x518e el tanteo de un jugador
 C 0x5191 231 bytes por delante
@@ -2540,7 +2501,6 @@ C 0x7c3f doblar el periodo es bajar una octava
 L 0x48eb pinta_franja_correlativa
 C 0x48eb el patron
 C 0x48ef el siguiente, uno mas
-C 0x48f3 y al salir, la fila de abajo
 L 0x51de el_cuadro_del_juego
 B 0x51de EL CUADRO ENTERO: vuelca los sprites, mira si el jugador ha llegado a algo, luego los premios y por ultimo todo lo que se mueve. El orden importa, porque lo ultimo que se escribe es lo que se ve.
 C 0x51de la bandera de partida en marcha
@@ -2562,8 +2522,6 @@ L 0x6fb7 suelta_el_premio_de_la_fase_6
 B 0x6fb7 EL PREMIO SOLO SALE DE LA SEXTA FASE EN ADELANTE, con el bit 0 de (0xE05E) a cero y en el cuadro en que el contador da la vuelta: una vez cada 256 cuadros.
 C 0x6fb7 el numero de fase
 C 0x6fba de la sexta en adelante
-C 0x6fc0 y solo en un sentido de la fase
-C 0x6fc5 una vez cada 256 cuadros
 L 0x7624 pinta_el_rotulo_grande
 C 0x7627 la fila
 C 0x7629 por donde va el guion
@@ -2617,7 +2575,6 @@ C 0x6158 el nibble bajo
 C 0x615b el valor 3
 C 0x67d6 lee de la pantalla
 C 0x67da uno menos
-C 0x6f96 aplicado a la posicion
 C 0x7018 el color
 C 0x701c y el tercer byte, a cero
 C 0x726c un byte por hueco
@@ -2788,3 +2745,396 @@ C 0x6dc5 la lista de cinco
 C 0x6dc8 cinco entradas
 C 0x6dca esta?
 C 0x6dcc tres bytes por entrada
+
+# ======================================================================
+# SEGUNDA PASADA DE DENSIDAD (tanda 1): 0x4016..0x4400
+# ======================================================================
+C 0x4016 de vuelta al juego normal
+C 0x401c al juego alternativo, igual que al escribir
+C 0x4020 la lectura tambien entro con `di`
+C 0x402a y con acarreo, el byte alto
+C 0x402c la interrupcion entra con todo cerrado
+C 0x4038 con el cerrojo tomado se sale sin hacer nada
+C 0x403a y si no, se toma
+C 0x4042 al salir se vuelve a cerrar
+C 0x4044 el cerrojo es de UN BIT: basta con dejarlo a cero
+C 0x4048 y se sale con las interrupciones ya abiertas
+C 0x4051 la palabra del destino
+C 0x4052 a HL, que es el unico par con el que se puede saltar
+C 0x4057 el que estaba guardado va al otro lado
+C 0x405a y el siguiente par de bytes
+C 0x4066 la palabra del destino, byte bajo primero
+C 0x406a B es la copia con la que se miran los dos codigos de control sin perder A
+C 0x4078 modo 1: la interrupcion entra por 0x0038 y la BIOS la encamina a H.KEYI
+C 0x4082 y detras del `jp`, la direccion del gancho
+C 0x4091 el clasico ldir sobre si mismo: se pone UN cero y el resto lo arrastra
+C 0x4097 nadie va a atender un cuadro mientras se monta el hardware
+C 0x409d el hardware ya esta, se puede soltar
+C 0x40aa un cuadro mas; no se pone nunca a cero, da la vuelta sola
+C 0x40ae aisla el bit 6
+C 0x40e6 `ret p`: con el bit 7 puesto todavia queda cuenta atras
+C 0x40f5 y el resto del parpadeo lo lleva el logotipo
+C 0x40ff plazo cero
+C 0x4105 un cuadro menos del plazo
+C 0x410d a cero: la franja se borra
+C 0x410e y la bandera de 0xE00A tambien
+C 0x4119 mientras devuelva acarreo, queda pantalla por barrer
+C 0x411a escena 0, la primera de la partida
+C 0x4120 el plazo de la pantalla de seleccion
+C 0x4121 mientras corre, solo parpadea el cursor
+C 0x4129 hasta que las dos cuentas no llegan a cero, no se arranca
+C 0x4135 cero quiere decir que todavia no
+C 0x413e cero es "la partida sigue"
+C 0x414f el bit 5
+C 0x4159 y detras, la altura y el marcador enteros
+C 0x4161 mientras suene algo, no se cierra la vida
+C 0x4166 el bit 0 elige entre los dos sonidos
+C 0x4170 la bandera de "ya se hizo", a cero
+C 0x4177 y las dos senales de fin, de una tacada
+C 0x417c el plazo, donde lo mira la escena siguiente
+C 0x418b cero es que la partida sigue
+C 0x418e y el byte de al lado, la otra senal
+C 0x4190 con las dos a cero no hay nada que cerrar
+C 0x4199 quedando vidas, se sigue jugando
+C 0x419e mientras suene algo, no se cierra la partida
+C 0x41c2 plazo cero: el cartel se queda puesto
+C 0x41c8 cero es "el otro no tiene partida"
+C 0x41cb escena 9, la que mira si quedan vidas
+C 0x41dd el byte de banderas
+C 0x41e1 y a la escena 9, ya con los bloques permutados
+C 0x41e6 un cuadro menos del cartel de relevo
+C 0x41eb cero es "el otro no tiene partida"
+C 0x41f5 sigue el mismo jugador
+C 0x41fa la escena elegida, que es lo que mira el reparto del cuadro siguiente
+C 0x4206 el plazo del relevo
+C 0x4211 cero es la primera vez que se entra
+C 0x421b 80 cuadros para el cartel
+C 0x4221 y se monta el decorado del cartel
+C 0x4224 barrida entera de una vez
+C 0x422f el plazo del cartel de fin de partida
+C 0x4237 la celda donde esta el cursor
+C 0x423d cero: lo que se escribe es la celda vacia
+C 0x4241 y al agotarse, se borra el tanteo
+C 0x425f la tabla de color
+C 0x426b desde la celda 0x600
+C 0x427c dieciseis celdas mas alla en cada vuelta
+C 0x428f el primero de los dos patrones
+C 0x4294 y el de al lado
+C 0x42a0 el byte bajo ya es la celda: no hay nada mas que sumar
+C 0x42aa el bit 7 al signo
+C 0x42ab sin marca, aqui se acaba
+C 0x42ae la celda de delante del rotulo
+C 0x42b7 y el de al lado
+C 0x42ba las dos cuentas bajan en el mismo sitio
+C 0x42bc el indice del barrido
+C 0x42c3 convertido en columna
+C 0x42c6 un cero por fila
+C 0x42d9 sale con A a cero y sin acarreo, que es lo que espera quien llama
+C 0x42e3 el acarreo -el bit 7- elige cual de los dos tanteos
+C 0x42ef el ajuste a BCD, otra vez
+C 0x4303 las dos escrituras van SOLAPADAS: entre ellas dejan 99 99 99 en 0xE043..0xE045
+C 0x430d por debajo del umbral no hay vida que regalar
+C 0x430f el tanteo se guarda, que la vida extra usa los mismos pares
+C 0x432c los digitos altos del tanteo
+C 0x4335 el acarreo llega limpio del `sub` de arriba, asi que la resta es exacta
+C 0x433d y el par alto, que ya estaba en B
+C 0x4349 las banderas
+C 0x4364 y el numero de fase
+C 0x4370 el turno, para elegir cual de los dos tanteos
+C 0x437e y la variable del segundo
+C 0x438e el byte entero se guarda: hacen falta sus dos mitades
+C 0x4393 el digito de abajo, apartado en C hasta que le toque
+C 0x4394 y se recupera el byte entero
+C 0x439b el mismo desplazamiento para el de arriba
+C 0x43a1 y ahora el que estaba esperando en C
+C 0x43af H trae el contador de cuadros
+C 0x43b1 y aqui A vale cero: la mascara 0x00, la de BORRAR
+C 0x43b2 el bit 5 del CONTADOR, no de las banderas: es lo que alterna cada 32 cuadros
+C 0x43bc el turno solo elige cual de los dos rotulos
+C 0x43ca las vidas, al contador del bucle
+C 0x43cf una menos
+C 0x43d0 mientras la resta no se pase de cero, marca
+C 0x43de la cortina se baja desde la fila 0
+C 0x43e4 mientras devuelva acarreo, queda franja
+C 0x43ea por donde iba
+C 0x43ee de la quince en adelante, el barrido se acabo
+C 0x43f3 el paso, apartado: hace falta dos veces
+C 0x43fa el patron con el que se pinta esta franja
+
+# ----------------------------------------------------------------------
+# tanda 2: 0x4403..0x45b3
+C 0x4406 y el patron siguiente para la fila de abajo
+C 0x4409 la columna a la que se ha llegado
+C 0x440c solo en dos de las quince pasadas
+C 0x4410 y entonces, un patron aparte: el remate del borde
+C 0x4416 el que llama sigue llamando mientras haya acarreo
+C 0x4417 la cuenta se guarda para el `cp` de abajo
+C 0x441b el menu se pinta justo en la pasada 15, cuando el barrido acaba
+C 0x442b a cero: la tabla de nombres entera en blanco
+C 0x4436 una celda menos
+C 0x4437 BC a cero se mira en dos pasos, que el `dec bc` no toca banderas
+C 0x443b el relleno entro con `di`; aqui se abre
+C 0x443e y el puntero queda detras del byte repetido
+C 0x444b una menos
+C 0x444c igual aqui: el `dec bc` no levanta el cero
+C 0x4455 los dos punteros se turnan: HL lee y DE escribe
+C 0x445d y otra vez la cuenta en dos pasos
+C 0x4479 y el color, en el primer tercio de su tabla
+C 0x4483 la franja de color, rellena
+C 0x4486 y de ahi, a repartirla por los tres tercios
+C 0x448b 384 celdas del mismo byte
+C 0x4493 se le suma 0x20 al byte ALTO, que son los 0x2000 de la separacion
+C 0x4495 y los mismos 384 bytes
+C 0x449c y la palabra entera del destino
+C 0x44a6 la cuenta, apartada en C
+C 0x44a8 el puntero, detras del byte de control
+C 0x44b0 la parte alta de la cuenta, siempre cero
+C 0x44b3 el resultado del `cp` hace falta dos veces, una por rama
+C 0x44bb las dos ramas salen con las interrupciones abiertas; el bucle las quiere cerradas
+C 0x44be A se aparta, que SETWRT lo usa
+C 0x44bf SETWRT quiere la direccion en HL
+C 0x44c3 SETWRT vuelve con las interrupciones abiertas, y aqui no interesan
+C 0x44c4 y HL y DE, como estaban
+C 0x44d4 el puerto de LECTURA, que es otro que el de escritura
+C 0x44da 0xB8 en el mezclador: los tres tonos abiertos, los tres ruidos cerrados y el puerto A como entrada, que es por donde se leen los mandos
+C 0x44ea a cero, byte a byte
+C 0x44f3 se empieza por el registro 0
+C 0x44fa el siguiente: van los ocho seguidos, de R0 a R7
+C 0x450e con el bit 7 a cero, el primer puerto
+C 0x4519 la lectura del PSG no puede partirse por una interrupcion
+C 0x451d y aqui se vuelve a abrir
+C 0x452e la de ahora ocupa su sitio
+C 0x4530 y la vieja queda en (0xE008), que es contra lo que se miran los flancos
+C 0x456e y la anterior, en (0xE041)
+C 0x4581 los bits recien pulsados
+C 0x458c indexa la tabla de modos
+C 0x458f el modo que le toca a esa opcion
+C 0x4596 las DOS a la vez: escena 8 en (0xE000) y cero en (0xE001), que es la bandera de la escena de fin
+C 0x459a en las demas escenas solo se apunta la lectura
+C 0x45a2 los bits recien pulsados vuelven en A
+C 0x45a6 la opcion de ahora
+C 0x45af la opcion nueva
+
+# ----------------------------------------------------------------------
+# tanda 3: 0x48b0..0x4a4d
+C 0x48b3 la tabla de color, desde la celda 0x300
+C 0x48b6 208 celdas
+C 0x48b9 y el color de la cortina
+C 0x48c4 una fila mas abajo en cada paso
+C 0x48c5 y la cuenta queda guardada
+C 0x48c9 limpia el acarreo para el `sbc` del reflejo
+C 0x48cf la posicion de verdad, al puntero de escritura
+C 0x48d4 la fila de arriba, y sale apuntando a la de abajo
+C 0x48dd y la tercera, de doce: la cuenta venia guardada en C
+C 0x48e1 lo que queda de la fila, en blanco
+C 0x48e8 un paso menos de los diecisiete
+C 0x48ea esta puerta se guarda el destino; la de abajo, no
+C 0x48ee la celda de al lado
+C 0x48f3 y sale apuntando una fila mas abajo, que es lo que encadena las tres llamadas
+C 0x498c la celda en la que esta
+C 0x4992 las dos coordenadas, cada una en su registro
+C 0x4995 las dos se dividen entre ocho A LA VEZ
+C 0x4998 el acarreo que sale de una entra en la otra: asi la columna se arma sola
+C 0x49a4 y la fila, al byte alto
+C 0x49a7 la cuenta alta, siempre cero: una fila no llega a 256
+C 0x49ad la fila de abajo
+C 0x49b5 la pieza y su tamano
+C 0x49b8 el puntero que hay ahi
+C 0x49ba leido al reves: primero el bajo y luego el alto sobre el mismo par
+C 0x49bc la coordenada de la fila
+C 0x49c1 fuera de la banda util no se dibuja: se salta
+C 0x49c3 la posicion se guarda, que posicion_a_celda la gasta
+C 0x49ca el ancho de la fila
+C 0x49cf la cuenta alta, cero
+C 0x49d9 el puntero por donde va el bloque
+C 0x49dd ocho pixeles: la fila de abajo
+C 0x49e0 hasta las B filas del bloque
+C 0x49e3 el mismo ancho que arriba
+C 0x49e6 con siete o mas hay que ir leyendo el lenguaje
+C 0x49eb y a la fila siguiente, sin haber pintado nada
+C 0x49ee detras del byte de control
+C 0x49ef un cero cierra la fila
+C 0x49f7 se avanza sin escribir
+C 0x49fc con el bit 7 a cero, el salto es de una sola celda
+C 0x4a01 la banda util empieza en 0x18
+C 0x4a03 y mide 0xA8
+C 0x4a0f el tercer byte del objeto
+C 0x4a11 que es el que trae los tres bits
+C 0x4a14 la primera tabla
+C 0x4a19 la segunda
+C 0x4a20 la tercera
+C 0x4a27 y la cuarta
+C 0x4a2d indexa la tabla elegida
+C 0x4a31 y la palabra entera
+C 0x4a33 el objeto, de vuelta
+C 0x4a35 el primer byte de la pieza es cuantas filas tiene
+C 0x4a37 y el segundo, lo ancha que es
+C 0x4a38 los datos empiezan detras de los dos
+C 0x4a3c por cuatro: cuatro bytes por sprite en la tabla de atributos
+C 0x4a42 los mismos cuatro, pero sobre DE
+C 0x4a49 por tres: tres bytes por ficha en el bloque de 0xE132
+
+# ----------------------------------------------------------------------
+# tanda 4: 0x51f5..0x53e1
+C 0x51f5 lo primero, si al jugador le ha tocado algo
+C 0x51fb el digito que se gana y lo que suelta
+C 0x5204 el bicho del cuadro cero
+C 0x520a el premio que solo sale en la fase 6
+C 0x5216 los que van cayendo
+C 0x521c y al final, los huecos de sprite que hayan quedado sueltos
+C 0x521f la altura, que es el marcador de este juego
+C 0x5223 y la direccion del movimiento se borra: cada cuadro la vuelve a poner quien toque
+C 0x5227 esta puerta vuelca los sprites ANTES de mirar el contacto
+C 0x5234 estado 8: perdiendo
+C 0x523a el contador de cuadros se pone a cero para medir desde aqui
+C 0x523d y (0xE001) a uno
+C 0x5248 en el estado 4 no se mira lo que pisa
+C 0x524d el estado 3 mira ademas el sentido
+C 0x5252 con el bit 7 puesto, tampoco
+C 0x5254 los dos patrones que se leyeron de debajo
+C 0x525a el patron, apartado en C: es lo que devuelve la rutina
+C 0x525f dentro de los catorce, hay arbol: se sale con acarreo
+C 0x5261 y si no, el otro
+C 0x526c contra este hueco
+C 0x5270 al byte del patron
+C 0x5271 sin contacto, el siguiente
+C 0x527f tres bytes por hueco, y uno ya se avanzo arriba
+C 0x5282 sin acarreo: no hay contacto con ninguno
+C 0x528b la distancia a este lado
+C 0x528d dentro del primer margen, ya hay contacto
+C 0x528f y si no, se prueba con el ancho entero
+C 0x5294 al byte de la otra coordenada
+C 0x5295 fuera en esta, no hace falta mirar la otra
+C 0x5299 la distancia por arriba
+C 0x529f y por abajo
+C 0x52ae la primera lista arranca en 0xE131
+C 0x52b4 se pone UN cero
+C 0x52b9 y el `ldir` lo arrastra por los 292
+C 0x52bb la segunda lista, y la limpia la rutina de MONTAR el decorado: las dos van pegadas a proposito
+C 0x52c6 mismo arrastre, con el otro valor
+C 0x52d2 indexa la tabla de decorados
+C 0x52d5 el puntero al guion de trozos
+C 0x52d7 leido al reves sobre el mismo par
+C 0x52d9 el guion se guarda: pintar el trozo lo gasta
+C 0x52da el trozo que toca
+C 0x52df y se vuelve a leer para mirar si era el ultimo
+C 0x52e7 por tres, que es lo que ocupa cada entrada
+C 0x52ef el byte bajo de la tira
+C 0x52f1 cuantas tiras tiene
+C 0x52f3 y el byte alto
+C 0x52f6 el byte, con DOS patrones dentro
+C 0x52fd el tercero, apartado hasta el final
+C 0x52fe y el mismo byte otra vez
+C 0x5305 el byte siguiente
+C 0x530c y ahora si, el tercero
+C 0x5312 detras del 0xFF
+C 0x5314 tres celdas seguidas, sin empaquetar
+C 0x531b dos celdas mas, que las tiras van de tres en tres
+C 0x531d la tercera
+C 0x532f el color de este sprite
+C 0x5332 cuatro bytes por sprite, y de los cuatro solo se toca el del color
+C 0x5341 los cinco a su sitio
+C 0x534c cuatro copias de cuatro bytes: el mismo grupo repetido
+C 0x5351 la cuenta alta, cero
+C 0x5359 DE quedo detras de la ultima copia, y de ahi arranca el arrastre
+C 0x535d y el `ldir` copia sobre si mismo
+C 0x5369 las dos cosas se guardan: las veintiseis pasadas las machacan
+C 0x536b tres celdas atras, que es desde donde se monta
+C 0x5374 uno menos que el indice leido
+C 0x5378 hacia un lado
+C 0x5380 y una pasada entera del decorado
+C 0x5388 por donde iba, restaurado
+C 0x5391 y el tope de arriba, marcado
+C 0x53a2 el plazo del paso en curso
+C 0x53ac dos bytes mas alla esta el paso siguiente
+C 0x53b1 con 0xFF no hay mas guion
+C 0x53b7 el plazo nuevo
+C 0x53bc y el byte de detras del plazo
+C 0x53be es lo que el resto del cartucho lee como si fuera el mando
+C 0x53cb cero para las dos senales
+C 0x53d4 el plazo del primer paso
+C 0x53da y el guion queda apuntado
+
+# ----------------------------------------------------------------------
+# tanda 5: 0x6ef5..0x709f
+C 0x6ef5 los dos punteros que dejo quien llama
+C 0x6ef7 y se vuelven a apilar, que repintar los gasta
+C 0x6eff la banda util de este movil
+C 0x6f01 y lo ancha que es
+C 0x6f03 fuera de ella no se mueve
+C 0x6f0f el paso, apartado: abajo se le mira un bit
+C 0x6f11 el byte de la posicion
+C 0x6f12 mas el paso
+C 0x6f15 el bit 2 del PASO, no del estado
+C 0x6f19 un dibujo
+C 0x6f23 el dibujo de ahora
+C 0x6f26 se escribe uno
+C 0x6f2a y si ya estaba, el otro: alternan
+C 0x6f2c de vuelta al principio de la ficha
+C 0x6f38 los dos tipos con cuenta atras
+C 0x6f40 su byte de estado
+C 0x6f45 mientras no llegue al tope, sigue
+C 0x6f4a y el hueco que dejo, repintado
+C 0x6f5c los dos bits que dicen hacia donde va
+C 0x6f64 en los otros quince no se mueve
+C 0x6f65 los dos punteros, guardados
+C 0x6f6b con el bit a cero, hacia delante
+C 0x6f70 la posicion mas el paso
+C 0x6f73 y la otra coordenada, sin tocar
+C 0x6f7c si no se puede pasar, no se avanza
+C 0x6f7f la celda de debajo
+C 0x6f82 y las dos que hay que mirar
+C 0x6f84 los punteros, de vuelta
+C 0x6f96 aplicado a la posicion
+C 0x6f99 y al byte del dibujo
+C 0x6f9a el dibujo lo cambia el mismo trozo de arriba
+C 0x6f9f y si no se puede pasar, se da la vuelta
+C 0x6fa1 esta puerta recibe la ficha en DE
+C 0x6fa8 y se pinta donde le toque
+C 0x6fbc antes de la sexta no hay premio
+C 0x6fc0 y solo en uno de los dos sentidos de la fase
+C 0x6fc5 justo en el cuadro en que el contador da la vuelta
+C 0x6fc7 la lista de objetos
+C 0x6fca cuarenta entradas
+C 0x6fcc el primer byte de la ficha
+C 0x6fcd dos mas alla esta el tipo
+C 0x6fd1 los retirados no valen
+C 0x6fd5 y lo ancha que es
+C 0x6fdc dos tipos seguidos
+C 0x6fe0 al objeto siguiente: cinco bytes por ficha, dos ya avanzados
+C 0x6fe4 de vuelta al principio de la ficha buena
+C 0x6fe6 y ahora se busca hueco en la lista de premios
+C 0x6ff0 cinco bytes por hueco
+C 0x6ff5 y el indice va subiendo con el
+C 0x6ffe el hueco de sprite que le toca
+C 0x7004 las dos coordenadas, copiadas del objeto
+C 0x7009 y detras el color
+C 0x700f el byte del color
+C 0x7014 las otras siete veces se queda con lo que hubiera
+C 0x7019 el mismo color en los dos bytes
+C 0x701f la lista de premios
+C 0x7022 tres, y el indice empieza en cero
+C 0x7026 la ficha y el indice, guardados para el final del bucle
+C 0x702b el estado, apartado: los tres bits se miran uno a uno
+C 0x702d IX se queda con la ficha, y ya no hay que buscarla mas
+C 0x7032 y IY con su hueco de sprite
+C 0x703b fuera de la pantalla no se mueve
+C 0x7046 y si no, el 6
+C 0x704f y sin ninguno de los dos, el lento
+C 0x7056 con el bit 4 puesto, este no coge premios
+C 0x705a la posicion del bicho
+C 0x705e apartada en B
+C 0x7063 y la otra en C
+C 0x7068 contra los tres premios
+C 0x706e el indice y la ficha, de vuelta
+C 0x7072 a la ficha siguiente
+C 0x7075 y el indice, uno mas
+C 0x7079 las dos coordenadas se cruzan: la rutina de abajo las quiere al reves
+C 0x707e los puntos salen del tipo del bicho
+C 0x7083 la ficha del bicho
+C 0x7087 dos bytes mas alla, el dibujo
+C 0x708d la coordenada
+C 0x708e la banda util de la pantalla
+C 0x7093 fuera de ella, el patron 0xC3: se deja de ver
+C 0x7096 y el hueco queda libre
+C 0x709b que aqui es un poco mas ancha
