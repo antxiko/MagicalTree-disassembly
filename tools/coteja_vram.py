@@ -11,13 +11,15 @@ de ATRIBUTOS de sprite (0x3B00) no se compara: lo que se compara es el
 decorado, que es lo que graficos.py dice reproducir.
 
 Uso: coteja_vram.py <rom> <vram.bin> <escena>
-     escena: logotipo | titulo | nivel | pista
+     escena: fase | titulo
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graficos
+
+ORG_ROM = 0x4000
 
 TABLAS = (
     ("COLOR    ", 0x0000, 0x1800),
@@ -34,12 +36,17 @@ def main():
     rom = open(sys.argv[1], "rb").read()
     real = open(sys.argv[2], "rb").read()
     escena = sys.argv[3]
-    mio = {
-        "logotipo": graficos.escena_logotipo,
-        "titulo": graficos.escena_titulo,
-        "nivel": graficos.escena_nivel,
-        "pista": graficos.escena_pista,
-    }[escena](rom)
+    # La mascara de color de la tanda sale de 0x741F, que 0x73F9 indexa con
+    # tres bits del contador de tandas.
+    monta = {
+        "fase": lambda r: graficos.vram_de_la_fase(r, r[0x741F - ORG_ROM]),
+        "titulo": graficos.vram_del_titulo,
+    }
+    if escena not in monta:
+        print("  escena desconocida: %s (hay %s)"
+              % (escena, ", ".join(sorted(monta))))
+        return 2
+    mio = monta[escena](rom)
 
     print("  %s contra %s" % (escena, os.path.basename(sys.argv[2])))
     print("  " + "-" * 58)
