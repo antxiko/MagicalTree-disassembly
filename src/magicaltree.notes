@@ -178,7 +178,7 @@ C 0x40b8 el numero de escena
 C 0x40bb la escena 8 no lleva remate
 C 0x40bf aqui se fabrica el retorno
 C 0x40c0 y la tabla de dieciseis va pegada detras
-B 0x40e3 ESCENA 0: el arranque frio, que monta la pantalla del titulo.
+B 0x40e3 ESCENA 0: el arranque frio, que monta la pantalla del titulo. Los numeros de escena de estas cabeceras son el INDICE de la tabla de 0x40C3: 8=0x420E, 9=0x413B, 10=0x415E, 11=0x4184 (el cuadro de partida), 12=0x4195, 13=0x41CF, 14=0x41E3 y 15=0x4203. Medido corriendo el cartucho: jugando, (0xE000) vale 11.
 B 0x40f0 ESCENA 1: el letrero de "VIDEO CARTRIDGE" parpadeando, uno de cada dos cuadros.
 C 0x40f0 el contador de cuadros
 C 0x40f3 su bit 0 al acarreo
@@ -188,12 +188,12 @@ B 0x4102 ESCENA 2: la cuenta atras que limpia la franja y apaga la bandera de 0x
 C 0x4102 el plazo
 C 0x4107 la franja de abajo
 C 0x410a 256 celdas
-B 0x4116 ESCENA 3: espera a que el jugador se decida.
-B 0x411d ESCENA 4: otro plazo, el de la pantalla de seleccion.
-B 0x4126 ESCENA 5: empieza partida.
-B 0x412f ESCENA 6: arranca la vida.
+B 0x4116 ESCENA 4: espera a que el jugador se decida.
+B 0x411d ESCENA 5: otro plazo, el de la pantalla de seleccion.
+B 0x4126 ESCENA 6: empieza partida.
+B 0x412f ESCENA 7: arranca la vida.
 C 0x4132 si (0xE00C) esta a cero, todavia no toca
-B 0x413b ESCENA 7.
+B 0x413b ESCENA 9.
 C 0x413b la senal de fin de partida
 
 
@@ -206,7 +206,7 @@ C 0x4149 repinta el marcador
 C 0x414c el bit 5 dice si hay dos jugadores
 C 0x4153 el rotulo "PLAYER 1"
 L 0x415e espera_a_que_pare_el_sonido
-B 0x415e EL CIERRE DE LA VIDA. Espera a que no quede nada sonando y entonces elige el sonido segun el bit 0 de (0xE05E): el 9 o el 0x8C. Deja el plazo en 32 cuadros y pasa a la escena siguiente.
+B 0x415e ESCENA 10. EL CIERRE DE LA VIDA. Espera a que no quede nada sonando y entonces elige el sonido segun el bit 0 de (0xE05E): el 9 o el 0x8C. Deja el plazo en 32 cuadros y pasa a la escena siguiente.
 C 0x415e lo que este sonando
 C 0x4163 la bandera que elige el sonido
 C 0x4167 un sonido
@@ -216,11 +216,11 @@ C 0x417a 32 cuadros de plazo
 L 0x417f pasa_a_la_escena_siguiente
 C 0x417f el numero de escena
 C 0x4182 la siguiente
-B 0x4184 ESCENA 8: el compas de la partida. Mientras (0xE00C) o el byte de al lado no sean cero, se sigue; cuando los dos lo son, se pasa a la escena 15.
+B 0x4184 ESCENA 11: el compas de la partida. Mientras (0xE00C) o el byte de al lado no sean cero, se sigue; cuando los dos lo son, se pasa a la escena 15.
 C 0x4187 la senal de fin
 C 0x418f y su pareja
 C 0x4191 escena 15
-B 0x4195 ESCENA 9: quedan vidas? Si no, suena el 0x93, se pintan los rotulos del final y se pasa a la escena 13.
+B 0x4195 ESCENA 12: quedan vidas? Si no, suena el 0x93, se pintan los rotulos del final y se pasa a la escena 13.
 C 0x4195 las vidas
 C 0x419b espera a que pare el sonido
 C 0x41a0 el sonido del final
@@ -269,13 +269,13 @@ C 0x68e9 y si no, se pinta en su sitio
 C 0x68ef tres mas alla
 C 0x41c5 si el otro jugador tiene partida, se le cede el turno
 L 0x41cf cambia_de_jugador
-B 0x41cf EL CAMBIO DE JUGADOR, y es una sola instruccion la que lo hace todo: los treinta y dos bytes del que juega viven en 0xE050 y los del otro en 0xE080, y se PERMUTAN. No hay indices ni dos copias de la logica: el jugador en turno esta siempre en 0xE050.
+B 0x41cf ESCENA 13. EL CAMBIO DE JUGADOR, y es una sola instruccion la que lo hace todo: los treinta y dos bytes del que juega viven en 0xE050 y los del otro en 0xE080, y se PERMUTAN. No hay indices ni dos copias de la logica: el jugador en turno esta siempre en 0xE050.
 C 0x41cf el estado del que juega
 C 0x41d2 y el del que espera
 C 0x41d5 treinta y dos bytes cada uno
 C 0x41d7 y se cambian de sitio
 C 0x41de el bit 7 dice de quien es el turno
-B 0x41e3 ESCENA 10: el relevo, cuando se agota el plazo.
+B 0x41e3 ESCENA 14: el relevo, cuando se agota el plazo.
 C 0x41e3 el plazo
 C 0x41e8 el estado del otro jugador
 
@@ -287,10 +287,10 @@ C 0x41f2 apaga el bit 6 de (0xE002)
 L 0x41f8 escena_13_con_plazo_de_32
 C 0x41f8 escena 13
 C 0x41fd y 32 cuadros de plazo
-B 0x4203 ESCENA 11: el plazo del relevo; al agotarse, escena 9.
+B 0x4203 ESCENA 15: el plazo del relevo; al agotarse, escena 9.
 C 0x4208 escena 9
 L 0x420e fin_de_partida
-B 0x420e ESCENA 15: el fin de partida. Suena el 0x96, se pinta el cartel y quedan 80 cuadros; mientras corren, el bit 3 del propio plazo hace parpadear lo que hay en pantalla.
+B 0x420e ESCENA 8: el fin de partida. Suena el 0x96, se pinta el cartel y quedan 80 cuadros; mientras corren, el bit 3 del propio plazo hace parpadear lo que hay en pantalla.
 C 0x420e solo la primera vez
 C 0x4214 el sonido del fin de partida
 C 0x4219 80 cuadros
@@ -1045,10 +1045,10 @@ L 0x6732 marca_movimiento_arriba
 C 0x6734 la direccion del ultimo movimiento
 C 0x673b cruzada con lo que se puede
 L 0x6744 mueve_el_decorado
-B 0x6744 EL MOVIMIENTO DEL DECORADO, otra vez leyendo de la VRAM: compara el indice que hay en pantalla con el que espera y, cuando coincide, escribe un cero y avanza el puntero. Dos listas a la vez, la de 0xE1C4 y la de 0xE059.
+B 0x6744 EL PASO DEL DECORADO, leyendo la lista de la fase que 0x52BB subio a la VRAM en 0x3B80: cuenta un paso y, cuando la cuenta llega a los pasos que trae la siguiente entrada, la saca a los cuarenta objetos -y detras, las que traigan cero pasos-. Dos punteros a la vez sobre la misma lista: el de 0xE1C4 saca los objetos y el de 0xE059 lleva la cuenta de las filas.
 C 0x6746 el bit 0
 C 0x674c por donde va la primera lista
-C 0x6751 lee la celda de la pantalla
+C 0x6751 los pasos de la siguiente entrada, de la lista de 0x3B80
 C 0x6754 contra lo que se espera
 C 0x675b un 0xFF cierra la lista
 C 0x675f se borra
@@ -1065,14 +1065,14 @@ L 0x678f retrocede_el_decorado
 B 0x678f EL DECORADO HACIA ATRAS, con las dos listas recorridas al reves: se retrocede de tres en tres celdas hasta encontrar una que no sea cero. Y si el numero de fase coincide con lo que trae la celda, se levanta el tope de arriba.
 C 0x6792 por donde va la lista
 C 0x6797 tres celdas atras
-C 0x679a lee de la pantalla
+C 0x679a lee de la lista de la fase
 C 0x679e cero: se sigue retrocediendo
 C 0x67a9 el numero de fase
 C 0x67ac contra lo que trae la celda
 C 0x67b2 el bit 1: tope por arriba
 C 0x67c1 si se paso de cero, se deja
 L 0x67ec busca_un_hueco_de_objeto
-B 0x67ec BUSCAR UN HUECO LIBRE ENTRE LOS CUARENTA OBJETOS -el que tenga el 0xD0 de retirado- y rellenarlo leyendo DE LA PANTALLA los dos indices que lo definen. El primer byte es 0xE8 o 0xC0 segun el bit 0 de (0xE1AA), o sea segun por donde se venga.
+B 0x67ec BUSCAR UN HUECO LIBRE ENTRE LOS CUARENTA OBJETOS -el que tenga el 0xD0 de retirado- y rellenarlo con el TIPO y la X de la entrada, leidos de la lista de la fase en la VRAM (0x3B80). Las de tipo 0xE0 son aranas y pasan a las tres fichas de 0xE1DE; si no queda ninguna libre, se quedan aqui como un objeto mas. El primer byte es 0xE8 o 0xC0 segun el bit 0 de (0xE1AA), o sea segun por donde se venga.
 C 0x67ec los cuarenta objetos
 C 0x67f1 0xD0: hueco libre
 C 0x67f6 tres bytes por objeto
@@ -1080,7 +1080,7 @@ C 0x67fd la direccion del movimiento
 C 0x6801 un tipo
 C 0x6805 o el otro
 C 0x6807 el hueco elegido, apuntado
-C 0x680b el indice que hay en la pantalla
+C 0x680b el tipo, de la lista de la fase
 C 0x6810 y el de al lado
 C 0x6817 los tres bits de arriba
 
@@ -1121,12 +1121,12 @@ C 0x6854 el byte siguiente
 C 0x6855 y el hueco elegido
 C 0x684c la direccion del movimiento
 C 0x6852 y el bit 7 marca el sentido del objeto
-C 0x685b el tipo que se leyo de la pantalla
+C 0x685b la fila con la que salio el objeto: 0xE8 o 0xC0
 C 0x685e 0xE8: el que lleva la marca 0xFF
 C 0x6866 tres bytes de definicion
 C 0x686c y dos mas
 C 0x6871 el hueco de origen queda retirado
-C 0x6878 la celda siguiente en la pantalla
+C 0x6878 los pasos de la entrada siguiente
 C 0x687c si no esta vacia, se acabo
 L 0x6881 descarta_el_objeto
 C 0x6885 0xD0: retirado
@@ -1489,11 +1489,11 @@ C 0x6d2c ocho pixeles
 C 0x6d32 o dieciseis
 C 0x6d3b y si no puede, se da la vuelta (bit 7)
 L 0x6d41 junta_las_dos_fichas
-B 0x6d41 JUNTAR LAS DOS FICHAS DE UN BICHO cuando las dos estan en pantalla: copia ocho bytes hacia atras con `lddr`, que es como la pareja sigue a la cabeza sin recalcular nada.
-C 0x6d41 la primera ficha en pantalla?
+B 0x6d41 BORRAR LA FICHA DE UN BICHO cuando sus DOS posiciones han salido de la pantalla: con que una siga dentro se sale sin tocar nada. El borrado es un cero puesto en el ultimo byte y arrastrado hacia atras por los otros ocho con `lddr`.
+C 0x6d41 la primera posicion, dentro? entonces no se borra
 C 0x6d45 y la segunda, cuatro bytes mas alla
 C 0x6d52 ocho bytes
-C 0x6d55 hacia atras: la cola sigue a la cabeza
+C 0x6d55 hacia atras: el cero se arrastra por la ficha
 L 0x6d58 busca_la_ficha_de_esa_posicion
 C 0x6d5b tres fichas
 C 0x6d5f una coordenada
@@ -1829,7 +1829,7 @@ C 0x73bc unos topes
 C 0x73c1 o los otros
 C 0x73c4 y quedan puestos
 C 0x73ca el bit 1: tope por arriba
-C 0x73d1 lee de la pantalla
+C 0x73d1 el tipo de la entrada, de la lista de la fase
 C 0x73db el numero de fase, en BCD
 C 0x73e2 y el contador de tandas
 C 0x73e5 a las nueve
@@ -2219,7 +2219,7 @@ C 0x77f5 y ocho hacia el otro
 C 0x77f9 el sonido
 C 0x7800 tres huecos
 L 0x52f6 pinta_la_tira_de_tres
-B 0x52f6 PINTAR UNA TIRA DE TRES CELDAS. El byte trae DOS cosas: los cinco bits de arriba son el tercer patron y los tres de abajo el primero, de modo que dos celdas caben en un byte. Un 0xFF cierra la tira.
+B 0x52f6 SUBIR UNA ENTRADA DE TRES BYTES a la lista de la fase. El primer byte trae DOS cosas: los tres bits de abajo son los PASOS desde la entrada anterior y los cinco de arriba la X; detras va el TIPO entero. Un 0xFF delante quiere decir que los tres van en crudo.
 C 0x52f7 0xFF: fin de la tira
 C 0x52fb los cinco bits de arriba
 C 0x52ff y los tres de abajo, el primer patron
@@ -2311,7 +2311,7 @@ C 0x52b6 292 bytes
 C 0x52c1 y 0xD0: retirado
 C 0x52c3 119 bytes
 L 0x52bb monta_el_decorado_de_la_fase
-B 0x52bb EL MONTAJE DEL DECORADO. La fase indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -tres bytes por entrada- que da su tira de patrones. El guion acaba en el valor 0x16.
+B 0x52bb EL GUION DE LA FASE, A LA VRAM. La tanda indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -puntero y numero de entradas-. Las entradas, de tres bytes [pasos, tipo, x], se suben seguidas a 0x3B80, detras de la tabla de atributos de los sprites: es la lista de todo lo que va saliendo al subir, ramas, puertas, manzanas, buhos y aranas. El guion acaba en el trozo 0x16.
 C 0x52c8 el destino en la VRAM
 C 0x52cb el numero de fase
 C 0x52ce por dos: son punteros
@@ -2490,7 +2490,7 @@ C 0x6144 y el byte entero, para el bit 7
 C 0x6148 cuenta cero: fin o cambio de destino
 L 0x67c3 retrocede_la_lista_de_arriba
 C 0x67c3 tres celdas atras
-C 0x67c6 lee de la pantalla
+C 0x67c6 lee de la lista de la fase
 C 0x67ca cero: se sigue retrocediendo
 C 0x67cd uno menos
 L 0x7c2b nota_al_psg
@@ -2563,7 +2563,7 @@ C 0x4a09 y se borra con el indice 3
 C 0x6160 el par de bits, junto
 C 0x6162 y al puerto de datos
 C 0x67e1 tres celdas atras
-C 0x67e4 lee de la pantalla
+C 0x67e4 lee de la lista de la fase
 C 0x6c1a esta en pantalla?
 C 0x6c1e a donde va
 C 0x7070 cinco bytes por ficha
@@ -2573,7 +2573,7 @@ C 0x614f el nibble alto
 C 0x6152 el valor 0x30
 C 0x6158 el nibble bajo
 C 0x615b el valor 3
-C 0x67d6 lee de la pantalla
+C 0x67d6 lee de la lista de la fase
 C 0x67da uno menos
 C 0x7018 el color
 C 0x701c y el tercer byte, a cero
@@ -2666,7 +2666,7 @@ D 0x44ff 0x4507 registros_del_vdp  los ocho valores que 0x44EE baja al VDP con `
 D 0x45b4 0x45b8 modos_de_juego  cuatro bytes, uno por opcion del menu; 0x4586 los indexa con la opcion de (0xE042) y deja el elegido en (0xE002). Son 0x40 0x60 0x50 0x70: el bit 6 va siempre puesto y los que distinguen las cuatro opciones son el 5 y el 4
 D 0x45b8 0x4710 fuente  43 dibujos de 8x8 que 0x448E vuelca a la tabla de patrones, y el reparto no hay que suponerlo: 0x447E los suelta en 0x2180, que es la celda 48, o sea el patron 0x30. De ahi sale todo lo demas y cuadra DIBUJANDOLO: 0x30..0x39 los diez digitos, 0x3A la (c), 0x3B dos rayitas, 0x3C y 0x3D la palabra "with" partida en dos celdas, 0x3E y 0x3F el cursor del menu -0x4282 los nombra con `ld bc,03e3fh`-, 0x40 una raya larga y 0x41..0x5A las veintiseis letras. O sea que cada letra cae en SU codigo ASCII, y por eso los rotulos guardan el texto en claro: en 0x75B0 pone "CASTLE" tal cual. La palabra "with" es la de los cuatro renglones del menu, "1PLAYER with JOYSTICK" y sus tres hermanos, que 0x472B escribe con esta misma fuente recolocada en el tile 0xC0 del tercer tercio por el `rellena_una_franja` de 0x425D
 D 0x47a4 0x47bc guion_0x47A4  24 bytes, 2 tramos, 18 bytes a la VRAM (0x396B y 0x392C); lo pinta 0x41A5. El interprete de rotulos lo consume entero y se para en el borde
-D 0x4a50 0x4d30 trozos_del_decorado  los 25 trozos que la tabla de 0x4D30 apunta. Cada trozo son N tiras de TRES celdas, y una tira no siempre ocupa lo mismo: si el primer byte no es 0xFF, son dos bytes de los que 0x52FB saca tres celdas (los tres bits de abajo, el byte siguiente entero, y los cinco de arriba); si es 0xFF, son cuatro bytes y las tres celdas van en crudo. Donde acaba cada trozo no se estima: se saca ejecutando ese mismo interprete sobre las 25 entradas, y las 25 recorridas cubren 0x4A50..0x4D30 sin dejar un hueco ni pisarse
+D 0x4a50 0x4d30 trozos_del_decorado  los 25 trozos que la tabla de 0x4D30 apunta. Cada trozo son N entradas de TRES bytes [pasos, tipo, x], y una entrada no siempre ocupa lo mismo: si el primer byte no es 0xFF, son dos bytes de los que 0x52FB saca los tres (los tres bits de abajo, el byte siguiente entero, y los cinco de arriba); si es 0xFF, son cuatro bytes y los tres van en crudo. Donde acaba cada trozo no se estima: se saca ejecutando ese mismo interprete sobre las 25 entradas, y las 25 recorridas cubren 0x4A50..0x4D30 sin dejar un hueco ni pisarse
 D 0x4d30 0x4d7b tabla_de_trozos  25 entradas de tres bytes -puntero y numero de TIRAS- que 0x52E9 indexa con `add a,a / add a,l` (por tres). Son 25 y no mas porque la entrada 26 daria el puntero 0x0617, que no es ROM. Y esta tabla se lee a si misma sin querer: el trozo 22 (0x4D0E) declara dieciseis tiras, pero con quince ya ha llegado a 0x4D30, asi que la decimosexta coge 0x50 0x4A, que son los dos primeros bytes de la propia tabla. No es un caso raro: 22 es 0x16, el numero que cierra TODOS los guiones de fase, o sea que pasa en las diez
 D 0x4d7b 0x4e1b guiones_de_decorado  nueve tiras de numeros de trozo, una por fase. Cada una acaba con el valor 0x16, que es el corte que mira 0x52E1; las nueve seguidas suman los 160 bytes justos que hay hasta la tabla de abajo
 D 0x4e1b 0x4e2f tabla_de_decorados  diez punteros a los guiones de arriba, indexados por el numero de fase de (0xE05C) en 0x52CF. El decimo repite el primero (0x4D7B), o sea que a partir de la fase 10 se vuelve al decorado de la primera
@@ -3020,9 +3020,9 @@ C 0x52da el trozo que toca
 C 0x52df y se vuelve a leer para mirar si era el ultimo
 C 0x52e7 por tres, que es lo que ocupa cada entrada
 C 0x52ef el byte bajo de la tira
-C 0x52f1 cuantas tiras tiene
-C 0x52f3 y el byte alto
-C 0x52f6 el byte, con DOS patrones dentro
+C 0x52f1 el byte alto del puntero
+C 0x52f3 y cuantas entradas tiene
+C 0x52f6 el byte, con los pasos y la x dentro
 C 0x52fd el tercero, apartado hasta el final
 C 0x52fe y el mismo byte otra vez
 C 0x5305 el byte siguiente

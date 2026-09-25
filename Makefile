@@ -82,6 +82,13 @@ test:
 imagenes: $(ROM)
 	@mkdir -p docs/imagenes
 	python3 tools/graficos.py $(ROM) $(ORG) docs/imagenes
+	python3 tools/arbol.py $(ROM) $(ORG) docs/imagenes
+
+# EL ARBOL DE LAS NUEVE FASES contra openMSX. Los volcados los hace
+# tools/omsx_fases.tcl, una fase por arranque (la fase va en work/fase.txt):
+#     for F in 0 1 2 3 4 5 6 7 8; do echo $F > work/fase.txt; #       openmsx -machine Philips_VG_8020 -cart $(ROM) -script tools/omsx_fases.tcl; done
+coteja_fases: $(ROM)
+	@python3 tools/coteja_fases.py $(ROM) $(WORK)/fases
 
 # LA WEB
 #
@@ -98,4 +105,4 @@ web: $(ROM)
 clean:
 	rm -rf $(WORK)/magicaltree.trace.json $(WORK)/magicaltree.blocks
 
-.PHONY: all comprueba trace listado verify sanity test densidad imagenes web clean
+.PHONY: all comprueba trace listado verify sanity test densidad imagenes coteja_fases web clean

@@ -190,7 +190,7 @@ DATA_tabla_de_escenas:
 
 
 ; ----------------------------------------------------------------------
-; ESCENA 0: el arranque frio, que monta la pantalla del titulo.
+; ESCENA 0: el arranque frio, que monta la pantalla del titulo. Los numeros de escena de estas cabeceras son el INDICE de la tabla de 0x40C3: 8=0x420E, 9=0x413B, 10=0x415E, 11=0x4184 (el cuadro de partida), 12=0x4195, 13=0x41CF, 14=0x41E3 y 15=0x4203. Medido corriendo el cartucho: jugando, (0xE000) vale 11.
 ; ----------------------------------------------------------------------
 L_40E3:
 	call baja_los_contadores_y_barre		;40e3
@@ -229,7 +229,7 @@ L_4114:
 	jr pasa_a_la_escena_siguiente		;4114
 
 ; ----------------------------------------------------------------------
-; ESCENA 3: espera a que el jugador se decida.
+; ESCENA 4: espera a que el jugador se decida.
 ; ----------------------------------------------------------------------
 L_4116:
 	call barre_una_franja		;4116
@@ -238,7 +238,7 @@ L_4116:
 	jr L_417C		;411b
 
 ; ----------------------------------------------------------------------
-; ESCENA 4: otro plazo, el de la pantalla de seleccion.
+; ESCENA 5: otro plazo, el de la pantalla de seleccion.
 ; ----------------------------------------------------------------------
 L_411D:
 	ld hl,0e004h		;411d
@@ -247,7 +247,7 @@ L_411D:
 	jr plazo_de_32_y_siguiente_escena		;4124
 
 ; ----------------------------------------------------------------------
-; ESCENA 5: empieza partida.
+; ESCENA 6: empieza partida.
 ; ----------------------------------------------------------------------
 L_4126:
 	call baja_los_contadores_y_barre		;4126
@@ -256,7 +256,7 @@ L_4126:
 	jr plazo_de_32_y_siguiente_escena		;412d
 
 ; ----------------------------------------------------------------------
-; ESCENA 6: arranca la vida.
+; ESCENA 7: arranca la vida.
 ; ----------------------------------------------------------------------
 L_412F:
 	call avanza_el_guion_y_sigue		;412f
@@ -268,7 +268,7 @@ L_4137:
 	jp L_41FA		;4138
 
 ; ----------------------------------------------------------------------
-; ESCENA 7.
+; ESCENA 9.
 ; ----------------------------------------------------------------------
 L_413B:
 	ld a,(0e00dh)		;413b   ; la senal de fin de partida
@@ -290,7 +290,7 @@ L_415C:
 	jr pasa_a_la_escena_siguiente		;415c
 
 ; ----------------------------------------------------------------------
-; EL CIERRE DE LA VIDA. Espera a que no quede nada sonando y entonces elige el sonido segun el bit 0 de (0xE05E): el 9 o el 0x8C. Deja el plazo en 32 cuadros y pasa a la escena siguiente.
+; ESCENA 10. EL CIERRE DE LA VIDA. Espera a que no quede nada sonando y entonces elige el sonido segun el bit 0 de (0xE05E): el 9 o el 0x8C. Deja el plazo en 32 cuadros y pasa a la escena siguiente.
 ; ----------------------------------------------------------------------
 espera_a_que_pare_el_sonido:
 	ld a,(0e012h)		;415e   ; lo que este sonando
@@ -317,7 +317,7 @@ pasa_a_la_escena_siguiente:
 	ret			;4183
 
 ; ----------------------------------------------------------------------
-; ESCENA 8: el compas de la partida. Mientras (0xE00C) o el byte de al lado no sean cero, se sigue; cuando los dos lo son, se pasa a la escena 15.
+; ESCENA 11: el compas de la partida. Mientras (0xE00C) o el byte de al lado no sean cero, se sigue; cuando los dos lo son, se pasa a la escena 15.
 ; ----------------------------------------------------------------------
 L_4184:
 	call el_cuadro_del_juego		;4184
@@ -332,7 +332,7 @@ L_4184:
 	jr L_41FA		;4193
 
 ; ----------------------------------------------------------------------
-; ESCENA 9: quedan vidas? Si no, suena el 0x93, se pintan los rotulos del final y se pasa a la escena 13.
+; ESCENA 12: quedan vidas? Si no, suena el 0x93, se pintan los rotulos del final y se pasa a la escena 13.
 ; ----------------------------------------------------------------------
 L_4195:
 	ld a,(0e050h)		;4195   ; las vidas
@@ -364,7 +364,7 @@ L_41CB:
 	jr L_41FA		;41cd
 
 ; ----------------------------------------------------------------------
-; EL CAMBIO DE JUGADOR, y es una sola instruccion la que lo hace todo: los treinta y dos bytes del que juega viven en 0xE050 y los del otro en 0xE080, y se PERMUTAN. No hay indices ni dos copias de la logica: el jugador en turno esta siempre en 0xE050.
+; ESCENA 13. EL CAMBIO DE JUGADOR, y es una sola instruccion la que lo hace todo: los treinta y dos bytes del que juega viven en 0xE050 y los del otro en 0xE080, y se PERMUTAN. No hay indices ni dos copias de la logica: el jugador en turno esta siempre en 0xE050.
 ; ----------------------------------------------------------------------
 cambia_de_jugador:
 	ld hl,0e050h		;41cf   ; el estado del que juega
@@ -378,7 +378,7 @@ cambia_de_jugador:
 	jr L_41CB		;41e1   ; y a la escena 9, ya con los bloques permutados
 
 ; ----------------------------------------------------------------------
-; ESCENA 10: el relevo, cuando se agota el plazo.
+; ESCENA 14: el relevo, cuando se agota el plazo.
 ; ----------------------------------------------------------------------
 L_41E3:
 	ld hl,0e004h		;41e3   ; el plazo
@@ -401,7 +401,7 @@ L_41FA:
 	ret			;4202
 
 ; ----------------------------------------------------------------------
-; ESCENA 11: el plazo del relevo; al agotarse, escena 9.
+; ESCENA 15: el plazo del relevo; al agotarse, escena 9.
 ; ----------------------------------------------------------------------
 L_4203:
 	ld hl,0e004h		;4203
@@ -412,7 +412,7 @@ L_4203:
 	ret			;420d
 
 ; ----------------------------------------------------------------------
-; ESCENA 15: el fin de partida. Suena el 0x96, se pinta el cartel y quedan 80 cuadros; mientras corren, el bit 3 del propio plazo hace parpadear lo que hay en pantalla.
+; ESCENA 8: el fin de partida. Suena el 0x96, se pinta el cartel y quedan 80 cuadros; mientras corren, el bit 3 del propio plazo hace parpadear lo que hay en pantalla.
 ; ----------------------------------------------------------------------
 fin_de_partida:
 	ld a,(0e001h)		;420e   ; solo la primera vez
@@ -1455,12 +1455,12 @@ hueco_de_sprite_por_indice:
 
 ; ----------------------------------------------------------------------
 ; DATOS trozos_del_decorado: los 25 trozos que la tabla de 0x4D30 apunta. Cada
-;   trozo son N tiras de TRES celdas, y una tira no siempre ocupa lo mismo: si
-;   el primer byte no es 0xFF, son dos bytes de los que 0x52FB saca tres
-;   celdas (los tres bits de abajo, el byte siguiente entero, y los cinco de
-;   arriba); si es 0xFF, son cuatro bytes y las tres celdas van en crudo.
-;   Donde acaba cada trozo no se estima: se saca ejecutando ese mismo
-;   interprete sobre las 25 entradas, y las 25 recorridas cubren
+;   trozo son N entradas de TRES bytes [pasos, tipo, x], y una entrada no
+;   siempre ocupa lo mismo: si el primer byte no es 0xFF, son dos bytes de los
+;   que 0x52FB saca los tres (los tres bits de abajo, el byte siguiente
+;   entero, y los cinco de arriba); si es 0xFF, son cuatro bytes y los tres
+;   van en crudo. Donde acaba cada trozo no se estima: se saca ejecutando ese
+;   mismo interprete sobre las 25 entradas, y las 25 recorridas cubren
 ;   0x4A50..0x4D30 sin dejar un hueco ni pisarse
 ;   0x4a50..0x4d30  (736 bytes)
 DATA_trozos_del_decorado:
@@ -1836,7 +1836,7 @@ limpia_los_objetos:
 	ldir		;52b9   ; y el `ldir` lo arrastra por los 292
 
 ; ----------------------------------------------------------------------
-; EL MONTAJE DEL DECORADO. La fase indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -tres bytes por entrada- que da su tira de patrones. El guion acaba en el valor 0x16.
+; EL GUION DE LA FASE, A LA VRAM. La tanda indexa la tabla de 0x4E1B, de ahi sale un guion de trozos, y cada trozo se busca en la tabla de 0x4D30 -puntero y numero de entradas-. Las entradas, de tres bytes [pasos, tipo, x], se suben seguidas a 0x3B80, detras de la tabla de atributos de los sprites: es la lista de todo lo que va saliendo al subir, ramas, puertas, manzanas, buhos y aranas. El guion acaba en el trozo 0x16.
 ; ----------------------------------------------------------------------
 monta_el_decorado_de_la_fase:
 	ld hl,0e132h		;52bb   ; la segunda lista, y la limpia la rutina de MONTAR el decorado: las dos van pegadas a proposito
@@ -1871,17 +1871,17 @@ pinta_un_trozo_del_decorado:
 	call suma_a_a_hl		;52ec
 	ld a,(hl)			;52ef   ; el byte bajo de la tira
 	inc hl			;52f0
-	ld c,(hl)			;52f1   ; cuantas tiras tiene
+	ld c,(hl)			;52f1   ; el byte alto del puntero
 	inc hl			;52f2
-	ld b,(hl)			;52f3   ; y el byte alto
+	ld b,(hl)			;52f3   ; y cuantas entradas tiene
 	ld l,a			;52f4
 	ld h,c			;52f5
 
 ; ----------------------------------------------------------------------
-; PINTAR UNA TIRA DE TRES CELDAS. El byte trae DOS cosas: los cinco bits de arriba son el tercer patron y los tres de abajo el primero, de modo que dos celdas caben en un byte. Un 0xFF cierra la tira.
+; SUBIR UNA ENTRADA DE TRES BYTES a la lista de la fase. El primer byte trae DOS cosas: los tres bits de abajo son los PASOS desde la entrada anterior y los cinco de arriba la X; detras va el TIPO entero. Un 0xFF delante quiere decir que los tres van en crudo.
 ; ----------------------------------------------------------------------
 pinta_la_tira_de_tres:
-	ld a,(hl)			;52f6   ; el byte, con DOS patrones dentro
+	ld a,(hl)			;52f6   ; el byte, con los pasos y la x dentro
 	cp 0ffh		;52f7   ; 0xFF: fin de la tira
 	jr z,L_5312		;52f9
 	and 0f8h		;52fb   ; los cinco bits de arriba
@@ -3404,7 +3404,7 @@ L_6734:
 	ret			;6743
 
 ; ----------------------------------------------------------------------
-; EL MOVIMIENTO DEL DECORADO, otra vez leyendo de la VRAM: compara el indice que hay en pantalla con el que espera y, cuando coincide, escribe un cero y avanza el puntero. Dos listas a la vez, la de 0xE1C4 y la de 0xE059.
+; EL PASO DEL DECORADO, leyendo la lista de la fase que 0x52BB subio a la VRAM en 0x3B80: cuenta un paso y, cuando la cuenta llega a los pasos que trae la siguiente entrada, la saca a los cuarenta objetos -y detras, las que traigan cero pasos-. Dos punteros a la vez sobre la misma lista: el de 0xE1C4 saca los objetos y el de 0xE059 lleva la cuenta de las filas.
 ; ----------------------------------------------------------------------
 mueve_el_decorado:
 	dec hl			;6744
@@ -3415,7 +3415,7 @@ mueve_el_decorado_un_paso:
 	ld hl,0e1c4h		;6749
 	ld de,(0e1c5h)		;674c   ; por donde va la primera lista
 	inc (hl)			;6750
-	call lee_de_vram		;6751   ; lee la celda de la pantalla
+	call lee_de_vram		;6751   ; los pasos de la siguiente entrada, de la lista de 0x3B80
 	cp (hl)			;6754   ; contra lo que se espera
 	jr nz,L_6768		;6755
 	inc de			;6757
@@ -3459,7 +3459,7 @@ L_6797:
 	dec de			;6797   ; tres celdas atras
 	dec de			;6798
 	dec de			;6799
-	call lee_de_vram		;679a   ; lee de la pantalla
+	call lee_de_vram		;679a   ; lee de la lista de la fase
 	or a			;679d
 	jr z,L_6797		;679e   ; cero: se sigue retrocediendo
 	ld a,(hl)			;67a0
@@ -3486,7 +3486,7 @@ retrocede_la_lista_de_arriba:
 	dec de			;67c3   ; tres celdas atras
 	dec de			;67c4
 	dec de			;67c5
-	call lee_de_vram		;67c6   ; lee de la pantalla
+	call lee_de_vram		;67c6   ; lee de la lista de la fase
 	or a			;67c9
 	jr z,retrocede_la_lista_de_arriba		;67ca   ; cero: se sigue retrocediendo
 	dec a			;67cc
@@ -3495,7 +3495,7 @@ retrocede_la_lista_de_arriba:
 	ret			;67d2
 L_67D3:
 	jp p,L_67B7		;67d3
-	call lee_de_vram		;67d6   ; lee de la pantalla
+	call lee_de_vram		;67d6   ; lee de la lista de la fase
 	dec a			;67d9
 	ld (hl),a			;67da   ; uno menos
 	ld (0e05ah),de		;67db
@@ -3504,13 +3504,13 @@ L_67E1:
 	dec de			;67e1   ; tres celdas atras
 	dec de			;67e2
 	dec de			;67e3
-	call lee_de_vram		;67e4   ; lee de la pantalla
+	call lee_de_vram		;67e4   ; lee de la lista de la fase
 	or a			;67e7
 	jr z,L_67E1		;67e8
 	jr L_67A4		;67ea
 
 ; ----------------------------------------------------------------------
-; BUSCAR UN HUECO LIBRE ENTRE LOS CUARENTA OBJETOS -el que tenga el 0xD0 de retirado- y rellenarlo leyendo DE LA PANTALLA los dos indices que lo definen. El primer byte es 0xE8 o 0xC0 segun el bit 0 de (0xE1AA), o sea segun por donde se venga.
+; BUSCAR UN HUECO LIBRE ENTRE LOS CUARENTA OBJETOS -el que tenga el 0xD0 de retirado- y rellenarlo con el TIPO y la X de la entrada, leidos de la lista de la fase en la VRAM (0x3B80). Las de tipo 0xE0 son aranas y pasan a las tres fichas de 0xE1DE; si no queda ninguna libre, se quedan aqui como un objeto mas. El primer byte es 0xE8 o 0xC0 segun el bit 0 de (0xE1AA), o sea segun por donde se venga.
 ; ----------------------------------------------------------------------
 busca_un_hueco_de_objeto:
 	ld hl,0e132h		;67ec   ; los cuarenta objetos
@@ -3534,7 +3534,7 @@ L_67FC:
 L_6807:
 	ld (0e1dch),hl		;6807   ; el hueco elegido, apuntado
 	inc hl			;680a   ; el byte siguiente
-	call lee_de_vram		;680b   ; el indice que hay en la pantalla
+	call lee_de_vram		;680b   ; el tipo, de la lista de la fase
 	ld b,a			;680e   ; guardado en B
 	inc de			;680f   ; la celda de al lado
 	call lee_de_vram		;6810   ; y el de al lado
@@ -3589,7 +3589,7 @@ L_6854:
 	ld de,(0e1dch)		;6855   ; y el hueco elegido
 	push de			;6859
 	push hl			;685a
-	ld a,(de)			;685b   ; el tipo que se leyo de la pantalla
+	ld a,(de)			;685b   ; la fila con la que salio el objeto: 0xE8 o 0xC0
 	ld (hl),000h		;685c
 	cp 0e8h		;685e   ; 0xE8: el que lleva la marca 0xFF
 	jr nz,L_6864		;6860
@@ -3611,7 +3611,7 @@ L_6875:
 	pop bc			;6875
 	inc hl			;6876
 	inc de			;6877
-	call lee_de_vram		;6878   ; la celda siguiente en la pantalla
+	call lee_de_vram		;6878   ; los pasos de la entrada siguiente
 	or a			;687b
 	ret nz			;687c   ; si no esta vacia, se acabo
 	inc de			;687d
@@ -4519,10 +4519,10 @@ L_6D3F:
 	ret			;6d40
 
 ; ----------------------------------------------------------------------
-; JUNTAR LAS DOS FICHAS DE UN BICHO cuando las dos estan en pantalla: copia ocho bytes hacia atras con `lddr`, que es como la pareja sigue a la cabeza sin recalcular nada.
+; BORRAR LA FICHA DE UN BICHO cuando sus DOS posiciones han salido de la pantalla: con que una siga dentro se sale sin tocar nada. El borrado es un cero puesto en el ultimo byte y arrastrado hacia atras por los otros ocho con `lddr`.
 ; ----------------------------------------------------------------------
 junta_las_dos_fichas:
-	call esta_dentro_de_la_pantalla		;6d41   ; la primera ficha en pantalla?
+	call esta_dentro_de_la_pantalla		;6d41   ; la primera posicion, dentro? entonces no se borra
 	ret nc			;6d44
 	inc hl			;6d45   ; y la segunda, cuatro bytes mas alla
 	inc hl			;6d46
@@ -4535,7 +4535,7 @@ junta_las_dos_fichas:
 	inc hl			;6d4f
 	ld (hl),000h		;6d50
 	ld bc,00008h		;6d52   ; ocho bytes
-	lddr		;6d55   ; hacia atras: la cola sigue a la cabeza
+	lddr		;6d55   ; hacia atras: el cero se arrastra por la ficha
 	ret			;6d57
 busca_la_ficha_de_esa_posicion:
 	ld hl,0e1deh		;6d58
@@ -5773,7 +5773,7 @@ L_73C4:
 	set 1,(hl)		;73ca   ; el bit 1: tope por arriba
 	ld de,(0e1c5h)		;73cc   ; la celda de referencia
 	inc de			;73d0   ; la de al lado
-	call lee_de_vram		;73d1   ; lee de la pantalla
+	call lee_de_vram		;73d1   ; el tipo de la entrada, de la lista de la fase
 	inc a			;73d4   ; uno mas: 0xFF se convierte en cero
 	jr nz,L_741C		;73d5   ; y si no era 0xFF, no toca cambiar de fase
 	ld hl,0e051h		;73d7   ; el numero de fase
