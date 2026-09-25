@@ -90,6 +90,11 @@ imagenes: $(ROM)
 coteja_fases: $(ROM)
 	@python3 tools/coteja_fases.py $(ROM) $(WORK)/fases
 
+# EL ARBOL DE ENTRE FASES Y EL CASTILLO contra openMSX. Los volcados los hace
+# tools/omsx_castillo.tcl (la novena por defecto; con work/fase.txt, otra).
+coteja_decorados: $(ROM)
+	@python3 tools/coteja_decorados.py $(ROM) $(WORK)/castillo
+
 # LA WEB
 #
 # Bilingue: el ingles en docs/ y el castellano en docs/es/. Las paginas se
@@ -105,4 +110,4 @@ web: $(ROM)
 clean:
 	rm -rf $(WORK)/magicaltree.trace.json $(WORK)/magicaltree.blocks
 
-.PHONY: all comprueba trace listado verify sanity test densidad imagenes coteja_fases web clean
+.PHONY: all comprueba trace listado verify sanity test densidad imagenes coteja_fases coteja_decorados web clean

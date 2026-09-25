@@ -32,3 +32,6 @@
     leaves them at `0x1940`.
 12. **Two swapped comments** at `0x52F1` and `0x52F3`: the first loads the
     pointer's high byte and the second the entry count.
+13. **The between-stages scenery is painted from the middle outwards.**
+    `0x7629` takes the columns in order, but the timer's back-and-forth puts
+    them in 15, 16, 14, 17... Laid out in table order, the castle comes out scrambled.

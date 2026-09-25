@@ -107,15 +107,19 @@ GALERIA = [
      "La de titulo, montada igual y cotejada a 0 bytes.",
      "The title screen, built the same way and checked down to 0 bytes."),
     ("decorado-A.png",
-     "El decorado que 0x7629 pinta al cambiar de fase: quince columnas "
-     "comprimidas de veinte celdas.",
-     "The scenery 0x7629 paints when the stage changes: fifteen compressed "
-     "columns of twenty cells."),
+     "El arbol que 0x7629 pinta al cambiar de fase, del centro hacia fuera "
+     "y con los colores de la fase que empieza (aqui, la 2). Cotejado a 0 "
+     "bytes.",
+     "The tree 0x7629 paints when the stage changes, from the middle "
+     "outwards and in the colours of the stage that starts (here, stage 2). "
+     "Checked down to 0 bytes."),
     ("decorado-B.png",
-     "El castillo, el que 0x73EC elige en la novena tanda: doce columnas "
-     "en el mismo lenguaje.",
-     "The castle, which 0x73EC picks on the ninth round: twelve columns in "
-     "the same language."),
+     "El castillo, al acabar la novena: sus columnas del centro hacia fuera, "
+     "las ventanas de 0x7600 con los dos personajes y el rotulo. Cotejado a "
+     "0 bytes.",
+     "The castle, after the ninth stage: its columns from the middle "
+     "outwards, the windows at 0x7600 with the two characters and the "
+     "sign. Checked down to 0 bytes."),
     ("tiles-fase.png",
      "Los patrones de la fase, con la mascara de color de la primera.",
      "The stage's patterns, with the first stage's colour mask."),

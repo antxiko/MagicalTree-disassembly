@@ -26,9 +26,10 @@ Para comprobarla:
 | `make listado` | traza el flujo y genera `src/magicaltree.asm` con las notas | que el listado sale del cartucho y de `src/magicaltree.notes`, no se edita a mano |
 | `make verify` | reensambla con `pasmo` y compara | que el listado ES la ROM, byte a byte |
 | `make sanity` | reparte los 16.384 bytes entre código y datos | que no queda ni un byte sin asignar |
-| `make test` | 38 tests | que las cifras de esta web son las del listado |
+| `make test` | 39 tests | que las cifras de esta web son las del listado |
 | `make imagenes` | dibuja todo lo de `docs/imagenes/` desde la ROM, las nueve fases incluidas | que los formatos están bien leídos |
 | `make coteja_fases` | compara las nueve fases con 156 volcados de openMSX | cero celdas de diferencia |
+| `make coteja_decorados` | compara el árbol de entre fases y el castillo con nueve volcados | cero bytes de diferencia |
 
 El cotejo necesita antes los volcados: `tools/omsx_fases.tcl`, una fase por
 arranque, con el número en `work/fase.txt`. Ver [En el emulador](EN-EL-EMULADOR.html).

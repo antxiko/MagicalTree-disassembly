@@ -421,24 +421,57 @@ def columna(rom, p):
             p += 1
 
 
-def decorado(rom, v, tabla, fn, esc=2):
-    """Las 32 columnas de veinte celdas que 0x7629 pinta desde la fila 3."""
-    cols = []
-    for i in range(32):
-        a = tabla + 2 * i
-        cols.append(columna(rom, rom[a - ORG] | (rom[a + 1 - ORG] << 8)))
+def columna_en_pantalla(k):
+    """Donde cae la columna K de la tabla: 0x7629 las saca en orden, pero la
+    columna de pantalla la pone el plazo de (0xE004) con el vaiven de 0x761E,
+    y el decorado se pinta DEL CENTRO HACIA FUERA: la 0 en la 15, la 1 en la
+    16, la 2 en la 14, la 3 en la 17... Medido en openMSX
+    (tools/omsx_castillo.tcl): en el cuadro 50 van la 0 y la 1 en la 15 y la
+    16, en el 150 las catorce primeras de la 9 a la 22."""
+    return 15 - k // 2 if k % 2 == 0 else 16 + k // 2
+
+
+def pinta_dos_bloques_de_3x3(v, rom, ini):
+    """0x7553: dieciocho bytes, dos bloques de tres por tres, en la fila 8
+    columnas 10 y 18 (0x390A y 0x3912)."""
+    for n, de in enumerate((0x390A, 0x3912)):
+        for f in range(3):
+            for c in range(3):
+                v[de + f * 32 + c] = rom[ini - ORG + n * 9 + f * 3 + c]
+
+
+def monta_el_decorado(rom, v, tabla):
+    """Las 32 columnas de veinte celdas de 0x7629 en la tabla de nombres,
+    desde la fila 3 y cada una en su sitio."""
+    for k in range(32):
+        a = tabla + 2 * k
+        col = columna(rom, rom[a - ORG] | (rom[a + 1 - ORG] << 8))
+        for y, t in enumerate(col):
+            v[NOMBRES + (3 + y) * 32 + columna_en_pantalla(k)] = t
+    return v
+
+
+def decorado(rom, v, tabla, fn, esc=2, castillo=False):
+    """El decorado de entre fases, o el castillo con lo que se le pinta
+    encima al acabar la novena: las ventanas de 0x7600 (0x74EA) y el rotulo
+    CONGRATULATIONS (0x7595). Filas 3 a 22 de la pantalla."""
+    v = bytearray(v)
+    monta_el_decorado(rom, v, tabla)
+    if castillo:
+        pinta_dos_bloques_de_3x3(v, rom, 0x7600)
+        pinta_rotulo(v, rom, 0x7595)
     w, h = 32 * 8 * esc, 20 * 8 * esc
     px = lienzo(w, h)
-    for x, col in enumerate(cols):
-        for y, t in enumerate(col):
-            # la fila 3 + y de la pantalla cae en el tercio que le toque
-            tercio = (3 + y) // 8
+    for y in range(20):
+        tercio = (3 + y) // 8
+        for x in range(32):
+            t = v[NOMBRES + (3 + y) * 32 + x]
             base_p = PATRONES + tercio * 0x800 + t * 8
             base_c = COLOR + tercio * 0x800 + t * 8
             pinta_celda(px, w, x * 8 * esc, y * 8 * esc,
                         v[base_p:base_p + 8], v[base_c:base_c + 8], esc)
     png(w, h, px, fn)
-
+    return v
 
 def sprites(v, base, fn, n=32, cols=8, esc=3):
     """Patrones de sprite de 16x16: cuatro cuartos en el orden del VDP."""
@@ -551,8 +584,14 @@ def main():
     v = vram_de_la_fase(rom, mascara)
     hoja(v, 0, os.path.join(sal, "tiles-fase.png"))
     rango(v, 0x30, 43, os.path.join(sal, "fuente.png"))
-    decorado(rom, v, 0x76CE, os.path.join(sal, "decorado-A.png"))
-    decorado(rom, v, 0x778A, os.path.join(sal, "decorado-B.png"))
+    # EL DECORADO DE ENTRE FASES sale con la mascara de la fase que EMPIEZA:
+    # 0x7400 recarga los graficos con ella antes de pintarlo. Aqui, el paso de
+    # la 1 a la 2 (0x33). Y EL CASTILLO, al acabar la novena, con 0x77. Los
+    # dos cotejados contra openMSX a 0 bytes (tools/coteja_decorados.py).
+    decorado(rom, vram_de_la_fase(rom, rom[0x741F + 1 - ORG]), 0x76CE,
+             os.path.join(sal, "decorado-A.png"))
+    decorado(rom, vram_de_la_fase(rom, 0x77), 0x778A,
+             os.path.join(sal, "decorado-B.png"), castillo=True)
     sprites(v, 0x1800, os.path.join(sal, "sprites.png"), n=10)
     sprites(v, 0x1940, os.path.join(sal, "sprites-espejo.png"), n=10)
 

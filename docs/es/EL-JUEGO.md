@@ -77,6 +77,17 @@ De abajo arriba, como se suben.
 
 ![Fase 9](../imagenes/arbol-fase-9.png)
 
+## Entre fase y fase, y el castillo
+
+Al cambiar de fase, `0x7629` pinta un árbol de 32 columnas **del centro hacia
+fuera**, con los colores de la fase que empieza. Al acabar la novena pinta el
+castillo, y encima las ventanas de `0x7600` con los dos personajes y el rótulo.
+Los dos cotejados contra openMSX a **0 bytes**.
+
+![El árbol de entre fases](../imagenes/decorado-A.png)
+
+![El castillo](../imagenes/decorado-B.png)
+
 ## Las pantallas de menú
 
 Montadas desde la ROM y cotejadas contra openMSX a **0 bytes**.

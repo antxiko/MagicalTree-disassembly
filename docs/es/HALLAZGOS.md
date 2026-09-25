@@ -33,3 +33,6 @@
     `0x5BCD` y los deja en `0x1940`.
 12. **Dos comentarios cambiados** en `0x52F1` y `0x52F3`: el primero carga el
     byte alto del puntero y el segundo la cuenta de entradas.
+13. **El decorado de entre fases se pinta del centro hacia fuera.** `0x7629`
+    saca las columnas en orden, pero el vaivén del plazo las pone en la 15, la
+    16, la 14, la 17... Puestas en el orden de la tabla, el castillo sale revuelto.

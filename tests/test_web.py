@@ -225,6 +225,14 @@ class ElArbol(unittest.TestCase):
                 if re.match(r"^\s+ld a,r\s", ln))
         self.assertEqual(n, 9)
 
+    def test_el_decorado_se_pinta_del_centro_hacia_fuera(self):
+        """Medido en openMSX: la columna 0 de la tabla en la 15, la 1 en la
+        16, la 2 en la 14... y las 32 caen una vez cada una."""
+        import graficos
+        orden = [graficos.columna_en_pantalla(k) for k in range(32)]
+        self.assertEqual(orden[:4], [15, 16, 14, 17])
+        self.assertEqual(sorted(orden), list(range(32)))
+
     def test_las_nueve_tiras_estan_publicadas(self):
         for f in range(1, 10):
             for fn in ("arbol-fase-%d.png" % f, "arbol-fase-%d-pie.png" % f):

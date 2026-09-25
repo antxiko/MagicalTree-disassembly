@@ -79,6 +79,17 @@ Bottom to top, the way they are climbed.
 
 ![Stage 9](imagenes/arbol-fase-9.png)
 
+## Between stages, and the castle
+
+When the stage changes, `0x7629` paints a 32-column tree **from the middle
+outwards**, in the colours of the stage that starts. After the ninth it paints
+the castle, and on top the windows at `0x7600` with the two characters and the
+sign. Both checked against openMSX down to **0 bytes**.
+
+![The tree between stages](imagenes/decorado-A.png)
+
+![The castle](imagenes/decorado-B.png)
+
 ## The menu screens
 
 Built from the ROM and checked against openMSX down to **0 bytes**.
