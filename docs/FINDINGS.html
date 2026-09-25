@@ -1,0 +1,88 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Findings — Magical Tree (Konami, 1984)</title>
+<style>
+:root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
+  --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+@media (prefers-color-scheme:light){:root{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;
+  --panel:#f7f6f2;--linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}}
+:root[data-theme="dark"]{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;
+  --linea:#23262e;--rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+:root[data-theme="light"]{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;--panel:#f7f6f2;
+  --linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);padding:0 1.25rem 6rem;
+  font:15px/1.7 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.w{max-width:1120px;margin:0 auto}
+.n{max-width:68ch}
+h1,h2,h3,h4{font-weight:400;text-wrap:balance}
+a{color:var(--cyan)}
+img{image-rendering:pixelated;max-width:100%;height:auto;display:block}
+header.top{display:flex;flex-direction:column;align-items:center;gap:1.5rem;
+  padding:4rem 0 2rem;text-align:center}
+header.top img{width:min(100%,642px)}
+.claim{max-width:60ch;color:var(--suave);font-size:1.05rem}
+.claim b{color:var(--tinta);font-weight:400}
+.ficha{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1.5rem;width:100%;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--suave);
+  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding:.85rem 0}
+.ficha b{color:var(--rojo);font-weight:400}
+nav{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:center;padding:1.25rem 0;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav a{color:var(--suave);text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover,nav a:focus{color:var(--tinta);border-bottom-color:var(--rojo)}
+nav.docs{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);
+  margin-bottom:1rem}
+section{margin-top:4.5rem;scroll-margin-top:1rem}
+section>h2{font-size:1rem;letter-spacing:.1em;text-transform:uppercase;
+  border-left:3px solid var(--rojo);padding-left:.9rem;margin:0 0 1.5rem}
+.cifras{display:grid;gap:1px;background:var(--linea);border:1px solid var(--linea);
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.cifra{background:var(--panel);padding:1.1rem}
+.cifra b{display:block;font-size:1.7rem;color:var(--oro);font-weight:400;
+  font-variant-numeric:tabular-nums;line-height:1.2}
+.cifra span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--suave)}
+.hall{border-top:1px solid var(--linea);padding-top:1.75rem;margin-top:2.5rem}
+.hall:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.hall h3{margin:0 0 .75rem;font-size:1.15rem;color:var(--rojo)}
+.hall h4{color:var(--oro);margin:1.5rem 0 .5rem;font-size:.95rem}
+.hall p{margin:0 0 1rem}
+pre.asm{background:var(--panel);border-left:2px solid var(--verde);margin:1.25rem 0;
+  padding:1rem 1.1rem;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--tinta)}
+.par{display:grid;gap:1.25rem;grid-template-columns:1fr}
+@media(min-width:820px){.par{grid-template-columns:1fr 1fr}}
+.par figure{margin:0}
+table{border-collapse:collapse;width:100%;margin:1.25rem 0;font-size:13px;display:block;
+  overflow-x:auto}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--linea)}
+th{color:var(--suave);font-weight:400;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+td.num{font-variant-numeric:tabular-nums;color:var(--oro)}
+.nivel{margin-top:2rem}
+.nivel h3{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}
+.nivel em{color:var(--cyan);font-style:normal}
+.sep{color:var(--suave);margin:0 .6rem}
+.rejilla{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.rejilla figure{margin:0;background:var(--panel);box-shadow:0 0 0 1px var(--linea)}
+.rejilla figcaption{display:flex;justify-content:space-between;padding:.45rem .65rem;
+  font-size:11px;color:var(--suave);border-top:1px solid var(--linea)}
+.dir{font-variant-numeric:tabular-nums;color:var(--verde)}
+footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
+  color:var(--suave);font-size:12px}
+
+/* Aviso de trabajo en curso: tiene que verse antes que las cifras, porque un
+   100% mal leido hace mas dano que no ponerlo. */
+.aviso{background:#3a2a10;border-left:3px solid var(--oro);margin:1.5rem auto;
+  padding:1rem 1.2rem;max-width:900px;border-radius:4px}
+.aviso p{margin:0;color:var(--tinta);font-size:15px;line-height:1.65}
+.galeria{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1.5rem;margin:1.5rem 0}
+.galeria figure{margin:0}
+.galeria img{width:100%;height:auto;image-rendering:pixelated;
+  border:1px solid var(--linea);border-radius:3px}
+.galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
+audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
+</style>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="FINDINGS.html" style=color:var(--tinta)>Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/HALLAZGOS.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<h1 id="findings">Findings</h1>
+<ol><li><b>The stage script lives in VRAM.</b> <code>0x52BB</code> uploads it to <code>0x3B80</code>, behind the sprite attributes, and the scenery step reads it back from there with <code>lee_de_vram</code> as you climb.</li><li><b>Pieces with bit 7 do not erase</b> the row they leave when moving down (<code>0x68CC</code>). Hence the spiders&#x27; threads and the ground ladder, which reaches all the way to its upper section.</li><li><b>Spiders are kept apart.</b> Type <code>0xE0</code> entries go to three records with a 16-bit row, drawn while they are between −16 and 191 (<code>0x6C8E</code>) and erased when they leave (<code>0x6D41</code>, with a zero dragged along by <code>lddr</code>). If no record is free, the spider stays as one more object (<code>0x682C</code>).</li><li><b>The screen doubles as the map</b>: <code>0x61A3</code>, <code>0x6465</code>, <code>0x6251</code>, <code>0x6EB4</code> and <code>0x7167</code> ask VRAM what another game would keep in RAM.</li><li><b>Randomness comes from the R register</b>: nine <code>ld a,r</code>.</li><li><b>Nine skies.</b> The first stage&#x27;s mask comes from <code>0x51CE</code> and not from <code>0x741F</code>; with the table&#x27;s first value, <code>0x11</code>, the check drifts by 1,809 bytes of colour.</li><li><b>Piece group <code>0x16</code> reads itself.</b> It closes all nine scripts, declares sixteen entries and has fifteen: the sixteenth is the first two bytes of the group table. It goes unnoticed because the <code>0xFF</code> that ends the climb comes first.</li><li><b>Two players, 32 bytes.</b> Scene 13 (<code>0x41CF</code>) swaps the 32 bytes at <code>0xE050</code> with the ones at <code>0xE080</code>: the player in turn is always in the same place.</li><li><b>Binary to BCD without dividing.</b> <code>0x66F5</code> doubles the result with <code>adc a,a / daa</code> for each bit.</li><li><b>The same code as Circus Charlie.</b> The decompressor&#x27;s fourteen-byte signature, the twelve bytes of the chromatic scale and the extra life rule are the same in the RC-712.</li><li><b>Ten mirrored sprites.</b> <code>0x60C9</code> flips the 320 bytes at <code>0x5BCD</code> and leaves them at <code>0x1940</code>.</li><li><b>Two swapped comments</b> at <code>0x52F1</code> and <code>0x52F3</code>: the first loads the pointer&#x27;s high byte and the second the entry count.</li></ol>
+<footer><p><em>Magical Tree</em> was published by Konami for the MSX in 1984; its catalogue number is RC-713 and it is 16 KB. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.</p></footer></div>

@@ -501,6 +501,35 @@ def pantalla_entera(v, fn, esc=2, con_sprites=False):
     png(w, h, g, fn)
 
 
+def marco_del_rotulo(v):
+    """Las filas y columnas que ocupa el "Magical Tree" de la pantalla de
+    titulo, MEDIDAS sobre la tabla de nombres: el recuadro de las celdas no
+    vacias de las ocho primeras filas (las de encima de "(c) KONAMI 1984")."""
+    celdas = [(f, c) for f in range(8) for c in range(32)
+              if v[NOMBRES + f * 32 + c]]
+    f0, f1 = min(f for f, _ in celdas), max(f for f, _ in celdas)
+    c0, c1 = min(c for _, c in celdas), max(c for _, c in celdas)
+    return f0, c0, f1 - f0 + 1, c1 - c0 + 1
+
+
+def rotulo_del_juego(v, fn, esc=4):
+    """El logotipo del juego recortado de la pantalla de titulo montada desde
+    la ROM, para la cabecera de la web. Ley de la serie: el rotulo se dibuja,
+    no se captura."""
+    f0, c0, alto, ancho = marco_del_rotulo(v)
+    w, h = ancho * 8 * esc, alto * 8 * esc
+    px = lienzo(w, h, (0, 0, 0))
+    for f in range(alto):
+        for c in range(ancho):
+            t = v[NOMBRES + (f0 + f) * 32 + c0 + c]
+            b = ((f0 + f) // 8) * 0x800 + t * 8
+            pinta_celda(px, w, c * 8 * esc, f * 8 * esc,
+                        v[PATRONES + b:PATRONES + b + 8],
+                        v[COLOR + b:COLOR + b + 8], esc)
+    png(w, h, px, fn)
+    return f0, c0, alto, ancho
+
+
 def main():
     rom = open(sys.argv[1], "rb").read()
     global ORG
@@ -536,6 +565,11 @@ def main():
                     os.path.join(sal, "pantalla-titulo.png"))
 
     logotipo(rom, os.path.join(sal, "logotipo-konami.png"))
+
+    # EL ROTULO DEL JUEGO, para la cabecera de la web
+    marco = rotulo_del_juego(vram_de_la_seleccion(rom, cursor=False),
+                             os.path.join(sal, "rotulo.png"))
+    print("rotulo: filas %d.., columnas %d.., %dx%d celdas" % marco)
 
     t = vram_del_titulo(rom)
     rango(t, 0xC0, 32, os.path.join(sal, "titulo-tiles.png"))

@@ -1,0 +1,119 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The game — Magical Tree (Konami, 1984)</title>
+<style>
+:root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
+  --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+@media (prefers-color-scheme:light){:root{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;
+  --panel:#f7f6f2;--linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}}
+:root[data-theme="dark"]{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;
+  --linea:#23262e;--rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+:root[data-theme="light"]{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;--panel:#f7f6f2;
+  --linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);padding:0 1.25rem 6rem;
+  font:15px/1.7 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.w{max-width:1120px;margin:0 auto}
+.n{max-width:68ch}
+h1,h2,h3,h4{font-weight:400;text-wrap:balance}
+a{color:var(--cyan)}
+img{image-rendering:pixelated;max-width:100%;height:auto;display:block}
+header.top{display:flex;flex-direction:column;align-items:center;gap:1.5rem;
+  padding:4rem 0 2rem;text-align:center}
+header.top img{width:min(100%,642px)}
+.claim{max-width:60ch;color:var(--suave);font-size:1.05rem}
+.claim b{color:var(--tinta);font-weight:400}
+.ficha{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1.5rem;width:100%;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--suave);
+  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding:.85rem 0}
+.ficha b{color:var(--rojo);font-weight:400}
+nav{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:center;padding:1.25rem 0;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav a{color:var(--suave);text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover,nav a:focus{color:var(--tinta);border-bottom-color:var(--rojo)}
+nav.docs{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);
+  margin-bottom:1rem}
+section{margin-top:4.5rem;scroll-margin-top:1rem}
+section>h2{font-size:1rem;letter-spacing:.1em;text-transform:uppercase;
+  border-left:3px solid var(--rojo);padding-left:.9rem;margin:0 0 1.5rem}
+.cifras{display:grid;gap:1px;background:var(--linea);border:1px solid var(--linea);
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.cifra{background:var(--panel);padding:1.1rem}
+.cifra b{display:block;font-size:1.7rem;color:var(--oro);font-weight:400;
+  font-variant-numeric:tabular-nums;line-height:1.2}
+.cifra span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--suave)}
+.hall{border-top:1px solid var(--linea);padding-top:1.75rem;margin-top:2.5rem}
+.hall:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.hall h3{margin:0 0 .75rem;font-size:1.15rem;color:var(--rojo)}
+.hall h4{color:var(--oro);margin:1.5rem 0 .5rem;font-size:.95rem}
+.hall p{margin:0 0 1rem}
+pre.asm{background:var(--panel);border-left:2px solid var(--verde);margin:1.25rem 0;
+  padding:1rem 1.1rem;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--tinta)}
+.par{display:grid;gap:1.25rem;grid-template-columns:1fr}
+@media(min-width:820px){.par{grid-template-columns:1fr 1fr}}
+.par figure{margin:0}
+table{border-collapse:collapse;width:100%;margin:1.25rem 0;font-size:13px;display:block;
+  overflow-x:auto}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--linea)}
+th{color:var(--suave);font-weight:400;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+td.num{font-variant-numeric:tabular-nums;color:var(--oro)}
+.nivel{margin-top:2rem}
+.nivel h3{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}
+.nivel em{color:var(--cyan);font-style:normal}
+.sep{color:var(--suave);margin:0 .6rem}
+.rejilla{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.rejilla figure{margin:0;background:var(--panel);box-shadow:0 0 0 1px var(--linea)}
+.rejilla figcaption{display:flex;justify-content:space-between;padding:.45rem .65rem;
+  font-size:11px;color:var(--suave);border-top:1px solid var(--linea)}
+.dir{font-variant-numeric:tabular-nums;color:var(--verde)}
+footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
+  color:var(--suave);font-size:12px}
+
+/* Aviso de trabajo en curso: tiene que verse antes que las cifras, porque un
+   100% mal leido hace mas dano que no ponerlo. */
+.aviso{background:#3a2a10;border-left:3px solid var(--oro);margin:1.5rem auto;
+  padding:1rem 1.2rem;max-width:900px;border-radius:4px}
+.aviso p{margin:0;color:var(--tinta);font-size:15px;line-height:1.65}
+.galeria{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1.5rem;margin:1.5rem 0}
+.galeria figure{margin:0}
+.galeria img{width:100%;height:auto;image-rendering:pixelated;
+  border:1px solid var(--linea);border-radius:3px}
+.galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
+audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
+</style>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html" style=color:var(--tinta)>The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/EL-JUEGO.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<h1 id="the-game">The game</h1>
+<p><img src="imagenes/rotulo.png" alt="The title"></p>
+<p>The hero climbs a giant tree through <b>nine stages</b>: from branch to branch, up ladders and vines, among apples, nests, doors in the trunk and spiders.</p>
+<p>Each stage is a <b>script</b>: a list of three-byte entries —steps since the previous one, type and column— that the cartridge uploads to VRAM at the start and pulls out as you climb. One step is eight pixels, one row of cells. The only thing not in the list is the trunk in the middle.</p>
+<p>The pictures below <b>are neither captures nor the cartridge running</b>: they are each stage&#x27;s script fed through the cartridge&#x27;s scenery step, rewritten in Python (<code>tools/arbol.py</code>), stacking the middle row of the screen at every step. Checked against openMSX, climbing each whole stage thirty steps at a time: <b>0 cells different out of 104,832</b>.</p>
+<h2 id="what-each-stage-holds">What each stage holds</h2>
+<table><tr><th>stage</th><th>steps</th><th>branches</th><th>apples</th><th>spiders</th><th>doors</th><th>sky</th></tr><tr><td>1</td><td>451</td><td>98</td><td>21</td><td>5</td><td>10</td><td>cyan</td></tr><tr><td>2</td><td>493</td><td>98</td><td>15</td><td>12</td><td>8</td><td>light green</td></tr><tr><td>3</td><td>508</td><td>103</td><td>20</td><td>13</td><td>12</td><td>light yellow</td></tr><tr><td>4</td><td>498</td><td>103</td><td>23</td><td>14</td><td>12</td><td>grey</td></tr><tr><td>5</td><td>491</td><td>87</td><td>27</td><td>16</td><td>13</td><td>black</td></tr><tr><td>6</td><td>515</td><td>103</td><td>17</td><td>12</td><td>9</td><td>light yellow</td></tr><tr><td>7</td><td>549</td><td>110</td><td>26</td><td>19</td><td>14</td><td>grey</td></tr><tr><td>8</td><td>473</td><td>83</td><td>17</td><td>16</td><td>10</td><td>black</td></tr><tr><td>9</td><td>515</td><td>114</td><td>26</td><td>19</td><td>15</td><td>black</td></tr></table>
+<p>Stage 1 starts on the ground, by the river. The other eight start at the foot of a hollow chamber in the trunk, a red section with two ladders at the top and two at the bottom. All of them end with two red rows and two round windows.</p>
+<p>The colour of the sky is the stage&#x27;s mask, <code>(0xE05D)</code>: the first stage&#x27;s comes from the initial values at <code>0x51C1</code>, and the others from the table at <code>0x741F</code>.</p>
+<h2 id="the-nine-stages">The nine stages</h2>
+<p>Bottom to top, the way they are climbed.</p>
+<h3 id="stage-1">Stage 1</h3>
+<p><img src="imagenes/arbol-fase-1.png" alt="Stage 1"></p>
+<h3 id="stage-2">Stage 2</h3>
+<p><img src="imagenes/arbol-fase-2.png" alt="Stage 2"></p>
+<h3 id="stage-3">Stage 3</h3>
+<p><img src="imagenes/arbol-fase-3.png" alt="Stage 3"></p>
+<h3 id="stage-4">Stage 4</h3>
+<p><img src="imagenes/arbol-fase-4.png" alt="Stage 4"></p>
+<h3 id="stage-5">Stage 5</h3>
+<p><img src="imagenes/arbol-fase-5.png" alt="Stage 5"></p>
+<h3 id="stage-6">Stage 6</h3>
+<p><img src="imagenes/arbol-fase-6.png" alt="Stage 6"></p>
+<h3 id="stage-7">Stage 7</h3>
+<p><img src="imagenes/arbol-fase-7.png" alt="Stage 7"></p>
+<h3 id="stage-8">Stage 8</h3>
+<p><img src="imagenes/arbol-fase-8.png" alt="Stage 8"></p>
+<h3 id="stage-9">Stage 9</h3>
+<p><img src="imagenes/arbol-fase-9.png" alt="Stage 9"></p>
+<h2 id="the-menu-screens">The menu screens</h2>
+<p>Built from the ROM and checked against openMSX down to <b>0 bytes</b>.</p>
+<p><img src="imagenes/pantalla-presentacion.png" alt="The company screen"></p>
+<p><img src="imagenes/pantalla-titulo.png" alt="The title screen"></p>
+<footer><p><em>Magical Tree</em> was published by Konami for the MSX in 1984; its catalogue number is RC-713 and it is 16 KB. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.</p></footer></div>

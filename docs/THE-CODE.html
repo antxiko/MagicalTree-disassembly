@@ -1,0 +1,98 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The code — Magical Tree (Konami, 1984)</title>
+<style>
+:root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
+  --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+@media (prefers-color-scheme:light){:root{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;
+  --panel:#f7f6f2;--linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}}
+:root[data-theme="dark"]{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;
+  --linea:#23262e;--rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+:root[data-theme="light"]{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;--panel:#f7f6f2;
+  --linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);padding:0 1.25rem 6rem;
+  font:15px/1.7 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.w{max-width:1120px;margin:0 auto}
+.n{max-width:68ch}
+h1,h2,h3,h4{font-weight:400;text-wrap:balance}
+a{color:var(--cyan)}
+img{image-rendering:pixelated;max-width:100%;height:auto;display:block}
+header.top{display:flex;flex-direction:column;align-items:center;gap:1.5rem;
+  padding:4rem 0 2rem;text-align:center}
+header.top img{width:min(100%,642px)}
+.claim{max-width:60ch;color:var(--suave);font-size:1.05rem}
+.claim b{color:var(--tinta);font-weight:400}
+.ficha{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1.5rem;width:100%;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--suave);
+  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding:.85rem 0}
+.ficha b{color:var(--rojo);font-weight:400}
+nav{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:center;padding:1.25rem 0;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav a{color:var(--suave);text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover,nav a:focus{color:var(--tinta);border-bottom-color:var(--rojo)}
+nav.docs{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);
+  margin-bottom:1rem}
+section{margin-top:4.5rem;scroll-margin-top:1rem}
+section>h2{font-size:1rem;letter-spacing:.1em;text-transform:uppercase;
+  border-left:3px solid var(--rojo);padding-left:.9rem;margin:0 0 1.5rem}
+.cifras{display:grid;gap:1px;background:var(--linea);border:1px solid var(--linea);
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.cifra{background:var(--panel);padding:1.1rem}
+.cifra b{display:block;font-size:1.7rem;color:var(--oro);font-weight:400;
+  font-variant-numeric:tabular-nums;line-height:1.2}
+.cifra span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--suave)}
+.hall{border-top:1px solid var(--linea);padding-top:1.75rem;margin-top:2.5rem}
+.hall:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.hall h3{margin:0 0 .75rem;font-size:1.15rem;color:var(--rojo)}
+.hall h4{color:var(--oro);margin:1.5rem 0 .5rem;font-size:.95rem}
+.hall p{margin:0 0 1rem}
+pre.asm{background:var(--panel);border-left:2px solid var(--verde);margin:1.25rem 0;
+  padding:1rem 1.1rem;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--tinta)}
+.par{display:grid;gap:1.25rem;grid-template-columns:1fr}
+@media(min-width:820px){.par{grid-template-columns:1fr 1fr}}
+.par figure{margin:0}
+table{border-collapse:collapse;width:100%;margin:1.25rem 0;font-size:13px;display:block;
+  overflow-x:auto}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--linea)}
+th{color:var(--suave);font-weight:400;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+td.num{font-variant-numeric:tabular-nums;color:var(--oro)}
+.nivel{margin-top:2rem}
+.nivel h3{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}
+.nivel em{color:var(--cyan);font-style:normal}
+.sep{color:var(--suave);margin:0 .6rem}
+.rejilla{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.rejilla figure{margin:0;background:var(--panel);box-shadow:0 0 0 1px var(--linea)}
+.rejilla figcaption{display:flex;justify-content:space-between;padding:.45rem .65rem;
+  font-size:11px;color:var(--suave);border-top:1px solid var(--linea)}
+.dir{font-variant-numeric:tabular-nums;color:var(--verde)}
+footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
+  color:var(--suave);font-size:12px}
+
+/* Aviso de trabajo en curso: tiene que verse antes que las cifras, porque un
+   100% mal leido hace mas dano que no ponerlo. */
+.aviso{background:#3a2a10;border-left:3px solid var(--oro);margin:1.5rem auto;
+  padding:1rem 1.2rem;max-width:900px;border-radius:4px}
+.aviso p{margin:0;color:var(--tinta);font-size:15px;line-height:1.65}
+.galeria{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1.5rem;margin:1.5rem 0}
+.galeria figure{margin:0}
+.galeria img{width:100%;height:auto;image-rendering:pixelated;
+  border:1px solid var(--linea);border-radius:3px}
+.galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
+audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
+</style>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html" style=color:var(--tinta)>The code</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/EL-CODIGO.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<h1 id="the-code">The code</h1>
+<h2 id="everything-in-the-interrupt">Everything in the interrupt</h2>
+<p>INIT (<code>0x4077</code>) sets interrupt mode 1, hooks H.KEYI with a jump to <code>0x402C</code>, puts the stack at <code>0xE400</code>, clears the kilobyte of RAM and sits on the <code>jr $</code> at <code>0x40A5</code>. Everything else happens in the hook, once per frame: sound first, the controls, and the scene. The sixteen scenes are in the table at <code>0x40C3</code>, stuck right behind the <code>call</code> of the dispatcher at <code>0x404A</code>, which finds it with a <code>pop hl</code>.</p>
+<p>The game frame (<code>0x51F5</code>) is eleven calls in a row, one for each thing that moves.</p>
+<h2 id="climbing-the-tree">Climbing the tree</h2>
+<ul><li><code>0x52BB</code> uploads the stage script to <code>0x3B80</code>.</li><li><code>0x6749</code> takes a step: it counts and, when it reaches the steps of the next entry, pulls it out into the forty objects at <code>0xE132</code>. Spiders (type <code>0xE0</code>) go to their three records at <code>0xE1DE</code>.</li><li><code>0x6889</code> moves each object eight pixels down, erases the row it leaves —only if its type does not have bit 7 set— and redraws it; <code>0x68F8</code> redraws on top the ones with bit 6, and <code>0x6C32</code> moves the spiders.</li><li><code>0x4A0E</code> picks the piece from one of four tables —46 pieces; the nine scripts use 35 types— and <code>0x49B8</code> draws it.</li><li><code>0x5363</code> takes twenty-six steps in a row to build the first screen.</li></ul>
+<h2 id="the-screen-is-the-map">The screen is the map</h2>
+<p>There is no map in RAM. <code>0x61A3</code> reads the two cells under the player&#x27;s feet from VRAM and <code>0x6465</code> checks whether they are pattern <code>0x9B</code>. <code>0x6251</code> looks for an object on the screen to erase it, and the creatures check the cell ahead before moving: <code>0x6EB4</code> wants index 3, <code>0x7167</code> one between <code>0xCD</code> and <code>0xD0</code>.</p>
+<h2 id="randomness">Randomness</h2>
+<p>Nine <code>ld a,r</code>: the Z80&#x27;s refresh counter.</p>
+<h2 id="the-tools">The tools</h2>
+<ul><li><code>tools/arbol.py</code>: the script, the pieces and the scenery step; it draws the nine stages.</li><li><code>tools/graficos.py</code>: the stage VRAM and the menu screens, with the cartridge&#x27;s set-up chain.</li><li><code>tools/guiones.py</code> and <code>tools/rle.py</code>: they measure the labels and the compressed blocks by running their interpreters.</li><li><code>tools/coteja_fases.py</code> and <code>tools/omsx_fases.tcl</code>: the check against openMSX.</li></ul>
+<footer><p><em>Magical Tree</em> was published by Konami for the MSX in 1984; its catalogue number is RC-713 and it is 16 KB. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.</p></footer></div>

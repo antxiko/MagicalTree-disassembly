@@ -261,10 +261,14 @@ def tira(r, fase):
     return [filas[w] for w in sorted(filas, reverse=True)]
 
 
-def dibuja(rom, fase, fn, esc=1):
+def dibuja(rom, fase, fn, esc=1, solo_el_pie=False):
+    """La tira entera, o con solo_el_pie las 21 filas de la primera pantalla
+    (la banda util en el paso 26), que es lo que se ve al empezar la fase."""
     r = Rom(rom)
     v = G.vram_de_la_fase(rom, mascara_de_la_fase(r, fase))
     filas = tira(r, fase)
+    if solo_el_pie:
+        filas = filas[-21:]
     w, h = 256 * esc, len(filas) * 8 * esc
     px = G.lienzo(w, h)
     for n, fila in enumerate(filas):
@@ -290,6 +294,8 @@ def main():
         filas = dibuja(rom, fase, fn)
         print(f"   {fn}: {filas} filas, {paso_final(r, fase)} pasos, "
               f"mascara 0x{mascara_de_la_fase(r, fase):02X}")
+        dibuja(rom, fase, os.path.join(sal, "arbol-fase-%d-pie.png" % (fase + 1)),
+               esc=2, solo_el_pie=True)
 
 
 if __name__ == "__main__":
