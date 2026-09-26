@@ -235,7 +235,8 @@ class ElArbol(unittest.TestCase):
 
     def test_las_nueve_tiras_estan_publicadas(self):
         for f in range(1, 10):
-            for fn in ("arbol-fase-%d.png" % f, "arbol-fase-%d-pie.png" % f):
+            for fn in ("arbol-fase-%d.png" % f, "arbol-fase-%d-pie.png" % f,
+                       "arbol-nueve-fases.png"):
                 self.assertTrue(os.path.exists(
                     os.path.join(DOCS, "imagenes", fn)), fn)
 

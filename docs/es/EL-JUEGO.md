@@ -39,7 +39,10 @@ de los valores iniciales de `0x51C1`, y las demás de la tabla de `0x741F`.
 
 ## Las nueve fases
 
-De abajo arriba, como se suben.
+De abajo arriba, como se suben. Primero las nueve juntas, apoyadas en el suelo,
+y después cada una a tamaño completo.
+
+![Las nueve fases, una al lado de otra](../imagenes/arbol-nueve-fases.png)
 
 ### Fase 1
 

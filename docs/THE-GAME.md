@@ -41,7 +41,10 @@ comes from the initial values at `0x51C1`, and the others from the table at
 
 ## The nine stages
 
-Bottom to top, the way they are climbed.
+Bottom to top, the way they are climbed. First all nine together, standing on
+the ground, and then each one full size.
+
+![The nine stages side by side](imagenes/arbol-nueve-fases.png)
 
 ### Stage 1
 

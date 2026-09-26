@@ -93,6 +93,12 @@ HALLAZGOS = {
 }
 
 GALERIA = [
+    ("arbol-nueve-fases.png",
+     "Las nueve fases enteras, una al lado de otra y apoyadas en el suelo: "
+     "de abajo arriba se suben. Cada una, a tamano completo, en El juego.",
+     "The nine whole stages side by side, standing on the ground: they are "
+     "climbed bottom to top. Each one, full size, in The game."),
+] + [
     ("arbol-fase-%d-pie.png" % n,
      "La fase %d al empezar: su primera pantalla, desde el guion de la ROM y "
      "cotejada contra openMSX a 0 celdas." % n,

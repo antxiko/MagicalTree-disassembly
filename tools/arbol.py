@@ -281,6 +281,27 @@ def dibuja(rom, fase, fn, esc=1, solo_el_pie=False):
     return len(filas)
 
 
+def las_nueve(rom, fn, hueco=16):
+    """Las nueve tiras una al lado de otra, apoyadas en el suelo -abajo del
+    todo, que es donde empieza cada fase-, para verlas de un vistazo."""
+    r = Rom(rom)
+    tiras = [(tira(r, f), G.vram_de_la_fase(rom, mascara_de_la_fase(r, f)))
+             for f in range(9)]
+    alto = max(len(t) for t, _ in tiras) * 8
+    w = 9 * 256 + 8 * hueco
+    px = G.lienzo(w, alto, (0, 0, 0))
+    for n, (filas, v) in enumerate(tiras):
+        x0 = n * (256 + hueco)
+        y0 = alto - len(filas) * 8
+        for k, fila in enumerate(filas):
+            for col, p in enumerate(fila):
+                b = 0x0800 + p * 8
+                G.pinta_celda(px, w, x0 + col * 8, y0 + k * 8,
+                              v[G.PATRONES + b:G.PATRONES + b + 8],
+                              v[G.COLOR + b:G.COLOR + b + 8])
+    G.png(w, alto, px, fn)
+
+
 def main():
     global ORG
     rom = open(sys.argv[1], "rb").read()
@@ -296,6 +317,7 @@ def main():
               f"mascara 0x{mascara_de_la_fase(r, fase):02X}")
         dibuja(rom, fase, os.path.join(sal, "arbol-fase-%d-pie.png" % (fase + 1)),
                esc=2, solo_el_pie=True)
+    las_nueve(rom, os.path.join(sal, "arbol-nueve-fases.png"))
 
 
 if __name__ == "__main__":
