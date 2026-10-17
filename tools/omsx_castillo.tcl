@@ -12,7 +12,7 @@
 #
 # Deja en work/castillo/ cambioN_cK.vram y cambioN_cK.ram, y log.txt.
 
-set ::RAIZ {C:/Users/Antxiko/Documents/DES_ASM/MAGICALTREE_DISAM}
+set ::RAIZ {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/MAGICALTREE_DISAM}
 # la novena por defecto (el castillo); con work/fase.txt, la que diga, para
 # ver el decorado de entre fases de una fase normal
 set ::FASE 8

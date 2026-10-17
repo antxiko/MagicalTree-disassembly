@@ -15,7 +15,7 @@ proc opcion {nombre porDefecto} {
     return $porDefecto
 }
 
-set ::SALIDA [opcion PP_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/MAGICALTREE_DISAM/work/arranque}]
+set ::SALIDA [opcion PP_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/MAGICALTREE_DISAM/work/arranque}]
 file mkdir $::SALIDA
 set ::bp_vuelca {}
 set ::CUADROS [opcion PP_CUADROS {1 2 3 5 10 25 50 100 200}]

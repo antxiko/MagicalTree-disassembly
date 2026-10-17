@@ -30,7 +30,7 @@ proc opcion {nombre porDefecto} {
     return $porDefecto
 }
 
-set ::SALIDA [opcion PP_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/MAGICALTREE_DISAM/work/serie}]
+set ::SALIDA [opcion PP_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/MAGICALTREE_DISAM/work/serie}]
 file mkdir $::SALIDA
 
 # El cuadro del MSX no dura 1/50 s, dura 1/50,15: en trece cuadros la

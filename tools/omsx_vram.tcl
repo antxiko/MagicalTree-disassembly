@@ -22,7 +22,7 @@ proc opcion {nombre porDefecto} {
     return $porDefecto
 }
 
-set ::SALIDA [opcion PP_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/MAGICALTREE_DISAM/work/omsx}]
+set ::SALIDA [opcion PP_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/MAGICALTREE_DISAM/work/omsx}]
 file mkdir $::SALIDA
 set ::n 0
 

@@ -18,7 +18,7 @@
 #
 # Deja en work/fases/ faseN_pPPPP.vram (16 KB) y faseN_pPPPP.ram (0xE000..0xE3FF).
 
-set ::RAIZ {C:/Users/Antxiko/Documents/DES_ASM/MAGICALTREE_DISAM}
+set ::RAIZ {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/MAGICALTREE_DISAM}
 set f [open $::RAIZ/work/fase.txt r]
 set ::FASE [string trim [read $f]]
 close $f
