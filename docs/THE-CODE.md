@@ -47,3 +47,30 @@ Nine `ld a,r`: the Z80's refresh counter.
   compressed blocks by running their interpreters.
 - `tools/coteja_fases.py` and `tools/omsx_fases.tcl`: the check against
   openMSX.
+
+## Code shared with other Konami cartridges
+
+This disassembly has been compared, instruction by instruction, with
+every other Konami one in the series. A block counts when the same
+instructions, at least six of them from a label to its `ret` or its
+unconditional jump, are in both cartridges; the addresses are left
+aside, because they change from one cartridge to the next. Of the
+other 57, **44** have at least one block in common with this one;
+these are the ones that share the most:
+
+| Cartridge | Blocks | Instructions | For example (here = there) |
+|---|---:|---:|---|
+| [Circus Charlie](https://antxiko.github.io/CircusCharlie-disassembly/) | 41 | 565 | `atiende_el_menu` (0x4557) |
+| [Cabbage Patch Kids](https://antxiko.github.io/CabbagePatchKids-disassembly/) | 25 | 298 | `lee_el_teclado` (0x4532) = `LEE_EL_TECLADO` |
+| [Hyper Sports 1](https://antxiko.github.io/HyperSports1-disassembly/) | 25 | 341 | `atiende_el_menu` (0x4557) = `MANEJADOR_DEMO` |
+| [Comic Bakery](https://antxiko.github.io/ComicBakery-disassembly/) | 21 | 351 | `atiende_el_menu` (0x4557) |
+| [Konami’s Mahjong Dojo](https://antxiko.github.io/KonamisMahjongDojo-disassembly/) | 20 | 208 | `limpia_la_pantalla` (0x4422) = `limpia_la_pantalla_entera` |
+| [Super Cobra](https://antxiko.github.io/SuperCobra-disassembly/) | 17 | 216 | `lee_la_nota_de_la_partitura` (0x7B7B) = `EL_VOLUMEN_DEL_EFECTO` |
+| [Konami’s Billiards](https://antxiko.github.io/KonamisBilliards-disassembly/) | 9 | 116 | `pinta_el_marcador` (0x4343) = `refresca_el_marcador` |
+| [Konami's Ping Pong](https://antxiko.github.io/KonamisPingPong-disassembly/) | 9 | 114 | `lee_el_teclado` (0x4532) = `lee_teclado_1` |
+| [Athletic Land](https://antxiko.github.io/AthleticLand-disassembly/) | 8 | 85 | `pinta_el_numero_de_fase` (0x4385) = `PINTA_FASE` |
+| [Hyper Sports 2](https://antxiko.github.io/HyperSports2-disassembly/) | 8 | 92 | `lee_el_teclado` (0x4532) = `LEE_EL_TECLADO` |
+
+The whole matrix, the 58 cartridges against each other, is on
+[The routines](https://antxiko.github.io/MSX-disassembly-database/THE-ROUTINES.html) in the series database, along
+with the method and the program that measures it.

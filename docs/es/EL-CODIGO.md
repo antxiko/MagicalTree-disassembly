@@ -45,3 +45,30 @@ Nueve `ld a,r`: el contador de refresco del Z80.
 - `tools/guiones.py` y `tools/rle.py`: miden los rótulos y los bloques
   comprimidos ejecutando sus intérpretes.
 - `tools/coteja_fases.py` y `tools/omsx_fases.tcl`: el cotejo contra openMSX.
+
+## Código compartido con otros cartuchos de Konami
+
+Este desensamblado se ha comparado, instrucción por instrucción, con
+todos los demás de Konami de la serie. Cuenta un bloque cuando las
+mismas instrucciones, al menos seis desde una etiqueta hasta su `ret`
+o su salto sin condición, están en los dos cartuchos; las direcciones
+no se miran, porque cambian de un cartucho a otro. De los otros 57,
+**44** tienen al menos un bloque en común con este; estos son los
+que más comparten:
+
+| Cartucho | Bloques | Instrucciones | Por ejemplo (aquí = allí) |
+|---|---:|---:|---|
+| [Circus Charlie](https://antxiko.github.io/CircusCharlie-disassembly/es/) | 41 | 565 | `atiende_el_menu` (0x4557) |
+| [Cabbage Patch Kids](https://antxiko.github.io/CabbagePatchKids-disassembly/es/) | 25 | 298 | `lee_el_teclado` (0x4532) = `LEE_EL_TECLADO` |
+| [Hyper Sports 1](https://antxiko.github.io/HyperSports1-disassembly/es/) | 25 | 341 | `atiende_el_menu` (0x4557) = `MANEJADOR_DEMO` |
+| [Comic Bakery](https://antxiko.github.io/ComicBakery-disassembly/es/) | 21 | 351 | `atiende_el_menu` (0x4557) |
+| [Konami’s Mahjong Dojo](https://antxiko.github.io/KonamisMahjongDojo-disassembly/es/) | 20 | 208 | `limpia_la_pantalla` (0x4422) = `limpia_la_pantalla_entera` |
+| [Super Cobra](https://antxiko.github.io/SuperCobra-disassembly/es/) | 17 | 216 | `lee_la_nota_de_la_partitura` (0x7B7B) = `EL_VOLUMEN_DEL_EFECTO` |
+| [Konami’s Billiards](https://antxiko.github.io/KonamisBilliards-disassembly/es/) | 9 | 116 | `pinta_el_marcador` (0x4343) = `refresca_el_marcador` |
+| [Konami's Ping Pong](https://antxiko.github.io/KonamisPingPong-disassembly/es/) | 9 | 114 | `lee_el_teclado` (0x4532) = `lee_teclado_1` |
+| [Athletic Land](https://antxiko.github.io/AthleticLand-disassembly/es/) | 8 | 85 | `pinta_el_numero_de_fase` (0x4385) = `PINTA_FASE` |
+| [Hyper Sports 2](https://antxiko.github.io/HyperSports2-disassembly/es/) | 8 | 92 | `lee_el_teclado` (0x4532) = `LEE_EL_TECLADO` |
+
+La matriz entera, los 58 cartuchos entre sí, está en
+[Las rutinas](https://antxiko.github.io/MSX-disassembly-database/es/LAS-RUTINAS.html) de la base de datos de la
+serie, con el método y el programa que la mide.

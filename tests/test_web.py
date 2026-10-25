@@ -46,6 +46,18 @@ CITAS_LEGITIMAS = {
 CITAS_LEGITIMAS["HALLAZGOS.html"] = CITAS_LEGITIMAS["HALLAZGOS.md"]
 CITAS_LEGITIMAS["FINDINGS.html"] = CITAS_LEGITIMAS["FINDINGS.md"]
 
+# La seccion del codigo compartido con los otros Konami de la serie los
+# nombra a proposito: la escribe pon_en_webs.py, de MSX-disassembly-database.
+_COMPARTIDO = re.compile(
+    r"(?:^## |<h2[^>]*>)(?:Code shared with other Konami cartridges|"
+    r"C\u00f3digo compartido con otros cartuchos de Konami)"
+    r".*?(?=^## |<h2|</main>|<footer|\Z)", re.S | re.M)
+
+
+def sin_compartido(texto):
+    """El texto sin la seccion del codigo compartido."""
+    return _COMPARTIDO.sub("", texto)
+
 
 def lee_texto(ruta):
     with open(ruta, encoding="utf-8") as f:
@@ -115,7 +127,7 @@ class SinNombresDeOtroJuego(unittest.TestCase):
     """El copia y pega de otro proyecto de la serie, cazado a tiempo."""
 
     def _revisa(self, ruta):
-        texto = lee_texto(ruta)
+        texto = sin_compartido(lee_texto(ruta))
         fn = os.path.basename(ruta)
         palabras, permitidos = CITAS_LEGITIMAS.get(fn, ((), ()))
         if permitidos and any(j in texto for j in permitidos):
