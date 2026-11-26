@@ -14,83 +14,6 @@ Todas las cifras de aqui estan medidas sobre este cartucho, con las
 herramientas de tools/, y no copiadas de ningun otro proyecto.
 """
 
-HALLAZGOS = {
-    "es": [
-        ("El nivel vive en la VRAM",
-         "<p><code>0x52BB</code> sube el guion de la fase a <code>0x3B80</code>, "
-         "detras de la tabla de atributos de los sprites: entre 723 y 918 "
-         "bytes, segun la fase. El juego tiene <b>un kilobyte de RAM</b> y va "
-         "leyendo su nivel del VDP segun se sube.</p>"),
-
-        ("Las piezas que no borran",
-         "<p><code>0x6889</code> solo borra la fila que deja un objeto al "
-         "bajar si su tipo <b>no</b> lleva el bit 7. Las que lo llevan dejan "
-         "su primera fila detras, y asi se alarga el <b>hilo de las "
-         "aranas</b>.</p>"),
-
-        ("La pantalla es el mapa",
-         "<p>No hay copia del nivel en RAM. Para saber donde pisa el jugador, "
-         "<code>0x61A3</code> lee de la VRAM las dos celdas que tiene bajo los "
-         "pies, y los bichos, antes de avanzar, <b>preguntan a la "
-         "pantalla</b> si la celda de delante deja pasar.</p>"),
-
-        ("El azar es el registro R",
-         "<p>Nueve <code>ld a,r</code>: el contador de refresco del Z80, que "
-         "avanza solo con cada instruccion, decide el color de un bicho, en "
-         "que sitio aparece o que proyectil sale.</p>"),
-
-        ("Nueve cielos, una mascara",
-         "<p>El hueco de cada fase toma el color de <code>(0xE05D)</code>: "
-         "cian, verde claro, amarillo claro, gris, negro... La primera no la "
-         "saca de la tabla de <code>0x741F</code> sino de los valores "
-         "iniciales de <code>0x51C1</code>; con el primer valor de la tabla, "
-         "el cotejo se separa en <b>1.809 bytes</b> de color.</p>"),
-
-        ("Hermano de Circus Charlie",
-         "<p>El descompresor tiene la misma firma de catorce bytes que el del "
-         "RC-712, la escala cromatica son los mismos doce bytes y la vida "
-         "extra sigue la misma regla: <b>el mismo codigo</b>, en otro "
-         "sitio.</p>"),
-    ],
-    "en": [
-        ("The level lives in VRAM",
-         "<p><code>0x52BB</code> uploads the stage script to "
-         "<code>0x3B80</code>, behind the sprite attribute table: between 723 "
-         "and 918 bytes, depending on the stage. The game has <b>one kilobyte "
-         "of RAM</b> and reads its level back from the VDP as you climb.</p>"),
-
-        ("The pieces that do not erase",
-         "<p><code>0x6889</code> only erases the row an object leaves behind "
-         "when its type does <b>not</b> have bit 7 set. The ones that do "
-         "leave their first row behind, and that is how the <b>spiders' "
-         "threads</b> grow.</p>"),
-
-        ("The screen is the map",
-         "<p>There is no copy of the level in RAM. To know where the player "
-         "stands, <code>0x61A3</code> reads the two cells under the player's "
-         "feet from VRAM, and the creatures, before moving, <b>ask the screen</b> "
-         "whether the cell ahead lets them through.</p>"),
-
-        ("Randomness is the R register",
-         "<p>Nine <code>ld a,r</code>: the Z80's refresh counter, which ticks "
-         "by itself with every instruction, decides a creature's colour, "
-         "where it appears or which projectile comes out.</p>"),
-
-        ("Nine skies, one mask",
-         "<p>The empty cell of each stage takes the colour of "
-         "<code>(0xE05D)</code>: cyan, light green, light yellow, grey, "
-         "black... The first one does not come from the table at "
-         "<code>0x741F</code> but from the initial values at "
-         "<code>0x51C1</code>; with the table's first value, the check drifts "
-         "by <b>1,809 bytes</b> of colour.</p>"),
-
-        ("Circus Charlie's sibling",
-         "<p>The decompressor has the same fourteen-byte signature as the "
-         "RC-712's, the chromatic scale is the same twelve bytes and the "
-         "extra life follows the same rule: <b>the same code</b>, somewhere "
-         "else.</p>"),
-    ],
-}
 
 GALERIA = [
     ("arbol-nueve-fases.png",
@@ -133,3 +56,85 @@ GALERIA = [
      "Los sprites de 16x16, desde los bloques de la ROM.",
      "The 16x16 sprites, from the ROM's blocks."),
 ]
+
+NOMBRE = 'Magical Tree'
+
+ANIO = 1984
+
+REPOSITORIO = 'https://github.com/antxiko/MagicalTree-disassembly'
+CODIGO = 8537
+COMENTARIOS = 2258
+DATOS = 7847
+DENSIDAD = '47,4'
+DENSIDAD_EN = '47.4'
+ESTILO = '\n:root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;\n  --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}\n@media (prefers-color-scheme:light){:root{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;\n  --panel:#f7f6f2;--linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}}\n:root[data-theme="dark"]{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;\n  --linea:#23262e;--rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}\n:root[data-theme="light"]{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;--panel:#f7f6f2;\n  --linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--fondo);color:var(--tinta);padding:0 1.25rem 6rem;\n  font:15px/1.7 ui-monospace,"SF Mono",Menlo,Consolas,monospace}\n.w{max-width:1120px;margin:0 auto}\n.n{max-width:68ch}\nh1,h2,h3,h4{font-weight:400;text-wrap:balance}\na{color:var(--cyan)}\nimg{image-rendering:pixelated;max-width:100%;height:auto;display:block}\nheader.top{display:flex;flex-direction:column;align-items:center;gap:1.5rem;\n  padding:4rem 0 2rem;text-align:center}\nheader.top img{width:min(100%,642px)}\n.claim{max-width:60ch;color:var(--suave);font-size:1.05rem}\n.claim b{color:var(--tinta);font-weight:400}\n.ficha{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1.5rem;width:100%;\n  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--suave);\n  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding:.85rem 0}\n.ficha b{color:var(--rojo);font-weight:400}\nnav{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:center;padding:1.25rem 0;\n  font-size:12px;letter-spacing:.08em;text-transform:uppercase}\nnav a{color:var(--suave);text-decoration:none;border-bottom:1px solid transparent}\nnav a:hover,nav a:focus{color:var(--tinta);border-bottom-color:var(--rojo)}\nnav.docs{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);\n  margin-bottom:1rem}\nsection{margin-top:4.5rem;scroll-margin-top:1rem}\nsection>h2{font-size:1rem;letter-spacing:.1em;text-transform:uppercase;\n  border-left:3px solid var(--rojo);padding-left:.9rem;margin:0 0 1.5rem}\n.cifras{display:grid;gap:1px;background:var(--linea);border:1px solid var(--linea);\n  grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}\n.cifra{background:var(--panel);padding:1.1rem}\n.cifra b{display:block;font-size:1.7rem;color:var(--oro);font-weight:400;\n  font-variant-numeric:tabular-nums;line-height:1.2}\n.cifra span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--suave)}\n.hall{border-top:1px solid var(--linea);padding-top:1.75rem;margin-top:2.5rem}\n.hall:first-of-type{border-top:0;padding-top:0;margin-top:0}\n.hall h3{margin:0 0 .75rem;font-size:1.15rem;color:var(--rojo)}\n.hall h4{color:var(--oro);margin:1.5rem 0 .5rem;font-size:.95rem}\n.hall p{margin:0 0 1rem}\npre.asm{background:var(--panel);border-left:2px solid var(--verde);margin:1.25rem 0;\n  padding:1rem 1.1rem;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--tinta)}\n.par{display:grid;gap:1.25rem;grid-template-columns:1fr}\n@media(min-width:820px){.par{grid-template-columns:1fr 1fr}}\n.par figure{margin:0}\ntable{border-collapse:collapse;width:100%;margin:1.25rem 0;font-size:13px;display:block;\n  overflow-x:auto}\nth,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--linea)}\nth{color:var(--suave);font-weight:400;font-size:11px;letter-spacing:.07em;text-transform:uppercase}\ntd.num{font-variant-numeric:tabular-nums;color:var(--oro)}\n.nivel{margin-top:2rem}\n.nivel h3{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}\n.nivel em{color:var(--cyan);font-style:normal}\n.sep{color:var(--suave);margin:0 .6rem}\n.rejilla{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}\n.rejilla figure{margin:0;background:var(--panel);box-shadow:0 0 0 1px var(--linea)}\n.rejilla figcaption{display:flex;justify-content:space-between;padding:.45rem .65rem;\n  font-size:11px;color:var(--suave);border-top:1px solid var(--linea)}\n.dir{font-variant-numeric:tabular-nums;color:var(--verde)}\nfooter{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);\n  color:var(--suave);font-size:12px}\n\n/* Aviso de trabajo en curso: tiene que verse antes que las cifras, porque un\n   100% mal leido hace mas dano que no ponerlo. */\n.aviso{background:#3a2a10;border-left:3px solid var(--oro);margin:1.5rem auto;\n  padding:1rem 1.2rem;max-width:900px;border-radius:4px}\n.aviso p{margin:0;color:var(--tinta);font-size:15px;line-height:1.65}\n.galeria{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));\n  gap:1.5rem;margin:1.5rem 0}\n.galeria figure{margin:0}\n.galeria img{width:100%;height:auto;image-rendering:pixelated;\n  border:1px solid var(--linea);border-radius:3px}\n.galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}\naudio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}\n'
+INSTRUCCIONES = 4767
+RUTINAS = 628
+
+EDITOR = 'Konami'
+
+PORTADA = {
+    'es': dict(
+        titulo='Magical Tree - desensamblado comentado',
+        claim='Un arbol de nueve fases que el cartucho guarda en la VRAM, una pantalla que hace de mapa, y las nueve fases dibujadas desde las tablas sin una celda distinta del emulador.',
+        ficha=['Konami - <b>(c) Konami 1984</b>', 'Cartucho <b>RC-713</b>, 16 KB', 'MSX1 - <b>pagina 1</b>', 'Volcado <b>a3f3ad0d...</b>'],
+        h_num='El cartucho en cifras',
+        cifras=[('100 %', 'del binario explicado'), ('628', 'rutinas con nombre'), ('47,4 %', 'del listado comentado'), ('8.537', 'bytes de codigo'), ('7.847', 'bytes de datos'), ('0', 'bytes sin identificar')],
+        pie_leg='Esto es trabajo de documentacion y preservacion: el codigo y los graficos siguen siendo de sus autores y de Konami, y la imagen del cartucho no se distribuye.',
+        aviso='<b>Aqui no hay ninguna captura.</b> Todas las imagenes estan <b>dibujadas desde los bytes de la ROM</b>: las pantallas con la cadena de montaje del cartucho escrita en Python, y el arbol con <b>el guion de cada fase y su paso del decorado</b>, cotejado contra openMSX a cero celdas. El listado y las cifras se reproducen con <code>make</code>, y el reensamblado devuelve la ROM <b>byte a byte</b>.',
+    ),
+    'en': dict(
+        titulo='Magical Tree - a commented disassembly',
+        claim='A nine-stage tree the cartridge keeps in VRAM, a screen that doubles as the map, and all nine stages drawn from the tables without one cell differing from the emulator.',
+        ficha=['Konami - <b>(c) Konami 1984</b>', 'An <b>RC-713</b> 16 KB cartridge', 'MSX1 - <b>page 1</b>', 'Dump <b>a3f3ad0d...</b>'],
+        h_num='The cartridge in numbers',
+        cifras=[('100%', 'of the binary explained'), ('628', 'named routines'), ('47.4%', 'of the listing commented'), ('8,537', 'bytes of code'), ('7,847', 'bytes of data'), ('0', 'bytes unidentified')],
+        pie_leg='This is documentation and preservation work: the code and artwork still belong to their authors and to Konami, and the cartridge image is not distributed.',
+        aviso="<b>Not one capture here.</b> Every picture is <b>drawn from the bytes of the ROM</b>: the screens with the cartridge's own set-up chain rewritten in Python, and the tree with <b>each stage's script and its scenery step</b>, checked against openMSX down to zero cells. The listing and the numbers are reproducible with <code>make</code>, and reassembling gives back the ROM <b>byte for byte</b>.",
+    ),
+}
+
+# La portada: las cifras y el pie tal como estaban
+for _i, _c in {'es': ([('100 %', 'del binario explicado'), ('628', 'rutinas con nombre'), ('47,4 %', 'del listado comentado'), ('8.537', 'bytes de codigo'), ('7.847', 'bytes de datos'), ('0', 'bytes sin identificar')], 'El cartucho en cifras', 'Esto es trabajo de documentacion y preservacion: el codigo y los graficos siguen siendo de sus autores y de Konami, y la imagen del cartucho no se distribuye.'), 'en': ([('100%', 'of the binary explained'), ('628', 'named routines'), ('47.4%', 'of the listing commented'), ('8,537', 'bytes of code'), ('7,847', 'bytes of data'), ('0', 'bytes unidentified')], 'The cartridge in numbers', 'This is documentation and preservation work: the code and artwork still belong to their authors and to Konami, and the cartridge image is not distributed.')}.items():
+    PORTADA[_i]["cifras"] = _c[0]
+    PORTADA[_i]["h_num"] = _c[1]
+    PORTADA[_i]["pie_leg"] = _c[2]
+PORTADA['es']['aviso'] = '<b>Aqui no hay ninguna captura.</b> Todas las imagenes estan <b>dibujadas desde los bytes de la ROM</b>: las pantallas con la cadena de montaje del cartucho escrita en Python, y el arbol con <b>el guion de cada fase y su paso del decorado</b>, cotejado contra openMSX a cero celdas. El listado y las cifras se reproducen con <code>make</code>, y el reensamblado devuelve la ROM <b>byte a byte</b>.'
+PORTADA['en']['aviso'] = "<b>Not one capture here.</b> Every picture is <b>drawn from the bytes of the ROM</b>: the screens with the cartridge's own set-up chain rewritten in Python, and the tree with <b>each stage's script and its scenery step</b>, checked against openMSX down to zero cells. The listing and the numbers are reproducible with <code>make</code>, and reassembling gives back the ROM <b>byte for byte</b>."
+
+PAGINAS = [
+    [('THE-GAME.html', 'EL-JUEGO.html', 'The game', 'El juego',
+      'what the game is and how it plays',
+      'qu&eacute; es el juego y c&oacute;mo se juega'),
+     ('THE-PICTURES.html', 'LAS-IMAGENES.html', 'What the cartridge draws', 'Lo que el cartucho dibuja',
+      'every picture drawn from the ROM, with its caption',
+      'todas las im&aacute;genes dibujadas desde la ROM, con su pie'),
+     ('THE-MUSIC.html', 'LA-MUSICA.html', 'The music', 'La m&#250;sica',
+      'the tunes, from its own sound engine',
+      'las m&uacute;sicas, de su propio motor de sonido')],
+    [('CURIOSITIES.html', 'CURIOSIDADES.html', 'Curiosities', 'Curiosidades',
+      'what turned up when taking it apart, and what is still open',
+      'lo que apareci&oacute; al desmontarlo y lo que queda abierto')],
+    [('UNDER-THE-HOOD.html', 'POR-DENTRO.html', 'Under the hood', 'Por dentro',
+      'getting started, the cartridge, the code and the emulator',
+      'empezar, el cartucho, el c&oacute;digo y el emulador')],
+]
+
+VIEJAS = {
+    'FINDINGS.html': 'CURIOSITIES.html',
+    'HALLAZGOS.html': 'CURIOSIDADES.html',
+    'GETTING-STARTED.html': 'UNDER-THE-HOOD.html',
+    'EMPEZAR.html': 'POR-DENTRO.html',
+    'IN-THE-EMULATOR.html': 'UNDER-THE-HOOD.html',
+    'EN-EL-EMULADOR.html': 'POR-DENTRO.html',
+    'OPEN-QUESTIONS.html': 'CURIOSITIES.html',
+    'PREGUNTAS-ABIERTAS.html': 'CURIOSIDADES.html',
+    'THE-CARTRIDGE.html': 'UNDER-THE-HOOD.html',
+    'EL-CARTUCHO.html': 'POR-DENTRO.html',
+    'THE-CODE.html': 'UNDER-THE-HOOD.html',
+    'EL-CODIGO.html': 'POR-DENTRO.html',
+}
+
+LOGOTIPO = 'rotulo.png'
+
+PIE_LEGAL = {'es': '<em>Magical Tree</em> lo publico Konami para MSX en 1984; su numero de catalogo es RC-713 y son 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.', 'en': '<em>Magical Tree</em> was published by Konami for the MSX in 1984; its catalogue number is RC-713 and it is 16 KB. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.'}

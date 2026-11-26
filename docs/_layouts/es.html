@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>El juego — Magical Tree (Konami, 1984)</title>
+<title>{{ page.title }} — Magical Tree (Konami, 1984)</title>
 <style>
 :root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
   --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
@@ -82,43 +82,6 @@ footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
 .galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
 audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 </style>
-<div class="w"><nav class="top"><a href="index.html">Portada</a><a href="EMPEZAR.html">Empezar</a><a href="EL-JUEGO.html" style=color:var(--tinta)>El juego</a><a href="EL-CARTUCHO.html">El cartucho</a><a href="EL-CODIGO.html">El código</a><a href="LA-MUSICA.html">La música</a><a href="HALLAZGOS.html">Hallazgos</a><a href="EN-EL-EMULADOR.html">En el emulador</a><a href="PREGUNTAS-ABIERTAS.html">Preguntas abiertas</a><a href="../THE-GAME.html" style="margin-left:auto;color:var(--oro)">English</a></nav>
-<h1 id="el-juego">El juego</h1>
-<p><img src="../imagenes/rotulo.png" alt="El rótulo"></p>
-<p>El protagonista sube por un árbol gigante en <b>nueve fases</b>: de rama en rama, por escaleras y lianas, entre manzanas, nidos, puertas del tronco y arañas.</p>
-<p>Cada fase es un <b>guion</b>: una lista de entradas de tres bytes —pasos desde la anterior, tipo y columna— que el cartucho sube a la VRAM al empezar y va sacando según se trepa. Un paso son ocho píxeles, una fila de celdas. Lo único que no viene en la lista es el tronco del centro.</p>
-<p>Las imágenes de abajo <b>no son capturas ni el cartucho ejecutándose</b>: son el guion de cada fase pasado por el paso del decorado del cartucho, escrito en Python (<code>tools/arbol.py</code>), apilando la fila del medio de la pantalla en cada paso. Cotejadas contra openMSX, subiendo cada fase entera de treinta en treinta pasos: <b>0 celdas distintas en 104.832</b>.</p>
-<h2 id="lo-que-trae-cada-fase">Lo que trae cada fase</h2>
-<table><tr><th>fase</th><th>pasos</th><th>ramas</th><th>manzanas</th><th>arañas</th><th>puertas</th><th>cielo</th></tr><tr><td>1</td><td>451</td><td>98</td><td>21</td><td>5</td><td>10</td><td>cian</td></tr><tr><td>2</td><td>493</td><td>98</td><td>15</td><td>12</td><td>8</td><td>verde claro</td></tr><tr><td>3</td><td>508</td><td>103</td><td>20</td><td>13</td><td>12</td><td>amarillo claro</td></tr><tr><td>4</td><td>498</td><td>103</td><td>23</td><td>14</td><td>12</td><td>gris</td></tr><tr><td>5</td><td>491</td><td>87</td><td>27</td><td>16</td><td>13</td><td>negro</td></tr><tr><td>6</td><td>515</td><td>103</td><td>17</td><td>12</td><td>9</td><td>amarillo claro</td></tr><tr><td>7</td><td>549</td><td>110</td><td>26</td><td>19</td><td>14</td><td>gris</td></tr><tr><td>8</td><td>473</td><td>83</td><td>17</td><td>16</td><td>10</td><td>negro</td></tr><tr><td>9</td><td>515</td><td>114</td><td>26</td><td>19</td><td>15</td><td>negro</td></tr></table>
-<p>La fase 1 empieza en el suelo, junto al río. Las otras ocho empiezan al pie de una sala hueca del tronco, un tramo rojo con dos escaleras arriba y dos abajo. Todas acaban con dos filas rojas y dos ventanas redondas.</p>
-<p>El color del cielo es la máscara de la fase, <code>(0xE05D)</code>: la de la primera sale de los valores iniciales de <code>0x51C1</code>, y las demás de la tabla de <code>0x741F</code>.</p>
-<h2 id="las-nueve-fases">Las nueve fases</h2>
-<p>De abajo arriba, como se suben. Primero las nueve juntas, apoyadas en el suelo, y después cada una a tamaño completo.</p>
-<p><img src="../imagenes/arbol-nueve-fases.png" alt="Las nueve fases, una al lado de otra"></p>
-<h3 id="fase-1">Fase 1</h3>
-<p><img src="../imagenes/arbol-fase-1.png" alt="Fase 1"></p>
-<h3 id="fase-2">Fase 2</h3>
-<p><img src="../imagenes/arbol-fase-2.png" alt="Fase 2"></p>
-<h3 id="fase-3">Fase 3</h3>
-<p><img src="../imagenes/arbol-fase-3.png" alt="Fase 3"></p>
-<h3 id="fase-4">Fase 4</h3>
-<p><img src="../imagenes/arbol-fase-4.png" alt="Fase 4"></p>
-<h3 id="fase-5">Fase 5</h3>
-<p><img src="../imagenes/arbol-fase-5.png" alt="Fase 5"></p>
-<h3 id="fase-6">Fase 6</h3>
-<p><img src="../imagenes/arbol-fase-6.png" alt="Fase 6"></p>
-<h3 id="fase-7">Fase 7</h3>
-<p><img src="../imagenes/arbol-fase-7.png" alt="Fase 7"></p>
-<h3 id="fase-8">Fase 8</h3>
-<p><img src="../imagenes/arbol-fase-8.png" alt="Fase 8"></p>
-<h3 id="fase-9">Fase 9</h3>
-<p><img src="../imagenes/arbol-fase-9.png" alt="Fase 9"></p>
-<h2 id="entre-fase-y-fase-y-el-castillo">Entre fase y fase, y el castillo</h2>
-<p>Al cambiar de fase, <code>0x7629</code> pinta un árbol de 32 columnas <b>del centro hacia fuera</b>, con los colores de la fase que empieza. Al acabar la novena pinta el castillo, y encima las ventanas de <code>0x7600</code> con los dos personajes y el rótulo. Los dos cotejados contra openMSX a <b>0 bytes</b>.</p>
-<p><img src="../imagenes/decorado-A.png" alt="El árbol de entre fases"></p>
-<p><img src="../imagenes/decorado-B.png" alt="El castillo"></p>
-<h2 id="las-pantallas-de-menu">Las pantallas de menú</h2>
-<p>Montadas desde la ROM y cotejadas contra openMSX a <b>0 bytes</b>.</p>
-<p><img src="../imagenes/pantalla-presentacion.png" alt="La pantalla de la casa"></p>
-<p><img src="../imagenes/pantalla-titulo.png" alt="La pantalla de título"></p>
+<div class="w"><nav class="top"><a href="index.html"{% if page.name == "index.md" %} style=color:var(--tinta){% endif %}>Portada</a><span style="opacity:.35">|</span><a href="EL-JUEGO.html"{% if page.name == "EL-JUEGO.md" %} style=color:var(--tinta){% endif %}>El juego</a><a href="LAS-IMAGENES.html"{% if page.name == "LAS-IMAGENES.md" %} style=color:var(--tinta){% endif %}>Lo que el cartucho dibuja</a><a href="LA-MUSICA.html"{% if page.name == "LA-MUSICA.md" %} style=color:var(--tinta){% endif %}>La m&#250;sica</a><span style="opacity:.35">|</span><a href="CURIOSIDADES.html"{% if page.name == "CURIOSIDADES.md" %} style=color:var(--tinta){% endif %}>Curiosidades</a><span style="opacity:.35">|</span><a href="POR-DENTRO.html"{% if page.name == "POR-DENTRO.md" %} style=color:var(--tinta){% endif %}>Por dentro</a><a href="../{% case page.name %}{% when "EL-JUEGO.md" %}THE-GAME.html{% when "LAS-IMAGENES.md" %}THE-PICTURES.html{% when "LA-MUSICA.md" %}THE-MUSIC.html{% when "CURIOSIDADES.md" %}CURIOSITIES.html{% when "POR-DENTRO.md" %}UNDER-THE-HOOD.html{% else %}index.html{% endcase %}" style="margin-left:auto;color:var(--oro)">English</a></nav>
+{{ content }}
 <footer><p><em>Magical Tree</em> lo publico Konami para MSX en 1984; su numero de catalogo es RC-713 y son 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>

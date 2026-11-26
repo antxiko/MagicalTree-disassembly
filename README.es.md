@@ -14,5 +14,5 @@ openMSX: **156 volcados, 104.832 celdas, cero distintas**.
 La ROM no se distribuye.
 
 - Web: https://antxiko.github.io/MagicalTree-disassembly/es/
-- Para empezar: [docs/es/EMPEZAR.md](docs/es/EMPEZAR.md)
+- Para empezar: [docs/es/POR-DENTRO.md](docs/es/POR-DENTRO.md)
 - Aviso legal: [AVISO-LEGAL.md](AVISO-LEGAL.md)

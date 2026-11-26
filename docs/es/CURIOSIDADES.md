@@ -1,4 +1,6 @@
-# Hallazgos
+# Curiosidades
+
+## Hallazgos
 
 1. **El guion de la fase vive en la VRAM.** `0x52BB` lo sube a `0x3B80`,
    detrás de los atributos de los sprites, y el paso del decorado lo va leyendo
@@ -36,3 +38,15 @@
 13. **El decorado de entre fases se pinta del centro hacia fuera.** `0x7629`
     saca las columnas en orden, pero el vaivén del plazo las pone en la 15, la
     16, la 14, la 17... Puestas en el orden de la tabla, el castillo sale revuelto.
+
+## Preguntas abiertas
+
+- **Qué pasa tras la novena fase.** La tabla de `0x4E1B` tiene diez punteros y
+  el décimo repite el primero, y `0x7545` repone trece valores iniciales —la
+  fase y su máscara entre ellos—, pero no se ha seguido en el emulador.
+- **El guion de `0x53E4`** que arranca cada vida, con su plazo en `0xE24D`: se
+  sabe cómo se recorre, no qué dice cada byte.
+- **Los tipos `0x93`/`0x94`** —las figuras azules del tronco— **y
+  `0xC9`/`0xCA`**: se sabe qué pieza pintan, no qué son en la partida.
+- **Los metros del marcador.** La altura se divide entre dieciséis
+  (`0x66C5`), pero no está medido cuántos pasos hay en un metro.

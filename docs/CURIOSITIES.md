@@ -1,4 +1,6 @@
-# Findings
+# Curiosities
+
+## Findings
 
 1. **The stage script lives in VRAM.** `0x52BB` uploads it to `0x3B80`,
    behind the sprite attributes, and the scenery step reads it back from there
@@ -35,3 +37,17 @@
 13. **The between-stages scenery is painted from the middle outwards.**
     `0x7629` takes the columns in order, but the timer's back-and-forth puts
     them in 15, 16, 14, 17... Laid out in table order, the castle comes out scrambled.
+
+## Open questions
+
+- **What happens after the ninth stage.** The table at `0x4E1B` has ten
+  pointers and the tenth repeats the first, and `0x7545` restores thirteen
+  initial values —the stage and its mask among them—, but it has not been
+  followed in the emulator.
+- **The script at `0x53E4`** that starts each life, with its timer at
+  `0xE24D`: how it is walked is known, not what each byte says.
+- **Types `0x93`/`0x94`** —the blue figures on the trunk— **and
+  `0xC9`/`0xCA`**: which piece they draw is known, not what they are in the
+  game.
+- **The scoreboard's metres.** The height is divided by sixteen (`0x66C5`),
+  but how many steps make a metre has not been measured.

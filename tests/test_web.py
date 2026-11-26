@@ -43,8 +43,8 @@ CITAS_LEGITIMAS = {
     "FINDINGS.md": (("same code",), ("Circus Charlie",)),
     "index.html": (("mismo codigo", "same code"), ("Circus Charlie",)),
 }
-CITAS_LEGITIMAS["HALLAZGOS.html"] = CITAS_LEGITIMAS["HALLAZGOS.md"]
-CITAS_LEGITIMAS["FINDINGS.html"] = CITAS_LEGITIMAS["FINDINGS.md"]
+CITAS_LEGITIMAS["CURIOSIDADES.md"] = CITAS_LEGITIMAS["HALLAZGOS.md"]
+CITAS_LEGITIMAS["CURIOSITIES.md"] = CITAS_LEGITIMAS["FINDINGS.md"]
 
 # La seccion del codigo compartido con los otros Konami de la serie los
 # nombra a proposito: la escribe pon_en_webs.py, de MSX-disassembly-database.
@@ -80,7 +80,7 @@ class LasCifrasDeLaPortada(unittest.TestCase):
     """Las cifras que declara make_web.py tienen que ser las del listado."""
 
     def setUp(self):
-        import make_web
+        import contenido_web as make_web
         self.w = make_web
 
     def test_la_suma_de_bytes_da_el_cartucho(self):
@@ -118,7 +118,7 @@ class LasCifrasDeLaPortada(unittest.TestCase):
                 sha = linea.split("=")[1].strip()
         self.assertIsNotNone(sha)
         for idioma in ("es", "en"):
-            ficha = " ".join(self.w.TXT[idioma]["ficha"])
+            ficha = " ".join(self.w.PORTADA[idioma]["ficha"])
             self.assertIn(sha[:8], ficha)
             self.assertIn("RC-713", ficha)
 
@@ -166,7 +166,7 @@ class SinNombresDeOtroJuego(unittest.TestCase):
                                  % (os.path.relpath(ruta, RAIZ), pega))
 
     def test_las_herramientas_de_la_web_no_apuntan_a_otro_juego(self):
-        for fn in ("make_web.py", "md2html.py", "contenido_web.py",
+        for fn in ("contenido_web.py", "jekyll.py", "contenido_web.py",
                    "arbol.py", "coteja_fases.py", "omsx_fases.tcl",
                    "graficos.py"):
             self._sin_ficheros_de_otro(os.path.join(RAIZ, "tools", fn))
